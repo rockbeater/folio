@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { invalidateAll } from '$app/navigation';
 	import { createI18n, provideI18n } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
 	import Banner from '$lib/components/client/Banner.svelte';
 	import Cover from '$lib/components/client/Cover.svelte';
 	import DownloadDialog from '$lib/components/client/DownloadDialog.svelte';
 	import EmailDialog from '$lib/components/client/EmailDialog.svelte';
+	import ClientLoginDialog from '$lib/components/client/ClientLoginDialog.svelte';
 	import ExpiredPage from '$lib/components/client/ExpiredPage.svelte';
 	import GalleryAssist from '$lib/components/client/GalleryAssist.svelte';
 	import GalleryHeader from '$lib/components/client/GalleryHeader.svelte';
@@ -22,7 +24,22 @@
 	const { t } = i18n;
 
 	// svelte-ignore state_referenced_locally
-	const gallery = setGalleryState(new GalleryState(data.gallery.slug, data.visitor.email, data.visitor.favorites));
+	const gallery = setGalleryState(
+		new GalleryState({ slug: data.gallery.slug, visitor: data.visitor, canMarkPrivate: data.gallery.canMarkPrivate, t })
+	);
+	// Keep the state in step with the server after logins and navigation.
+	$effect(() => {
+		gallery.apply(data.visitor);
+		gallery.canMarkPrivate = data.gallery.canMarkPrivate;
+	});
+	let clientDialog = $state(false);
+
+	async function clientLogout() {
+		await fetch(`/g/${data.gallery.slug}/api/client`, { method: 'DELETE' }).catch(() => null);
+		gallery.stopSelecting();
+		await invalidateAll();
+		toast(t('client.clientLogin.loggedOut'));
+	}
 
 	const isLanding = $derived(page.route.id === '/g/[slug]');
 	const activeSlug = $derived(
@@ -125,6 +142,12 @@
 				ondownload={() => (gallery.download = { scope: 'all', sectionId: activeSection?.id })}
 				onshare={share}
 				onslideshow={() => (gallery.slideshowRequests += 1)}
+				clientLogin={data.gallery.clientLogin && !data.isAdmin}
+				isClient={data.gallery.role === 'client'}
+				canSelect={data.gallery.canMarkPrivate && page.route.id !== '/g/[slug]/favorites'}
+				onclientlogin={() => (clientDialog = true)}
+				onclientlogout={clientLogout}
+				onselect={() => (gallery.selecting = true)}
 			/>
 			<main class="content">
 				{#if data.pending > 0}
@@ -139,6 +162,9 @@
 		{/if}
 		{#if gallery.emailPrompt}
 			<EmailDialog />
+		{/if}
+		{#if clientDialog}
+			<ClientLoginDialog slug={data.gallery.slug} onclose={() => (clientDialog = false)} />
 		{/if}
 		{#if options.galleryAssist && !data.isPreview}
 			<GalleryAssist galleryId={data.gallery.id} favorites={data.gallery.favoritesEnabled} downloads={canDownloadSomething} />

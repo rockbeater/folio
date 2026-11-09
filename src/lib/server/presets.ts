@@ -3,7 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import type { Gallery, Preset, PresetSettings } from './db/schema';
 import { getPreferences } from './settings';
-import { DEFAULT_DESIGN, DEFAULT_DOWNLOAD, DEFAULT_OPTIONS, normalizeDesign, normalizeDownload, normalizeOptions } from '$lib/types';
+import { DEFAULT_ACCESS, DEFAULT_DESIGN, DEFAULT_DOWNLOAD, DEFAULT_OPTIONS, normalizeAccess, normalizeDesign, normalizeDownload, normalizeOptions } from '$lib/types';
 
 export function listPresets(): Preset[] {
 	return getDb().select().from(schema.presets).orderBy(asc(schema.presets.createdAt)).all();
@@ -27,7 +27,8 @@ export function settingsFromGallery(g: Gallery): PresetSettings {
 		language: g.language,
 		watermarkId: g.watermarkId,
 		expiryDays,
-		reminderDays: g.reminderDays
+		reminderDays: g.reminderDays,
+		access: { ...normalizeAccess(g.access), clientPassword: null, clientSections: [] }
 	};
 }
 
@@ -73,7 +74,8 @@ export function galleryValuesFromSettings(settings: PresetSettings) {
 		language: settings.language ?? getPreferences().defaultLanguage,
 		watermarkId: settings.watermarkId ?? null,
 		expiresOn: settings.expiryDays ? addDays(settings.expiryDays) : null,
-		reminderDays: settings.reminderDays ?? null
+		reminderDays: settings.reminderDays ?? null,
+		access: { ...normalizeAccess(settings.access ?? DEFAULT_ACCESS), clientPassword: null, clientSections: [] as string[] }
 	};
 }
 

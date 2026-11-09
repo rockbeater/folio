@@ -135,6 +135,24 @@ export const actions: Actions = {
 		return { tab: 'preferences', saved: true };
 	},
 
+	homepage: async ({ request }) => {
+		const form = await request.formData();
+		const links = String(form.get('links') ?? '')
+			.split(/\s+/)
+			.map((l) => l.trim())
+			.filter((l) => /^https?:\/\/[^\s]+$/i.test(l))
+			.slice(0, 8);
+		savePreferences({
+			homepage: {
+				enabled: form.get('enabled') === 'on',
+				title: String(form.get('title') ?? '').trim().slice(0, 120),
+				intro: String(form.get('intro') ?? '').trim().slice(0, 2000),
+				links
+			}
+		});
+		return { tab: 'homepage', saved: true };
+	},
+
 	smtp: async ({ request }) => {
 		if (config.smtpFromEnv) return fail(400, { tab: 'email' });
 		const form = await request.formData();

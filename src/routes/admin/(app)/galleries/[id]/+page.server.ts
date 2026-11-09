@@ -1,8 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, desc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
-import type { ActivityDetail } from '$lib/server/db/schema';
+import type { ActivityDetail, Gallery } from '$lib/server/db/schema';
 import { getGalleryById, getPhotosBySection, getSection, getSections, processingStats, toPhotoView, touchGallery } from '$lib/server/galleries';
 import {
 	copyPhotos,
@@ -19,15 +19,18 @@ import { cancelScheduledEmail, queueGalleryEmail, resendEmail, sendGalleryTest }
 import { listTemplates, pickTemplate } from '$lib/server/mail/templates';
 import { galleryValuesFromSettings, getPreset, listPresets, savePreset, settingsFromGallery } from '$lib/server/presets';
 import { getStudio, isSmtpConfigured } from '$lib/server/settings';
+import { createShareLink, deleteShareLink, getShareLink, listShareLinks, updateShareLink, type ShareLinkInput } from '$lib/server/shares';
 import { listWatermarks } from '$lib/server/watermarks';
 import { slugify } from '$lib/slug';
 import {
 	HIGH_RES_SIZES,
+	normalizeAccess,
 	normalizeDesign,
 	normalizeDownload,
 	normalizeOptions,
 	SUPPORTED_LANGUAGES,
 	WEB_SIZES,
+	type GalleryAccess,
 	type GalleryStatus,
 	type HighResSize,
 	type WebSize
@@ -43,12 +46,19 @@ function requireGallery(id: string) {
 	return gallery;
 }
 
+/** Presets and copied settings never replace a gallery's own client password and client sections. */
+function keepClientAccess(access: GalleryAccess, gallery: Gallery): GalleryAccess {
+	const own = normalizeAccess(gallery.access);
+	return { ...access, clientPassword: own.clientPassword, clientSections: own.clientSections };
+}
+
 function baseUrlFor(url: URL): string {
 	return config.baseUrl || url.origin;
 }
 
-function activityFor(galleryId: string, sectionNames: Map<string, string>, photoNames: Map<string, string>) {
+function activityFor(gallery: Gallery, sectionNames: Map<string, string>, photoNames: Map<string, string>) {
 	const db = getDb();
+	const galleryId = gallery.id;
 	const counts = db
 		.select({ kind: schema.activity.kind, count: sql<number>`count(*)` })
 		.from(schema.activity)
@@ -91,15 +101,62 @@ function activityFor(galleryId: string, sectionNames: Map<string, string>, photo
 	const downloadsByEmail = new Map<string, number>();
 	for (const d of downloads) if (d.email) downloadsByEmail.set(d.email, (downloadsByEmail.get(d.email) ?? 0) + 1);
 
-	const favoriteRows = db
-		.select({ email: schema.visitors.email, filename: schema.photos.filename })
-		.from(schema.favorites)
-		.innerJoin(schema.visitors, eq(schema.visitors.id, schema.favorites.visitorId))
-		.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
-		.where(eq(schema.visitors.galleryId, galleryId))
+	// Favorite lists with their photos and notes, per visitor.
+	const lists = db
+		.select({
+			id: schema.favoriteLists.id,
+			name: schema.favoriteLists.name,
+			presetId: schema.favoriteLists.presetId,
+			submittedAt: schema.favoriteLists.submittedAt,
+			shareToken: schema.favoriteLists.shareToken,
+			sharePrivate: schema.favoriteLists.sharePrivate,
+			shareViews: schema.favoriteLists.shareViews,
+			shareDownloads: schema.favoriteLists.shareDownloads,
+			email: schema.visitors.email
+		})
+		.from(schema.favoriteLists)
+		.innerJoin(schema.visitors, eq(schema.visitors.id, schema.favoriteLists.visitorId))
+		.where(eq(schema.favoriteLists.galleryId, gallery.id))
+		.orderBy(asc(schema.favoriteLists.createdAt))
 		.all();
-	const favoritesByEmail = new Map<string, string[]>();
-	for (const row of favoriteRows) favoritesByEmail.set(row.email, [...(favoritesByEmail.get(row.email) ?? []), row.filename]);
+	const items = new Map<string, { filename: string; note: string | null }[]>();
+	for (const row of db
+		.select({ listId: schema.favorites.listId, filename: schema.photos.filename, note: schema.favorites.note })
+		.from(schema.favorites)
+		.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
+		.innerJoin(schema.favoriteLists, eq(schema.favoriteLists.id, schema.favorites.listId))
+		.where(eq(schema.favoriteLists.galleryId, gallery.id))
+		.orderBy(asc(schema.favorites.createdAt))
+		.all()) {
+		items.set(row.listId, [...(items.get(row.listId) ?? []), { filename: row.filename, note: row.note }]);
+	}
+	const presetNames = new Map(normalizeAccess(gallery.access).lists.map((p) => [p.id, p.name]));
+	const favoriteLists = lists
+		.map((l) => ({
+			id: l.id,
+			email: l.email,
+			name: (l.presetId && presetNames.get(l.presetId)) || l.name,
+			submittedAt: l.submittedAt,
+			items: items.get(l.id) ?? [],
+			share: l.shareToken ? { token: l.shareToken, private: l.sharePrivate, views: l.shareViews, downloads: l.shareDownloads } : null
+		}))
+		.filter((l) => l.items.length > 0 || l.share);
+
+	const allPhotos = [...getPhotosBySection(gallery.id).values()].flat();
+	const privatePhotos = allPhotos.filter((p) => p.private).map((p) => ({ id: p.id, filename: p.filename, section: sectionNames.get(p.sectionId) ?? '' }));
+	const shareLinks = listShareLinks(gallery.id).map((l) => ({
+		id: l.id,
+		token: l.token,
+		name: l.name,
+		count: l.photoIds.length,
+		download: l.download,
+		expiresOn: l.expiresOn,
+		password: l.password,
+		active: l.active,
+		views: l.views,
+		downloads: l.downloads,
+		createdAt: l.createdAt
+	}));
 
 	return {
 		visits: count('visit'),
@@ -107,7 +164,9 @@ function activityFor(galleryId: string, sectionNames: Map<string, string>, photo
 		registrations: count('registration'),
 		downloads,
 		visitors: visitors.map((v) => ({ ...v, downloads: downloadsByEmail.get(v.email) ?? 0 })),
-		favorites: [...favoritesByEmail.entries()].map(([email, files]) => ({ email, files }))
+		favoriteLists,
+		privatePhotos,
+		shareLinks
 	};
 }
 
@@ -139,10 +198,11 @@ export const load: PageServerLoad = ({ params, url }) => {
 			sentAt: schema.emailLog.sentAt
 		})
 		.from(schema.emailLog)
-		.where(and(eq(schema.emailLog.galleryId, gallery.id), ne(schema.emailLog.kind, 'test')))
+		.where(and(eq(schema.emailLog.galleryId, gallery.id), inArray(schema.emailLog.kind, ['gallery', 'reminder'])))
 		.orderBy(desc(schema.emailLog.createdAt))
 		.limit(50)
-		.all();
+		.all()
+		.map((e) => ({ ...e, kind: e.kind as 'gallery' | 'reminder' }));
 
 	return {
 		gallery: {
@@ -160,6 +220,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 			design: normalizeDesign(gallery.design),
 			download: normalizeDownload(gallery.download),
 			options: normalizeOptions(gallery.options),
+			access: normalizeAccess(gallery.access),
 			favoritesEnabled: gallery.favoritesEnabled,
 			language: gallery.language,
 			clientName: gallery.clientName,
@@ -174,7 +235,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 		},
 		sections,
 		stats: processingStats(gallery.id).get(gallery.id) ?? { total: 0, ready: 0, pending: 0, failed: 0 },
-		activity: activityFor(gallery.id, sectionNames, photoNames),
+		activity: activityFor(gallery, sectionNames, photoNames),
 		templates: listTemplates('delivery').map((t) => ({
 			id: t.id,
 			name: t.name,
@@ -214,6 +275,18 @@ async function formOf(request: Request) {
 				return null;
 			}
 		}
+	};
+}
+
+function linkInput(f: Awaited<ReturnType<typeof formOf>>): ShareLinkInput | null {
+	const name = f.str('name').slice(0, 100);
+	if (!name) return null;
+	const expiresOn = f.str('expiresOn');
+	return {
+		name,
+		download: { enabled: f.bool('dlEnabled'), highRes: f.bool('dlHighRes'), web: f.bool('dlWeb') },
+		expiresOn: DATE.test(expiresOn) ? expiresOn : null,
+		password: f.str('password').slice(0, 100) || null
 	};
 }
 
@@ -368,6 +441,63 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
+	unmarkPrivate: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const ids = (await formOf(request)).json<string[]>('ids') ?? [];
+		if (ids.length) {
+			getDb()
+				.update(schema.photos)
+				.set({ private: false })
+				.where(and(eq(schema.photos.galleryId, gallery.id), inArray(schema.photos.id, ids)))
+				.run();
+		}
+		return { ok: true };
+	},
+
+	createLink: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const ids = new Set([...getPhotosBySection(gallery.id).values()].flat().map((p) => p.id));
+		const photoIds = (f.json<string[]>('ids') ?? []).filter((id) => ids.has(id));
+		if (photoIds.length === 0) return fail(400, { error: 'noPhotos' });
+		const input = linkInput(f);
+		if (!input) return fail(400, { error: 'linkName' });
+		const link = createShareLink(gallery.id, photoIds, input);
+		return { ok: true, linkToken: link.token };
+	},
+
+	updateLink: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const link = getShareLink(f.str('id'));
+		if (!link || link.galleryId !== gallery.id) return fail(404);
+		const input = linkInput(f);
+		if (!input) return fail(400, { error: 'linkName' });
+		updateShareLink(link.id, input);
+		return { ok: true };
+	},
+
+	toggleLink: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const link = getShareLink(f.str('id'));
+		if (!link || link.galleryId !== gallery.id) return fail(404);
+		if (f.has('delete')) deleteShareLink(link.id);
+		else updateShareLink(link.id, { active: f.bool('active') });
+		return { ok: true };
+	},
+
+	unshareList: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		getDb()
+			.update(schema.favoriteLists)
+			.set({ shareToken: null })
+			.where(and(eq(schema.favoriteLists.id, f.str('id')), eq(schema.favoriteLists.galleryId, gallery.id)))
+			.run();
+		return { ok: true };
+	},
+
 	movePhotos: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
@@ -417,8 +547,33 @@ export const actions: Actions = {
 	privacy: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
-		touchGallery(gallery.id, { password: f.str('password').slice(0, 100) || null });
+		const access = normalizeAccess(gallery.access);
+		touchGallery(gallery.id, { password: f.str('password').slice(0, 100) || null, access: { ...access, homepage: f.bool('homepage') } });
 		return { ok: true, section: 'privacy' };
+	},
+
+	clientAccess: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const access = normalizeAccess(gallery.access);
+		const sectionIds = new Set(getSections(gallery.id).map((s) => s.id));
+		const password = f.str('clientPassword').trim().slice(0, 100) || null;
+		const enabled = f.bool('clientEnabled');
+		if (enabled && !password) return fail(400, { section: 'client', error: 'clientPassword' });
+		if (enabled && password && password === gallery.password) return fail(400, { section: 'client', error: 'samePassword' });
+		touchGallery(gallery.id, {
+			access: {
+				...access,
+				clientEnabled: enabled,
+				clientPassword: password,
+				clientSections: f.all('clientSections').filter((id) => sectionIds.has(id)),
+				clientPrivate: f.bool('clientPrivate'),
+				clientDownload: f.str('clientDownloadMode') === 'custom'
+					? { enabled: f.bool('cdEnabled'), highRes: f.bool('cdHighRes'), web: f.bool('cdWeb') }
+					: null
+			}
+		});
+		return { ok: true, section: 'client' };
 	},
 
 	watermark: async ({ params, request }) => {
@@ -472,7 +627,12 @@ export const actions: Actions = {
 	favorites: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
-		touchGallery(gallery.id, { favoritesEnabled: f.bool('enabled') });
+		const access = normalizeAccess(gallery.access);
+		const lists = normalizeAccess({ lists: f.json<unknown[]>('lists') ?? access.lists }).lists.slice(0, 20);
+		touchGallery(gallery.id, {
+			favoritesEnabled: f.bool('enabled'),
+			access: { ...access, listSharing: f.bool('listSharing'), privateShareDefault: f.bool('privateShareDefault'), lists }
+		});
 		return { ok: true, section: 'favorites' };
 	},
 
@@ -482,7 +642,7 @@ export const actions: Actions = {
 		const preset = getPreset(f.str('presetId'));
 		if (!preset) return fail(404);
 		const values = galleryValuesFromSettings(preset.settings);
-		touchGallery(gallery.id, { ...values, reminderSentAt: null });
+		touchGallery(gallery.id, { ...values, access: keepClientAccess(values.access, gallery), reminderSentAt: null });
 		return { ok: true };
 	},
 
@@ -502,7 +662,7 @@ export const actions: Actions = {
 		if (!source) return fail(404);
 		const values = galleryValuesFromSettings(settingsFromGallery(source));
 		// Keep this gallery's own expiry date; only copy how things look and work.
-		touchGallery(gallery.id, { ...values, expiresOn: gallery.expiresOn, reminderSentAt: null });
+		touchGallery(gallery.id, { ...values, access: keepClientAccess(values.access, gallery), expiresOn: gallery.expiresOn, reminderSentAt: null });
 		return { ok: true };
 	},
 

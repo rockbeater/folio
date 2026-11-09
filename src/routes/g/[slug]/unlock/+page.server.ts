@@ -1,6 +1,5 @@
-import crypto from 'node:crypto';
 import { error, redirect } from '@sveltejs/kit';
-import { unlockGallery } from '$lib/server/access';
+import { clientPasswordOf, loginClient, samePassword, unlockGallery } from '$lib/server/access';
 import { getGalleryBySlug } from '$lib/server/galleries';
 import { rateLimit, resetRateLimit } from '$lib/server/ratelimit';
 import type { Actions, PageServerLoad } from './$types';
@@ -9,13 +8,8 @@ export const load: PageServerLoad = ({ params }) => redirect(303, `/g/${params.s
 
 function safeRedirect(slug: string, value: FormDataEntryValue | null): string {
 	const target = typeof value === 'string' ? value : '';
-	return target.startsWith(`/g/${slug}`) && !target.startsWith('//') ? target : `/g/${slug}`;
-}
-
-function equal(a: string, b: string): boolean {
-	const x = crypto.createHash('sha256').update(a).digest();
-	const y = crypto.createHash('sha256').update(b).digest();
-	return crypto.timingSafeEqual(x, y);
+	const allowed = target.startsWith(`/g/${slug}`) || target.startsWith('/l/');
+	return allowed && !target.startsWith('//') ? target : `/g/${slug}`;
 }
 
 export const actions: Actions = {
@@ -30,10 +24,14 @@ export const actions: Actions = {
 		if (!rateLimit(key, 10, 15 * 60 * 1000)) redirect(303, `${target}?error=tooMany`);
 
 		const password = String(form.get('password') ?? '').trim();
-		if (!equal(password, gallery.password)) redirect(303, `${target}?error=wrong`);
+		// The client password opens the gallery too, and logs the client in.
+		const clientPassword = clientPasswordOf(gallery);
+		const isClientPassword = Boolean(clientPassword) && samePassword(password, clientPassword!);
+		if (!isClientPassword && !samePassword(password, gallery.password)) redirect(303, `${target}?error=wrong`);
 
 		resetRateLimit(key);
 		unlockGallery(cookies, url, gallery);
+		if (isClientPassword) loginClient(cookies, url, gallery);
 		redirect(303, target);
 	}
 };

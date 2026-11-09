@@ -145,6 +145,96 @@ export function normalizeOptions(input: unknown): GalleryOptions {
 	};
 }
 
+/** Who is looking at a gallery. The owner (admin) sees everything a client sees. */
+export type Role = 'guest' | 'client' | 'owner';
+
+/** A predefined favorite list with an optional limit, e.g. "Album: pick 30". */
+export interface ListPreset {
+	id: string;
+	name: string;
+	limit: number | null;
+}
+
+/** Download overrides for the client; null means the client gets the guest settings. */
+export interface ClientDownload {
+	enabled: boolean;
+	highRes: boolean;
+	web: boolean;
+}
+
+/** Guest and client access, favorite lists and sharing (Settings → Privacy and Favorites). */
+export interface GalleryAccess {
+	/** Show the gallery on the public homepage. */
+	homepage: boolean;
+	clientEnabled: boolean;
+	clientPassword: string | null;
+	/** Sections only the client can see. */
+	clientSections: string[];
+	/** The client may mark single photos as private (hidden from guests). */
+	clientPrivate: boolean;
+	clientDownload: ClientDownload | null;
+	/** Visitors may share their favorite lists with a link. */
+	listSharing: boolean;
+	/** New shares are private (only the list) unless the visitor changes it. */
+	privateShareDefault: boolean;
+	lists: ListPreset[];
+}
+
+export const DEFAULT_ACCESS: GalleryAccess = {
+	homepage: false,
+	clientEnabled: false,
+	clientPassword: null,
+	clientSections: [],
+	clientPrivate: true,
+	clientDownload: null,
+	listSharing: true,
+	privateShareDefault: true,
+	lists: []
+};
+
+export function normalizeAccess(input: unknown): GalleryAccess {
+	const d = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+	const cd = d.clientDownload && typeof d.clientDownload === 'object' ? (d.clientDownload as Record<string, unknown>) : null;
+	const lists = Array.isArray(d.lists) ? d.lists : [];
+	return {
+		homepage: bool(d.homepage, DEFAULT_ACCESS.homepage),
+		clientEnabled: bool(d.clientEnabled, DEFAULT_ACCESS.clientEnabled),
+		clientPassword: typeof d.clientPassword === 'string' && d.clientPassword ? d.clientPassword : null,
+		clientSections: Array.isArray(d.clientSections) ? d.clientSections.filter((v): v is string => typeof v === 'string') : [],
+		clientPrivate: bool(d.clientPrivate, DEFAULT_ACCESS.clientPrivate),
+		clientDownload: cd ? { enabled: bool(cd.enabled, true), highRes: bool(cd.highRes, true), web: bool(cd.web, true) } : null,
+		listSharing: bool(d.listSharing, DEFAULT_ACCESS.listSharing),
+		privateShareDefault: bool(d.privateShareDefault, DEFAULT_ACCESS.privateShareDefault),
+		lists: lists
+			.filter((l): l is Record<string, unknown> => Boolean(l) && typeof l === 'object')
+			.filter((l) => typeof l.id === 'string' && typeof l.name === 'string' && l.name.trim() !== '')
+			.map((l) => ({
+				id: l.id as string,
+				name: (l.name as string).trim().slice(0, 60),
+				limit: typeof l.limit === 'number' && l.limit > 0 ? Math.floor(l.limit) : null
+			}))
+	};
+}
+
+/** Download settings for a role: the client may have its own sizes and on/off switch. */
+export function effectiveDownload(download: DownloadSettings, access: GalleryAccess, role: Role): DownloadSettings {
+	if (role === 'guest' || !access.clientEnabled || !access.clientDownload) return download;
+	const cd = access.clientDownload;
+	return { ...download, enabled: cd.enabled, highRes: cd.highRes, web: cd.web };
+}
+
+/** A favorite list as the visitor sees it. */
+export interface ListView {
+	id: string;
+	/** Empty for the visitor's default list. */
+	name: string;
+	limit: number | null;
+	preset: boolean;
+	count: number;
+	submitted: boolean;
+	share: { token: string; private: boolean } | null;
+}
+
 export type WatermarkPosition =
 	| 'center'
 	| 'top-left'
@@ -187,6 +277,8 @@ export interface PhotoView {
 	/** Cache key used in image URLs: the photo version, plus the watermark key if one applies. */
 	key: string;
 	ready: boolean;
+	/** Marked private by the client (only the client and the owner ever get these). */
+	private: boolean;
 }
 
 export interface SectionView {
@@ -194,6 +286,8 @@ export interface SectionView {
 	name: string;
 	slug: string;
 	count: number;
+	/** Only the client can see this section. */
+	clientOnly: boolean;
 }
 
 export function displayUrl(photo: { id: string; key: string }, width: DisplayWidth): string {

@@ -2,7 +2,16 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import type { Gallery, Photo, Section } from './db/schema';
 import { naturalCompare } from '$lib/slug';
-import { normalizeDesign, normalizeDownload, normalizeOptions, type PhotoView, type SectionView } from '$lib/types';
+import {
+	effectiveDownload,
+	normalizeAccess,
+	normalizeDesign,
+	normalizeDownload,
+	normalizeOptions,
+	type PhotoView,
+	type Role,
+	type SectionView
+} from '$lib/types';
 
 export function getGalleryById(id: string): Gallery | undefined {
 	return getDb().select().from(schema.galleries).where(eq(schema.galleries.id, id)).get();
@@ -62,12 +71,13 @@ export function toPhotoView(p: Photo, wmKey: string | null = null): PhotoView {
 		height: p.height || 2,
 		color: p.color,
 		key: wmKey ? `${p.version}-${wmKey}` : String(p.version),
-		ready: p.status === 'ready'
+		ready: p.status === 'ready',
+		private: p.private
 	};
 }
 
-export function toSectionView(s: Section, count: number): SectionView {
-	return { id: s.id, name: s.folder, slug: s.slug, count };
+export function toSectionView(s: Section, count: number, clientOnly = false): SectionView {
+	return { id: s.id, name: s.folder, slug: s.slug, count, clientOnly };
 }
 
 export interface ProcessingStats {
@@ -101,8 +111,11 @@ export function processingStats(galleryId?: string): Map<string, ProcessingStats
 }
 
 /** Public (client-safe) subset of a gallery. Never includes passwords or the download PIN. */
-export function publicGallery(g: Gallery) {
-	const download = normalizeDownload(g.download);
+/** What the client pages may know about a gallery. Secrets (passwords, PIN) never leave the server. */
+export function publicGallery(g: Gallery, role: Role = 'guest') {
+	const access = normalizeAccess(g.access);
+	const download = effectiveDownload(normalizeDownload(g.download), access, role);
+	const clientLogin = access.clientEnabled && Boolean(access.clientPassword);
 	return {
 		id: g.id,
 		name: g.name,
@@ -119,7 +132,12 @@ export function publicGallery(g: Gallery) {
 		favoritesEnabled: g.favoritesEnabled,
 		language: g.language,
 		expiresOn: g.expiresOn,
-		hasPassword: Boolean(g.password)
+		hasPassword: Boolean(g.password),
+		role,
+		clientLogin,
+		canMarkPrivate: clientLogin && access.clientPrivate && role !== 'guest',
+		listSharing: access.listSharing,
+		privateShareDefault: access.privateShareDefault
 	};
 }
 

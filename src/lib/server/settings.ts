@@ -101,16 +101,24 @@ export interface Preferences {
 	defaultLanguage: string;
 	/** Announcement banner shown at the top of galleries (each gallery can turn it off). */
 	banner: { enabled: boolean; text: string; code: string };
+	/** Public homepage listing the galleries marked "Show on homepage". Off by default. */
+	homepage: { enabled: boolean; title: string; intro: string; links: string[] };
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
 	defaultLanguage: 'en',
-	banner: { enabled: false, text: '', code: '' }
+	banner: { enabled: false, text: '', code: '' },
+	homepage: { enabled: false, title: '', intro: '', links: [] }
 };
 
 export function getPreferences(): Preferences {
 	const stored = read('preferences', DEFAULT_PREFERENCES);
-	return { ...stored, banner: { ...DEFAULT_PREFERENCES.banner, ...stored.banner } };
+	return {
+		...DEFAULT_PREFERENCES,
+		...stored,
+		banner: { ...DEFAULT_PREFERENCES.banner, ...stored.banner },
+		homepage: { ...DEFAULT_PREFERENCES.homepage, ...stored.homepage }
+	};
 }
 
 export function savePreferences(update: Partial<Preferences>): Preferences {

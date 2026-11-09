@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm';
-import { bannerFor, galleryShell, loadClientGallery, recordActivity, studioForClients } from '$lib/server/client';
+import { bannerFor, galleryShell, loadClientGallery, recordActivity, studioForClients, type VisitorInfo } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import { publicGallery } from '$lib/server/galleries';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 	const isAdmin = Boolean(locals.admin);
-	const { gallery, state } = loadClientGallery(params.slug, { cookies, isAdmin });
+	const { gallery, state, role } = loadClientGallery(params.slug, { cookies, isAdmin });
 	locals.lang = gallery.language;
 	const studio = studioForClients();
 
@@ -25,7 +25,7 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 			studio,
 			sections: [],
 			cover: null,
-			visitor: { id: null as string | null, email: null as string | null, favorites: [] as string[] },
+			visitor: { id: null, email: null, favorites: [], lists: [], activeListId: null } as VisitorInfo,
 			isAdmin: false,
 			isPreview: false,
 			pending: 0,
@@ -35,7 +35,7 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 		};
 	}
 
-	const shell = galleryShell(gallery, cookies, isAdmin, url.searchParams.get('design'));
+	const shell = galleryShell(gallery, cookies, role, url.searchParams.get('design'));
 
 	// Count one visit per browser session.
 	const visitCookie = `fs_${gallery.id}`;

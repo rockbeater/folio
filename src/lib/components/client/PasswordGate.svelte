@@ -9,15 +9,17 @@
 		color: string | null;
 		error: 'wrong' | 'tooMany' | null;
 		redirectTo: string;
+		/** Form action; defaults to the gallery's unlock action. */
+		action?: string;
 	}
 
-	let { slug, name, placeholder, color, error, redirectTo }: Props = $props();
+	let { slug, name, placeholder, color, error, redirectTo, action }: Props = $props();
 	const { t } = useI18n();
 </script>
 
 <main class="gate" style:background-color={color ?? 'var(--color-surface)'}>
 	{#if placeholder}<img class="bg" src={placeholder} alt="" aria-hidden="true" />{/if}
-	<form class="panel" method="POST" action="/g/{slug}/unlock">
+	<form class="panel" method="POST" action={action ?? `/g/${slug}/unlock`}>
 		<Lock size={22} strokeWidth={1.5} />
 		<h1>{name}</h1>
 		<p>{t('client.password.prompt')}</p>

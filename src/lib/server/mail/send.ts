@@ -164,6 +164,24 @@ export function queueGalleryEmail(
 	void processQueue();
 }
 
+/** Queue a short plain-text notification to the photographer (studio email or admin). */
+export function queueNotice(galleryId: string | null, to: string, subject: string, body: string): void {
+	if (!to) return;
+	getDb()
+		.insert(schema.emailLog)
+		.values({
+			id: crypto.randomUUID(),
+			kind: 'notice',
+			galleryId,
+			templateId: null,
+			recipient: to,
+			subject,
+			payload: { subject, body, includePassword: false, baseUrl: '' }
+		})
+		.run();
+	void processQueue();
+}
+
 /** Cancel a scheduled email that has not been sent yet. */
 export function cancelScheduledEmail(logId: string): boolean {
 	const db = getDb();
@@ -271,6 +289,19 @@ export async function processQueue(): Promise<void> {
 		if (due.length === 0) return;
 		const mailer = transport(smtp);
 		for (const entry of due) {
+			if (entry.kind === 'notice' && entry.payload) {
+				// Plain notification to the photographer.
+				try {
+					await mailer.sendMail({ ...sender(smtp), to: entry.recipient, subject: entry.payload.subject, text: entry.payload.body });
+					db.update(schema.emailLog).set({ status: 'sent', sentAt: Date.now(), error: null, attempts: entry.attempts + 1 }).where(eq(schema.emailLog.id, entry.id)).run();
+				} catch (err) {
+					db.update(schema.emailLog)
+						.set({ status: 'failed', attempts: entry.attempts + 1, error: (err as Error).message?.slice(0, 500) ?? String(err) })
+						.where(eq(schema.emailLog.id, entry.id))
+						.run();
+				}
+				continue;
+			}
 			const gallery = entry.galleryId ? getGalleryById(entry.galleryId) : undefined;
 			if (!gallery || !entry.payload) {
 				db.update(schema.emailLog).set({ status: 'failed', error: 'Gallery not found' }).where(eq(schema.emailLog.id, entry.id)).run();

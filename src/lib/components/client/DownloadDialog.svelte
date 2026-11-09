@@ -8,6 +8,8 @@
 	interface Props {
 		settings: DownloadSettings;
 		sectionCount: number;
+		/** Download URL; defaults to the gallery's. Quick share links have their own. */
+		endpoint?: string;
 	}
 
 	interface Info {
@@ -17,7 +19,7 @@
 		needsEmail: boolean;
 	}
 
-	let { settings, sectionCount }: Props = $props();
+	let { settings, sectionCount, endpoint }: Props = $props();
 	const { t, plural, lang } = useI18n();
 	const gs = getGalleryState();
 	const request = gs.download!;
@@ -49,8 +51,11 @@
 	let emailError = $state('');
 	let busy = $state(false);
 
+	const base = $derived(endpoint ?? `/g/${gs.slug}/download`);
+
 	function query(extra: Record<string, string> = {}): string {
 		const params = new URLSearchParams({ scope, size, ...extra });
+		if (gs.share) params.set('share', gs.share);
 		if (scope === 'section' && request.sectionId) params.set('section', request.sectionId);
 		if (scope === 'photo' && request.photoId) params.set('photo', request.photoId);
 		return params.toString();
@@ -58,7 +63,7 @@
 
 	$effect(() => {
 		void refresh;
-		const url = `/g/${gs.slug}/download?${query({ info: '1' })}`;
+		const url = `${base}?${query({ info: '1' })}`;
 		let cancelled = false;
 		fetch(url)
 			.then((r) => (r.ok ? r.json() : null))
@@ -91,7 +96,7 @@
 		const res = await fetch(`/g/${gs.slug}/api/pin`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ pin })
+			body: JSON.stringify({ pin, share: gs.share })
 		}).catch(() => null);
 		busy = false;
 		if (res?.ok) {
@@ -116,7 +121,7 @@
 	}
 
 	async function start(part = 1) {
-		const url = `/g/${gs.slug}/download?${query(parts > 1 ? { part: String(part) } : {})}`;
+		const url = `${base}?${query(parts > 1 ? { part: String(part) } : {})}`;
 		// On phones a single photo can go straight to the photo library via the share sheet.
 		if (scope === 'photo' && navigator.canShare && matchMedia('(pointer: coarse)').matches) {
 			try {

@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import { Readable } from 'node:stream';
 import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { canViewGallery } from '$lib/server/access';
+import { canViewGallery, isPubliclyVisible } from '$lib/server/access';
+import { canSeeSharedPhoto, photoFilter, roleFor } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import { originalFile } from '$lib/server/images/paths';
 import { ensureDisplay } from '$lib/server/images/render';
@@ -29,8 +30,12 @@ export const GET: RequestHandler = async ({ params, cookies, locals, request }) 
 		.where(eq(schema.photos.id, params.id))
 		.get();
 	const isAdmin = Boolean(locals.admin);
-	if (!row || !canViewGallery(row.gallery, cookies, isAdmin)) error(404);
-	if (row.photo.hidden && !isAdmin) error(404);
+	if (!row) error(404);
+	// Inside the gallery the role decides (guests never get private or client-only photos);
+	// outside it, a shared favorite list or quick share link this browser opened may allow it.
+	const role = roleFor(row.gallery, cookies, isAdmin);
+	const inGallery = ((role === 'client' && isPubliclyVisible(row.gallery)) || canViewGallery(row.gallery, cookies, false)) && photoFilter(row.gallery, role)(row.photo);
+	if (!isAdmin && !inGallery && !canSeeSharedPhoto(cookies, row.gallery, row.photo)) error(404);
 
 	const { photo, gallery } = row;
 	const galleryWatermark = getWatermark(gallery.watermarkId) ?? null;

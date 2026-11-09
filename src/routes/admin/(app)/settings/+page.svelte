@@ -14,12 +14,13 @@
 	let { data, form } = $props();
 	const { t } = useI18n();
 
-	const TABS = ['branding', 'preferences', 'watermarks', 'presets', 'email', 'templates', 'account'] as const;
+	const TABS = ['branding', 'preferences', 'homepage', 'watermarks', 'presets', 'email', 'templates', 'account'] as const;
 	type Tab = (typeof TABS)[number];
 	const tab = $derived<Tab>((TABS as readonly string[]).includes(page.url.searchParams.get('tab') ?? '') ? (page.url.searchParams.get('tab') as Tab) : 'branding');
 	const tabLabel: Record<Tab, MessageKey> = {
 		branding: 'admin.studio.tabBranding',
 		preferences: 'admin.studio.tabPreferences',
+		homepage: 'admin.studio.tabHomepage',
 		watermarks: 'admin.studio.tabWatermarks',
 		presets: 'admin.studio.tabPresets',
 		email: 'admin.studio.tabEmail',
@@ -154,6 +155,29 @@
 				</label>
 			</div>
 			<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
+		</form>
+	{:else if tab === 'homepage'}
+		<form class="card block" method="POST" action="?/homepage" use:enhance={saved}>
+			<p class="hint">{t('admin.home.intro')}</p>
+			<label class="switch"><input type="checkbox" name="enabled" checked={data.preferences.homepage.enabled} /><span>{t('admin.home.enabled')}</span></label>
+			<label class="field">
+				<span>{t('admin.home.title')}</span>
+				<input type="text" name="title" value={data.preferences.homepage.title} maxlength="120" placeholder={data.studio.name} />
+			</label>
+			<label class="field">
+				<span>{t('admin.home.text')}</span>
+				<textarea name="intro" rows="4" maxlength="2000">{data.preferences.homepage.intro}</textarea>
+			</label>
+			<label class="field">
+				<span>{t('admin.home.links')}</span>
+				<textarea name="links" rows="3" placeholder="https://">{data.preferences.homepage.links.join('\n')}</textarea>
+				<p class="hint">{t('admin.home.linksHint')}</p>
+			</label>
+			<p class="hint">{t('admin.home.contactHint')}</p>
+			<div class="row">
+				<button class="btn primary" type="submit">{t('common.save')}</button>
+				<a class="btn ghost" href="/" target="_blank" rel="noopener">{t('admin.home.view')}</a>
+			</div>
 		</form>
 	{:else if tab === 'watermarks'}
 		<WatermarksTab watermarks={data.watermarks} {saved} />

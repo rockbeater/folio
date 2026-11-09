@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { DownloadSettings, GalleryDesign, GalleryOptions, GalleryStatus, WatermarkPosition } from '$lib/types';
+import type { DownloadSettings, GalleryAccess, GalleryDesign, GalleryOptions, GalleryStatus, WatermarkPosition } from '$lib/types';
 
 const now = sql`(unixepoch() * 1000)`;
 
@@ -56,6 +56,7 @@ export const galleries = sqliteTable(
 		clientName: text('client_name'),
 		clientEmail: text('client_email'),
 		options: text('options', { mode: 'json' }).$type<GalleryOptions>(),
+		access: text('access', { mode: 'json' }).$type<GalleryAccess>(),
 		tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
 		watermarkId: text('watermark_id'),
 		/** Last day the gallery is visible (YYYY-MM-DD); it is hidden after that day. */
@@ -116,6 +117,8 @@ export const photos = sqliteTable(
 		placeholder: text('placeholder'),
 		/** Hidden from clients without deleting the file. */
 		hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
+		/** Marked private by the client: hidden from guests, visible to the client. */
+		private: integer('private', { mode: 'boolean' }).notNull().default(false),
 		createdAt: integer('created_at').notNull().default(now)
 	},
 	(t) => [
@@ -139,18 +142,75 @@ export const visitors = sqliteTable(
 	(t) => [uniqueIndex('visitors_gallery_email_idx').on(t.galleryId, t.email)]
 );
 
+/** A visitor's named favorite list. Every visitor has a default list (name ''). */
+export const favoriteLists = sqliteTable(
+	'favorite_lists',
+	{
+		id: text('id').primaryKey(),
+		galleryId: text('gallery_id')
+			.notNull()
+			.references(() => galleries.id, { onDelete: 'cascade' }),
+		visitorId: text('visitor_id')
+			.notNull()
+			.references(() => visitors.id, { onDelete: 'cascade' }),
+		name: text('name').notNull().default(''),
+		/** Set when the list comes from one of the gallery's predefined lists. */
+		presetId: text('preset_id'),
+		submittedAt: integer('submitted_at'),
+		/** Long random token for the share link, or null when not shared. */
+		shareToken: text('share_token').unique(),
+		sharePrivate: integer('share_private', { mode: 'boolean' }).notNull().default(true),
+		shareViews: integer('share_views').notNull().default(0),
+		shareDownloads: integer('share_downloads').notNull().default(0),
+		createdAt: integer('created_at').notNull().default(now)
+	},
+	(t) => [index('favorite_lists_visitor_idx').on(t.visitorId)]
+);
+
 export const favorites = sqliteTable(
 	'favorites',
 	{
+		listId: text('list_id')
+			.notNull()
+			.references(() => favoriteLists.id, { onDelete: 'cascade' }),
 		visitorId: text('visitor_id')
 			.notNull()
 			.references(() => visitors.id, { onDelete: 'cascade' }),
 		photoId: text('photo_id')
 			.notNull()
 			.references(() => photos.id, { onDelete: 'cascade' }),
+		note: text('note'),
 		createdAt: integer('created_at').notNull().default(now)
 	},
-	(t) => [primaryKey({ columns: [t.visitorId, t.photoId] })]
+	(t) => [primaryKey({ columns: [t.listId, t.photoId] }), index('favorites_visitor_idx').on(t.visitorId)]
+);
+
+export interface ShareDownload {
+	enabled: boolean;
+	highRes: boolean;
+	web: boolean;
+}
+
+/** Quick share link: selected photos only, independent of the gallery's password and status. */
+export const shareLinks = sqliteTable(
+	'share_links',
+	{
+		id: text('id').primaryKey(),
+		token: text('token').notNull().unique(),
+		galleryId: text('gallery_id')
+			.notNull()
+			.references(() => galleries.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		photoIds: text('photo_ids', { mode: 'json' }).$type<string[]>().notNull(),
+		download: text('download', { mode: 'json' }).$type<ShareDownload>().notNull(),
+		expiresOn: text('expires_on'),
+		password: text('password'),
+		active: integer('active', { mode: 'boolean' }).notNull().default(true),
+		views: integer('views').notNull().default(0),
+		downloads: integer('downloads').notNull().default(0),
+		createdAt: integer('created_at').notNull().default(now)
+	},
+	(t) => [index('share_links_gallery_idx').on(t.galleryId)]
 );
 
 export type TemplateKind = 'delivery' | 'reminder';
@@ -168,7 +228,7 @@ export const emailTemplates = sqliteTable('email_templates', {
 });
 
 export type EmailStatus = 'queued' | 'sent' | 'failed';
-export type EmailKind = 'gallery' | 'reminder' | 'test';
+export type EmailKind = 'gallery' | 'reminder' | 'test' | 'notice';
 
 export interface GalleryEmailPayload {
 	subject: string;
@@ -256,6 +316,8 @@ export interface PresetSettings {
 	/** Days after creation before the gallery expires (null: never). */
 	expiryDays?: number | null;
 	reminderDays?: number | null;
+	/** Access, list and homepage settings; the client password and sections stay with each gallery. */
+	access?: GalleryAccess;
 }
 
 /** Saved gallery settings that can be applied to galleries; the default is used for new galleries. */
@@ -274,3 +336,5 @@ export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type EmailLogEntry = typeof emailLog.$inferSelect;
 export type Watermark = typeof watermarks.$inferSelect;
 export type Preset = typeof presets.$inferSelect;
+export type FavoriteList = typeof favoriteLists.$inferSelect;
+export type ShareLink = typeof shareLinks.$inferSelect;

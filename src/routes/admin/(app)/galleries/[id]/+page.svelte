@@ -77,7 +77,7 @@
 
 	<section class="main">
 		{#if tab === 'photos'}
-			<PhotosPanel gallery={data.gallery} section={activeSection} sections={data.sections} stats={data.stats} />
+			<PhotosPanel gallery={data.gallery} section={activeSection} sections={data.sections} stats={data.stats} baseUrl={data.baseUrl} />
 		{:else if tab === 'design'}
 			<DesignPanel gallery={data.gallery} {cover} onpickcover={() => (pickingCover = true)} />
 		{:else if tab === 'settings'}
@@ -90,7 +90,7 @@
 				form={form as { error?: string; section?: string } | null}
 			/>
 		{:else if tab === 'activity'}
-			<ActivityPanel activity={data.activity} galleryName={data.gallery.slug} />
+			<ActivityPanel baseUrl={data.baseUrl} activity={data.activity} galleryName={data.gallery.slug} />
 		{:else}
 			<EmailPanel
 				gallery={data.gallery}

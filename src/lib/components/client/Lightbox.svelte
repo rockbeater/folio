@@ -7,6 +7,8 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
+	import Lock from '@lucide/svelte/icons/lock';
+	import LockOpen from '@lucide/svelte/icons/lock-open';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, DISPLAY_WIDTHS, type PhotoView } from '$lib/types';
 
@@ -24,6 +26,10 @@
 		onclose: () => void;
 		onfavorite: (id: string) => void;
 		ondownload: (id: string) => void;
+		/** The client may mark photos private; isPrivate tells the current state. */
+		canMarkPrivate?: boolean;
+		isPrivate?: (photo: PhotoView) => boolean;
+		onprivate?: (id: string, value: boolean) => void;
 	}
 
 	let {
@@ -38,7 +44,10 @@
 		onchange,
 		onclose,
 		onfavorite,
-		ondownload
+		ondownload,
+		canMarkPrivate = false,
+		isPrivate = () => false,
+		onprivate = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -260,6 +269,19 @@
 						aria-pressed={favorites.has(photo.id)}
 					>
 						<Heart size={22} strokeWidth={1.5} fill={favorites.has(photo.id) ? 'currentColor' : 'none'} />
+					</button>
+				{/if}
+				{#if canMarkPrivate}
+					{@const priv = isPrivate(photo)}
+					<button
+						type="button"
+						class="icon"
+						onclick={() => onprivate(photo.id, !priv)}
+						aria-label={priv ? t('client.private.unmark') : t('client.private.mark')}
+						aria-pressed={priv}
+						title={priv ? t('client.private.unmark') : t('client.private.mark')}
+					>
+						{#if priv}<Lock size={22} strokeWidth={1.5} />{:else}<LockOpen size={22} strokeWidth={1.5} />{/if}
 					</button>
 				{/if}
 				{#if canDownload}

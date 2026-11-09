@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { isPinUnlocked } from '$lib/server/access';
-import { isVisibleToClients, recordActivity, requireOpenGallery, visitorInfo } from '$lib/server/client';
+import { photoFilter, recordActivity, requireGalleryOrShare, visitorInfo } from '$lib/server/client';
 import {
 	estimateBytes,
 	resolveVariant,
@@ -10,34 +10,45 @@ import {
 	type DownloadItem
 } from '$lib/server/download';
 import { getPhotosBySection, getSections } from '$lib/server/galleries';
+import { countShare, listPhotoIds } from '$lib/server/lists';
 import { getWatermark } from '$lib/server/watermarks';
-import { normalizeDownload, type DownloadChoice } from '$lib/types';
+import { effectiveDownload, normalizeAccess, normalizeDownload, type DownloadChoice } from '$lib/types';
 import type { RequestHandler } from './$types';
 
 /**
- * GET /g/<slug>/download?scope=all|section|favorites|photo&size=highres|web[&section=][&photo=][&part=]
+ * GET /g/<slug>/download?scope=all|section|favorites|photo&size=highres|web[&section=][&photo=][&part=][&share=]
  * With `info=1` it returns counts, estimated sizes and what the visitor still needs (PIN, email).
+ * With `share=<token>` (a shared favorite list) only that list's photos can be downloaded, as a guest.
  */
 export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 	const isAdmin = Boolean(locals.admin);
-	const gallery = requireOpenGallery(params.slug, { cookies, isAdmin });
-	const settings = normalizeDownload(gallery.download);
+	const { gallery, role, list } = requireGalleryOrShare(params.slug, { cookies, isAdmin }, url.searchParams.get('share'));
+	const settings = effectiveDownload(normalizeDownload(gallery.download), normalizeAccess(gallery.access), role);
 	if (!settings.enabled) error(403, 'downloads-disabled');
 
 	const scope = url.searchParams.get('scope') ?? 'all';
 	const size = (url.searchParams.get('size') === 'web' ? 'web' : 'highres') as DownloadChoice;
-	const visitor = visitorInfo(cookies, gallery.id);
+	const visitor = visitorInfo(cookies, gallery);
 
+	const canSee = photoFilter(gallery, role);
 	const allowedSections = settings.sections ? new Set(settings.sections) : null;
 	const sections = getSections(gallery.id).filter((s) => !allowedSections || allowedSections.has(s.id));
 	const bySection = getPhotosBySection(gallery.id);
 	const available: DownloadItem[] = sections.flatMap((section) =>
-		(bySection.get(section.id) ?? []).filter(isVisibleToClients).map((photo) => ({ photo, section }))
+		(bySection.get(section.id) ?? []).filter(canSee).map((photo) => ({ photo, section }))
 	);
 
 	let items: DownloadItem[];
 	let suffix = '';
-	if (scope === 'section') {
+	if (scope === 'photo') {
+		if (!settings.single) error(403, 'single-disabled');
+		items = available.filter((i) => i.photo.id === url.searchParams.get('photo'));
+		if (list && !listPhotoIds(list.id).includes(items[0]?.photo.id ?? '')) items = [];
+	} else if (list) {
+		const ids = new Set(listPhotoIds(list.id));
+		items = available.filter((i) => ids.has(i.photo.id));
+		suffix = '-favorites';
+	} else if (scope === 'section') {
 		const section = sections.find((s) => s.id === url.searchParams.get('section'));
 		if (!section) error(404);
 		items = available.filter((i) => i.section.id === section.id);
@@ -46,9 +57,6 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 		const favorites = new Set(visitor.favorites);
 		items = available.filter((i) => favorites.has(i.photo.id));
 		suffix = '-favorites';
-	} else if (scope === 'photo') {
-		if (!settings.single) error(403, 'single-disabled');
-		items = available.filter((i) => i.photo.id === url.searchParams.get('photo'));
 	} else {
 		items = available;
 	}
@@ -75,12 +83,13 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 
 	if (!isAdmin) {
 		recordActivity(gallery.id, 'download', visitor.email, {
-			scope,
+			scope: list ? 'shared' : scope,
 			size,
 			count: items.length,
 			sectionId: scope === 'section' ? (items[0]?.section.id ?? undefined) : undefined,
 			photoId: scope === 'photo' ? items[0]?.photo.id : undefined
 		});
+		if (list) countShare(list.id, 'shareDownloads');
 	}
 
 	if (scope === 'photo') return singleDownload(gallery, items[0], variant, watermark);

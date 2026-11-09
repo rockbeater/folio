@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { error, json } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { setVisitorId } from '$lib/server/access';
-import { loadClientGallery, recordActivity } from '$lib/server/client';
+import { loadClientGallery, recordActivity, sharedListFor, visitorInfo } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import { rateLimit } from '$lib/server/ratelimit';
 import type { RequestHandler } from './$types';
@@ -14,11 +14,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * email, and the email registration before entering the gallery.
  */
 export const POST: RequestHandler = async ({ params, request, cookies, locals, url, getClientAddress }) => {
+	const body = (await request.json().catch(() => ({}))) as { email?: unknown; registration?: unknown; share?: unknown };
 	const { gallery, state } = loadClientGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
-	if (state !== 'open' && state !== 'register') error(403, state);
+	// A shared list may ask for an email before downloading, even when the gallery itself is locked.
+	const viaShare = Boolean(sharedListFor(gallery, typeof body.share === 'string' ? body.share : null));
+	if (state !== 'open' && state !== 'register' && !viaShare) error(403, state);
 	if (!rateLimit(`visitor:${getClientAddress()}`, 30, 15 * 60 * 1000)) error(429);
 
-	const body = (await request.json().catch(() => ({}))) as { email?: unknown; registration?: unknown };
 	const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 	if (!EMAIL.test(email) || email.length > 254) error(400, 'invalid-email');
 
@@ -36,11 +38,6 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals, u
 	if (body.registration === true) recordActivity(gallery.id, 'registration', email);
 	setVisitorId(cookies, url, gallery.id, visitor.id);
 
-	const favorites = db
-		.select({ photoId: schema.favorites.photoId })
-		.from(schema.favorites)
-		.where(eq(schema.favorites.visitorId, visitor.id))
-		.all()
-		.map((f) => f.photoId);
-	return json({ email, favorites });
+	// cookies.get sees the cookie set above, so this already reads the new visitor.
+	return json(visitorInfo(cookies, gallery));
 };

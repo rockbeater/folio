@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Copy from '@lucide/svelte/icons/copy';
 	import FileDown from '@lucide/svelte/icons/file-down';
+	import { callAction } from '$lib/admin-actions';
 	import { useI18n, type MessageKey } from '$lib/i18n';
+	import ShareLinkDialog from './ShareLinkDialog.svelte';
 	import { toast } from '$lib/toast.svelte';
 
 	interface Activity {
@@ -10,10 +12,44 @@
 		registrations: number;
 		downloads: { id: string; email: string | null; scope: string; size: string; count: number; target: string; createdAt: number }[];
 		visitors: { id: string; email: string; createdAt: number; favorites: number; downloads: number }[];
-		favorites: { email: string; files: string[] }[];
+		favoriteLists: {
+			id: string;
+			email: string;
+			name: string;
+			submittedAt: number | null;
+			items: { filename: string; note: string | null }[];
+			share: { token: string; private: boolean; views: number; downloads: number } | null;
+		}[];
+		privatePhotos: { id: string; filename: string; section: string }[];
+		shareLinks: {
+			id: string;
+			token: string;
+			name: string;
+			count: number;
+			download: { enabled: boolean; highRes: boolean; web: boolean };
+			expiresOn: string | null;
+			password: string | null;
+			active: boolean;
+			views: number;
+			downloads: number;
+			createdAt: number;
+		}[];
 	}
 
-	let { activity, galleryName }: { activity: Activity; galleryName: string } = $props();
+	let { activity, galleryName, baseUrl }: { activity: Activity; galleryName: string; baseUrl: string } = $props();
+	let editing = $state<Activity['shareLinks'][number] | null>(null);
+	const today = new Date().toLocaleDateString('sv-SE');
+
+	async function copyLink(path: string) {
+		await navigator.clipboard.writeText(`${baseUrl}${path}`);
+		toast(t('admin.editor.linkCopied'));
+	}
+
+	async function run(name: string, data: Record<string, unknown>, confirmText?: string) {
+		if (confirmText && !confirm(confirmText)) return;
+		const result = await callAction(name, data as Record<string, string>);
+		if (result.type !== 'success') toast(t('common.error'), 'error');
+	}
 	const { t, plural, lang } = useI18n();
 	const dateTime = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -22,13 +58,13 @@
 		toast(t('admin.settings.filenamesCopied'));
 	}
 
-	function exportCsv(email: string, files: string[]) {
-		const rows = [['email', 'filename'], ...files.map((f) => [email, f])];
+	function exportCsv(email: string, list: string, items: { filename: string; note: string | null }[]) {
+		const rows = [['email', 'list', 'filename', 'note'], ...items.map((i) => [email, list, i.filename, i.note ?? ''])];
 		const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
 		const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `${galleryName}-favorites-${email}.csv`.replace(/[^\w.@-]+/g, '-');
+		a.download = `${galleryName}-${list || 'favorites'}-${email}.csv`.replace(/[^\w.@-]+/g, '-');
 		a.click();
 		URL.revokeObjectURL(url);
 	}
@@ -48,25 +84,116 @@
 
 	<section class="card block">
 		<h3>{t('admin.activity.favorites')}</h3>
-		{#if activity.favorites.length === 0}
+		{#if activity.favoriteLists.length === 0}
 			<p class="hint">{t('admin.settings.favoritesNone')}</p>
 		{:else}
 			<ul class="list">
-				{#each activity.favorites as fav (fav.email)}
+				{#each activity.favoriteLists as list (list.id)}
+					{@const listName = list.name || t('client.lists.default')}
+					<li class="column">
+						<div class="line">
+							<div class="who">
+								<strong>{list.email}</strong>
+								<span class="hint">
+									{listName} · {plural('common.photos', list.items.length)}
+									{#if list.submittedAt} · <span class="badge on">{t('admin.lists.submittedOn', { date: dateTime.format(list.submittedAt) })}</span>{/if}
+								</span>
+							</div>
+							<div class="row">
+								<button class="btn small" type="button" disabled={list.items.length === 0} onclick={() => copyFiles(list.items.map((i) => i.filename))}
+									><Copy size={14} />{t('admin.settings.copyFilenames')}</button
+								>
+								<button class="btn small ghost" type="button" disabled={list.items.length === 0} onclick={() => exportCsv(list.email, listName, list.items)}
+									><FileDown size={14} />CSV</button
+								>
+							</div>
+						</div>
+						{#if list.items.some((i) => i.note)}
+							<details>
+								<summary class="hint">{t('admin.lists.notes', { count: list.items.filter((i) => i.note).length })}</summary>
+								<ul class="notes">
+									{#each list.items.filter((i) => i.note) as item (item.filename)}
+										<li><strong>{item.filename}</strong> {item.note}</li>
+									{/each}
+								</ul>
+							</details>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
+
+	<section class="card block">
+		<h3>{t('admin.links.title')}</h3>
+		<p class="hint">{t('admin.links.hint')}</p>
+		{#if activity.shareLinks.length === 0 && !activity.favoriteLists.some((l) => l.share)}
+			<p class="hint">{t('admin.links.none')}</p>
+		{:else}
+			<ul class="list">
+				{#each activity.shareLinks as link (link.id)}
+					{@const expired = Boolean(link.expiresOn && link.expiresOn < today)}
 					<li>
 						<div class="who">
-							<strong>{fav.email}</strong>
-							<span class="hint">{plural('common.photos', fav.files.length)}</span>
+							<strong>{link.name}</strong>
+							<span class="hint">
+								{plural('common.photos', link.count)} · {t('admin.links.stats', { views: link.views, downloads: link.downloads })}
+								{#if !link.active}· <span class="badge">{t('admin.links.inactive')}</span>{:else if expired}· <span class="badge">{t('admin.settings.expired')}</span>{/if}
+								{#if link.password}· {t('common.password')}{/if}
+							</span>
 						</div>
 						<div class="row">
-							<button class="btn small" type="button" onclick={() => copyFiles(fav.files)}><Copy size={14} />{t('admin.settings.copyFilenames')}</button>
-							<button class="btn small ghost" type="button" onclick={() => exportCsv(fav.email, fav.files)}><FileDown size={14} />CSV</button>
+							<button class="btn small" type="button" onclick={() => copyLink(`/q/${link.token}`)}><Copy size={14} />{t('admin.editor.copyLink')}</button>
+							<button class="btn small ghost" type="button" onclick={() => (editing = link)}>{t('common.edit')}</button>
+							<button class="btn small ghost" type="button" onclick={() => run('toggleLink', { id: link.id, active: String(!link.active) })}>
+								{link.active ? t('admin.links.deactivate') : t('admin.links.activate')}
+							</button>
+							<button class="btn small ghost" type="button" onclick={() => run('toggleLink', { id: link.id, delete: '1' }, t('admin.links.deleteConfirm', { name: link.name }))}>
+								{t('common.delete')}
+							</button>
+						</div>
+					</li>
+				{/each}
+				{#each activity.favoriteLists.filter((l) => l.share) as list (list.id)}
+					<li>
+						<div class="who">
+							<strong>{list.name || t('client.lists.default')} · {list.email}</strong>
+							<span class="hint">
+								{list.share!.private ? t('admin.lists.privateShare') : t('admin.lists.openShare')} ·
+								{t('admin.links.stats', { views: list.share!.views, downloads: list.share!.downloads })}
+							</span>
+						</div>
+						<div class="row">
+							<button class="btn small" type="button" onclick={() => copyLink(`/l/${list.share!.token}`)}><Copy size={14} />{t('admin.editor.copyLink')}</button>
+							<button class="btn small ghost" type="button" onclick={() => run('unshareList', { id: list.id }, t('admin.lists.unshareConfirm'))}>
+								{t('admin.links.deactivate')}
+							</button>
 						</div>
 					</li>
 				{/each}
 			</ul>
 		{/if}
 	</section>
+
+	{#if activity.privatePhotos.length > 0}
+		<section class="card block">
+			<div class="line">
+				<h3>{t('admin.private.title')}</h3>
+				<button class="btn small ghost" type="button" onclick={() => run('unmarkPrivate', { ids: JSON.stringify(activity.privatePhotos.map((p) => p.id)) }, t('admin.private.unmarkAllConfirm'))}>
+					{t('admin.private.unmarkAll')}
+				</button>
+			</div>
+			<p class="hint">{t('admin.private.hint')}</p>
+			<ul class="list">
+				{#each activity.privatePhotos as photo (photo.id)}
+					<li>
+						<div class="who"><strong>{photo.filename}</strong><span class="hint">{photo.section}</span></div>
+						<button class="btn small ghost" type="button" onclick={() => run('unmarkPrivate', { ids: JSON.stringify([photo.id]) })}>{t('admin.private.unmark')}</button>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
 	<section class="card block">
 		<h3>{t('admin.activity.downloadLog')}</h3>
@@ -129,6 +256,10 @@
 		{/if}
 	</section>
 </div>
+
+{#if editing}
+	<ShareLinkDialog link={editing} {baseUrl} onclose={() => (editing = null)} />
+{/if}
 
 <style>
 	.activity {
@@ -229,5 +360,28 @@
 		.value {
 			font-size: 1.25rem;
 		}
+	}
+
+	.list li.column {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.line {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+
+	.notes {
+		margin: 8px 0 0;
+		padding-left: 18px;
+		font-size: 0.875rem;
+	}
+
+	summary {
+		cursor: pointer;
 	}
 </style>

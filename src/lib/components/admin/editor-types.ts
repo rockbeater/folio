@@ -1,4 +1,4 @@
-import type { DownloadSettings, GalleryDesign, GalleryOptions, GalleryStatus, PhotoView } from '$lib/types';
+import type { DownloadSettings, GalleryAccess, GalleryDesign, GalleryOptions, GalleryStatus, PhotoView } from '$lib/types';
 
 export interface AdminPhoto extends PhotoView {
 	status: 'pending' | 'ready' | 'error';
@@ -29,6 +29,7 @@ export interface EditorGallery {
 	design: GalleryDesign;
 	download: DownloadSettings;
 	options: GalleryOptions;
+	access: GalleryAccess;
 	favoritesEnabled: boolean;
 	language: string;
 	clientName: string | null;

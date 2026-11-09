@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Heart from '@lucide/svelte/icons/heart';
 	import Download from '@lucide/svelte/icons/download';
+	import Check from '@lucide/svelte/icons/check';
+	import Lock from '@lucide/svelte/icons/lock';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, type GridSize, type GridStyle, type PhotoView } from '$lib/types';
 
@@ -16,6 +18,11 @@
 		onopen: (index: number) => void;
 		onfavorite: (id: string) => void;
 		ondownload: (id: string) => void;
+		/** Show a lock on photos the client marked private. */
+		isPrivate?: (photo: PhotoView) => boolean;
+		/** When set, clicking a photo selects it instead of opening it. */
+		selection?: Set<string> | null;
+		onselect?: (id: string) => void;
 	}
 
 	let {
@@ -29,7 +36,10 @@
 		canDownload,
 		onopen,
 		onfavorite,
-		ondownload
+		ondownload,
+		isPrivate = () => false,
+		selection = null,
+		onselect = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -87,8 +97,19 @@
 
 {#snippet tile(photo: PhotoView, index: number, sizes: string)}
 	<div class="cell">
-	<figure class="tile" style:aspect-ratio="{photo.width} / {photo.height}" style:background-color={photo.color}>
-		<button type="button" class="open" onclick={() => onopen(index)} aria-label={photo.filename}>
+	<figure
+		class="tile"
+		class:selected={selection?.has(photo.id)}
+		style:aspect-ratio="{photo.width} / {photo.height}"
+		style:background-color={photo.color}
+	>
+		<button
+			type="button"
+			class="open"
+			onclick={() => (selection ? onselect(photo.id) : onopen(index))}
+			aria-label={photo.filename}
+			aria-pressed={selection ? selection.has(photo.id) : undefined}
+		>
 			<img
 				src={displayUrl(photo, 480)}
 				srcset={displaySrcset(photo)}
@@ -99,7 +120,9 @@
 				{@attach fadeIn}
 			/>
 		</button>
-		{#if canFavorite || canDownload}
+		{#if selection}
+			<span class="check" aria-hidden="true">{#if selection.has(photo.id)}<Check size={16} strokeWidth={2.5} />{/if}</span>
+		{:else if canFavorite || canDownload}
 			<div class="actions">
 				{#if canFavorite}
 					<button
@@ -117,6 +140,9 @@
 					</button>
 				{/if}
 			</div>
+		{/if}
+		{#if isPrivate(photo)}
+			<span class="lock" title={t('client.private.badge')}><Lock size={14} strokeWidth={2} /><span class="visually-hidden">{t('client.private.badge')}</span></span>
 		{/if}
 		{#if favorites.has(photo.id)}
 			<span class="mark" aria-hidden="true"><Heart size={16} strokeWidth={1.5} fill="currentColor" /></span>
@@ -309,5 +335,43 @@
 		.tile:hover .mark {
 			display: none;
 		}
+	}
+
+	.lock {
+		position: absolute;
+		top: 8px;
+		left: 8px;
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.55);
+		color: #fff;
+		pointer-events: none;
+	}
+
+	.check {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		border: 2px solid #fff;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.25);
+		color: #fff;
+		pointer-events: none;
+	}
+
+	.selected .check {
+		background: var(--color-accent);
+		border-color: var(--color-accent);
+	}
+
+	.selected img {
+		opacity: 0.75;
 	}
 </style>

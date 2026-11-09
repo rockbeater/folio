@@ -3,6 +3,8 @@
 	import Download from '@lucide/svelte/icons/download';
 	import Share from '@lucide/svelte/icons/share';
 	import Play from '@lucide/svelte/icons/play';
+	import Lock from '@lucide/svelte/icons/lock';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import { useI18n } from '$lib/i18n';
 	import type { NavStyle, SectionView } from '$lib/types';
 
@@ -21,6 +23,13 @@
 		ondownload: () => void;
 		onshare: () => void;
 		onslideshow: () => void;
+		/** Client access: offer "Log in as client", or show that the client is logged in. */
+		clientLogin?: boolean;
+		isClient?: boolean;
+		canSelect?: boolean;
+		onclientlogin?: () => void;
+		onclientlogout?: () => void;
+		onselect?: () => void;
 	}
 
 	let {
@@ -37,8 +46,21 @@
 		navStyle,
 		ondownload,
 		onshare,
-		onslideshow
+		onslideshow,
+		clientLogin = false,
+		isClient = false,
+		canSelect = false,
+		onclientlogin = () => undefined,
+		onclientlogout = () => undefined,
+		onselect = () => undefined
 	}: Props = $props();
+	let menu = $state<HTMLDetailsElement>();
+	const hasMenu = $derived(clientLogin || canSelect);
+
+	function pick(action: () => void) {
+		if (menu) menu.open = false;
+		action();
+	}
 	const { t } = useI18n();
 	const withText = $derived(navStyle === 'icon-text');
 </script>
@@ -47,7 +69,11 @@
 	<div class="bar">
 		<a class="brand" href="/g/{slug}" data-sveltekit-noscroll>
 			<span class="name">{name}</span>
-			{#if studioName}<span class="label studio">{studioName}</span>{/if}
+			{#if studioName || isClient}
+				<span class="label studio">
+					{studioName}{#if isClient}<span class="client-badge">{t('client.clientLogin.badge')}</span>{/if}
+				</span>
+			{/if}
 		</a>
 
 		{#if sections.length > 1}
@@ -57,7 +83,8 @@
 						class="label"
 						href="/g/{slug}/s/{section.slug}"
 						aria-current={section.slug === activeSlug ? 'page' : undefined}
-						data-sveltekit-noscroll>{section.name}</a
+						data-sveltekit-noscroll
+						>{section.name}{#if section.clientOnly}<Lock size={11} strokeWidth={2} aria-label={t('client.clientOnly')} />{/if}</a
 					>
 				{/each}
 			</nav>
@@ -93,6 +120,21 @@
 					{#if withText}<span class="label">{t('client.slideshow')}</span>{/if}
 				</button>
 			{/if}
+			{#if hasMenu}
+				<details class="more" bind:this={menu}>
+					<summary class="icon" aria-label={t('client.menu')}><Ellipsis size={22} strokeWidth={1.5} /></summary>
+					<div class="menu" role="menu">
+						{#if canSelect}
+							<button type="button" role="menuitem" onclick={() => pick(onselect)}>{t('client.select.start')}</button>
+						{/if}
+						{#if clientLogin && !isClient}
+							<button type="button" role="menuitem" onclick={() => pick(onclientlogin)}>{t('client.clientLogin.title')}</button>
+						{:else if isClient}
+							<button type="button" role="menuitem" onclick={() => pick(onclientlogout)}>{t('client.clientLogin.logout')}</button>
+						{/if}
+					</div>
+				</details>
+			{/if}
 		</div>
 	</div>
 
@@ -103,7 +145,8 @@
 					class="label"
 					href="/g/{slug}/s/{section.slug}"
 					aria-current={section.slug === activeSlug ? 'page' : undefined}
-					data-sveltekit-noscroll>{section.name}</a
+					data-sveltekit-noscroll
+					>{section.name}{#if section.clientOnly}<Lock size={11} strokeWidth={2} aria-label={t('client.clientOnly')} />{/if}</a
 				>
 			{/each}
 		</nav>
@@ -257,5 +300,52 @@
 		.icon.text .label {
 			display: none;
 		}
+	}
+
+	.client-badge {
+		margin-left: var(--space-2);
+		padding: 1px 6px;
+		border: 1px solid currentColor;
+		border-radius: 999px;
+		font-size: 0.625rem;
+	}
+
+	.more {
+		position: relative;
+	}
+
+	.more summary {
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.more summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.menu {
+		position: absolute;
+		right: 0;
+		top: calc(100% + 6px);
+		z-index: 30;
+		display: flex;
+		flex-direction: column;
+		min-width: 220px;
+		padding: var(--space-2) 0;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
+		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+	}
+
+	.menu button {
+		padding: var(--space-3) var(--space-4);
+		border: 0;
+		background: none;
+		text-align: left;
+		font-size: 0.9375rem;
+	}
+
+	.menu button:hover {
+		background: var(--color-bg);
 	}
 </style>

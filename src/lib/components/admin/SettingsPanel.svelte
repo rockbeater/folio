@@ -27,6 +27,18 @@
 	// svelte-ignore state_referenced_locally
 	let limitSections = $state(gallery.download.sections !== null);
 	// svelte-ignore state_referenced_locally
+	let client = $state({
+		...gallery.access,
+		clientPassword: gallery.access.clientPassword ?? '',
+		mode: gallery.access.clientDownload ? 'custom' : 'same',
+		cd: gallery.access.clientDownload ?? { enabled: true, highRes: true, web: true }
+	});
+	// svelte-ignore state_referenced_locally
+	let lists = $state(gallery.access.lists.map((l) => ({ ...l, limit: l.limit ?? ('' as number | '') })));
+	const listsJson = $derived(
+		JSON.stringify(lists.filter((l) => l.name.trim()).map((l) => ({ id: l.id, name: l.name.trim(), limit: Number(l.limit) || null })))
+	);
+	// svelte-ignore state_referenced_locally
 	let expiresOn = $state(gallery.expiresOn ?? '');
 	// svelte-ignore state_referenced_locally
 	let reminder = $state(gallery.reminderDays !== null);
@@ -117,6 +129,70 @@
 			</div>
 			<p class="hint">{t('admin.settings.passwordHint')}</p>
 		</label>
+		<label class="switch">
+			<input type="checkbox" name="homepage" checked={gallery.access.homepage} />
+			<span>{t('admin.settings.homepage')}</span>
+		</label>
+		<p class="hint">{t('admin.settings.homepageHint')}</p>
+		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
+	</form>
+
+	<form class="card block" method="POST" action="?/clientAccess" use:enhance={saved}>
+		<div class="title-row">
+			<h3>{t('admin.client.title')}</h3>
+			<span class="badge" class:on={gallery.access.clientEnabled}>{gallery.access.clientEnabled ? t('common.on') : t('common.off')}</span>
+		</div>
+		<p class="hint">{t('admin.client.intro')}</p>
+		<label class="switch">
+			<input type="checkbox" name="clientEnabled" bind:checked={client.clientEnabled} />
+			<span>{t('admin.client.enabled')}</span>
+		</label>
+		{#if client.clientEnabled}
+			<label class="field">
+				<span>{t('admin.client.password')}</span>
+				<div class="row nowrap">
+					<input type="text" name="clientPassword" bind:value={client.clientPassword} autocomplete="off" spellcheck="false" required />
+					<button class="btn" type="button" onclick={() => (client.clientPassword = randomPassword())}>
+						<RefreshCw size={14} />{t('common.generate')}
+					</button>
+				</div>
+				<p class="hint">{t('admin.client.passwordHint')}</p>
+				{#if form?.section === 'client' && form.error === 'clientPassword'}<p class="error-text">{t('admin.client.errPassword')}</p>{/if}
+				{#if form?.section === 'client' && form.error === 'samePassword'}<p class="error-text">{t('admin.client.errSame')}</p>{/if}
+			</label>
+			{#if sections.length > 0}
+				<fieldset class="field">
+					<legend>{t('admin.client.sections')}</legend>
+					<p class="hint">{t('admin.client.sectionsHint')}</p>
+					<div class="section-list">
+						{#each sections as section (section.id)}
+							<label class="check"
+								><input type="checkbox" name="clientSections" value={section.id} checked={gallery.access.clientSections.includes(section.id)} />{section.name}</label
+							>
+						{/each}
+					</div>
+				</fieldset>
+			{/if}
+			<label class="switch">
+				<input type="checkbox" name="clientPrivate" checked={client.clientPrivate} />
+				<span>{t('admin.client.private')}</span>
+			</label>
+			<p class="hint">{t('admin.client.privateHint')}</p>
+			<fieldset class="field">
+				<legend>{t('admin.client.download')}</legend>
+				<label class="check"><input type="radio" name="clientDownloadMode" value="same" bind:group={client.mode} />{t('admin.client.downloadSame')}</label>
+				<label class="check"><input type="radio" name="clientDownloadMode" value="custom" bind:group={client.mode} />{t('admin.client.downloadCustom')}</label>
+				{#if client.mode === 'custom'}
+					<div class="indent stack-sm">
+						<label class="check"><input type="checkbox" name="cdEnabled" bind:checked={client.cd.enabled} />{t('admin.settings.photoDownload')}</label>
+						<label class="check"><input type="checkbox" name="cdHighRes" bind:checked={client.cd.highRes} />{t('admin.settings.highRes')}</label>
+						<label class="check"><input type="checkbox" name="cdWeb" bind:checked={client.cd.web} />{t('admin.settings.web')}</label>
+					</div>
+				{/if}
+			</fieldset>
+		{:else}
+			<input type="hidden" name="clientPassword" value={client.clientPassword} />
+		{/if}
 		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
 	</form>
 
@@ -239,6 +315,33 @@
 			<span>{t('admin.settings.favoritePhotos')}</span>
 		</label>
 		<p class="hint">{t('admin.settings.favoritePhotosHint')} <a href="?tab=activity" data-sveltekit-noscroll>{t('admin.settings.seeActivity')}</a></p>
+		<label class="switch">
+			<input type="checkbox" name="listSharing" checked={gallery.access.listSharing} onchange={submitParent} />
+			<span>{t('admin.lists.sharing')}</span>
+		</label>
+		<p class="hint">{t('admin.lists.sharingHint')}</p>
+		<label class="switch">
+			<input type="checkbox" name="privateShareDefault" checked={gallery.access.privateShareDefault} onchange={submitParent} />
+			<span>{t('admin.lists.privateDefault')}</span>
+		</label>
+		<p class="hint">{t('admin.lists.privateDefaultHint')}</p>
+
+		<fieldset class="field">
+			<legend>{t('admin.lists.presets')}</legend>
+			<p class="hint">{t('admin.lists.presetsHint')}</p>
+			<input type="hidden" name="lists" value={listsJson} />
+			{#each lists as list, i (list.id)}
+				<div class="row nowrap">
+					<input type="text" bind:value={list.name} maxlength="60" placeholder={t('admin.lists.namePlaceholder')} aria-label={t('common.name')} />
+					<input class="limit" type="number" min="1" max="9999" bind:value={list.limit} placeholder={t('admin.lists.noLimit')} aria-label={t('admin.lists.limit')} />
+					<button class="btn ghost" type="button" onclick={() => lists.splice(i, 1)} aria-label={t('common.delete')}>×</button>
+				</div>
+			{/each}
+			<div class="row">
+				<button class="btn" type="button" onclick={() => lists.push({ id: crypto.randomUUID(), name: '', limit: '' })}>{t('admin.lists.add')}</button>
+				<button class="btn primary" type="submit">{t('common.save')}</button>
+			</div>
+		</fieldset>
 	</form>
 </div>
 
@@ -379,5 +482,19 @@
 		.two {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	.indent {
+		padding-left: 26px;
+	}
+
+	.stack-sm {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.limit {
+		max-width: 130px;
 	}
 </style>

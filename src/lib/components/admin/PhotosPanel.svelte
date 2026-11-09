@@ -12,6 +12,7 @@
 	import X from '@lucide/svelte/icons/x';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { callAction } from '$lib/admin-actions';
+	import ShareLinkDialog from './ShareLinkDialog.svelte';
 	import { uploadFile, type DuplicatePolicy } from '$lib/admin-upload';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
@@ -23,9 +24,11 @@
 		section: AdminSection | null;
 		sections: AdminSection[];
 		stats: { total: number; ready: number; pending: number; failed: number };
+		baseUrl: string;
 	}
 
-	let { gallery, section, sections, stats }: Props = $props();
+	let { gallery, section, sections, stats, baseUrl }: Props = $props();
+	let linkFor = $state<string[] | null>(null);
 	let query = $state('');
 	const { t } = useI18n();
 
@@ -325,6 +328,7 @@
 				<button class="btn small" type="button" onclick={() => bulk('hide')}><EyeOff size={14} />{t('admin.bulk.hide')}</button>
 				<button class="btn small" type="button" onclick={() => bulk('show')}><Eye size={14} />{t('admin.bulk.show')}</button>
 				<button class="btn small" type="button" onclick={downloadSelected}>{t('admin.bulk.download')}</button>
+				<button class="btn small" type="button" onclick={() => (linkFor = [...selected])}>{t('admin.links.create')}</button>
 				<button class="btn small danger" type="button" onclick={() => bulk('delete')}><Trash size={14} />{t('common.delete')}</button>
 				<button class="icon-btn" type="button" onclick={() => selected.clear()} aria-label={t('admin.bulk.clear')}><X size={16} /></button>
 			</div>
@@ -412,6 +416,10 @@
 		<div class="drop-overlay"><Upload size={32} strokeWidth={1.5} /><strong>{t('admin.editor.dropHere')}</strong></div>
 	{/if}
 </div>
+
+{#if linkFor}
+	<ShareLinkDialog photoIds={linkFor} {baseUrl} onclose={() => (linkFor = null)} />
+{/if}
 
 <style>
 	.panel {
