@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { authenticate, startSession } from '$lib/server/auth';
 import { rateLimit, resetRateLimit } from '$lib/server/ratelimit';
+import { getStudio } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
 function safeNext(value: string | null): string {
@@ -9,6 +10,8 @@ function safeNext(value: string | null): string {
 
 export const load: PageServerLoad = ({ locals, url }) => {
 	if (locals.admin) redirect(303, safeNext(url.searchParams.get('next')));
+	locals.lang = getStudio().language;
+	return { language: getStudio().language };
 };
 
 export const actions: Actions = {

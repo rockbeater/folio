@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { desc } from 'drizzle-orm';
+import { desc, eq, like, ne } from 'drizzle-orm';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
 import { processingStats } from '$lib/server/galleries';
@@ -8,30 +8,83 @@ import { libraryState, scanLibrary } from '$lib/server/library/scanner';
 import { emailCoverPhoto } from '$lib/server/mail/send';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = () => {
+const today = () => new Date().toLocaleDateString('sv-SE');
+
+function inDays(days: number): string {
+	const d = new Date();
+	d.setDate(d.getDate() + days);
+	return d.toLocaleDateString('sv-SE');
+}
+
+export const load: PageServerLoad = ({ url }) => {
+	const db = getDb();
 	const stats = processingStats();
-	const galleries = getDb()
+	const date = today();
+	const rows = db.select().from(schema.galleries).orderBy(desc(schema.galleries.createdAt)).all();
+	const galleries = rows.map((g) => {
+		const cover = emailCoverPhoto(g);
+		const s = stats.get(g.id) ?? { total: 0, ready: 0, pending: 0, failed: 0 };
+		return {
+			id: g.id,
+			name: g.name,
+			slug: g.slug,
+			eventDate: g.eventDate,
+			status: g.status,
+			missing: g.missing,
+			tags: g.tags,
+			expiresOn: g.expiresOn,
+			expired: Boolean(g.expiresOn && g.expiresOn < date),
+			createdAt: g.createdAt,
+			warnings: g.warnings.length + s.failed,
+			cover: cover && cover.status === 'ready' ? { id: cover.id, key: String(cover.version), color: cover.color } : null,
+			stats: s
+		};
+	});
+
+	// Search filenames across the whole library.
+	const q = (url.searchParams.get('q') ?? '').trim();
+	const results = q
+		? db
+				.select({
+					id: schema.photos.id,
+					filename: schema.photos.filename,
+					version: schema.photos.version,
+					status: schema.photos.status,
+					color: schema.photos.color,
+					galleryId: schema.photos.galleryId,
+					sectionId: schema.photos.sectionId,
+					galleryName: schema.galleries.name,
+					sectionName: schema.sections.folder
+				})
+				.from(schema.photos)
+				.innerJoin(schema.galleries, eq(schema.galleries.id, schema.photos.galleryId))
+				.innerJoin(schema.sections, eq(schema.sections.id, schema.photos.sectionId))
+				.where(like(schema.photos.filename, `%${q}%`))
+				.limit(120)
+				.all()
+				.map((r) => ({ ...r, key: String(r.version) }))
+		: null;
+
+	const names = new Map(rows.map((g) => [g.id, g.name]));
+	const recent = db
 		.select()
-		.from(schema.galleries)
-		.orderBy(desc(schema.galleries.createdAt))
+		.from(schema.activity)
+		.where(ne(schema.activity.kind, 'visit'))
+		.orderBy(desc(schema.activity.createdAt))
+		.limit(8)
 		.all()
-		.map((g) => {
-			const cover = emailCoverPhoto(g);
-			const s = stats.get(g.id) ?? { total: 0, ready: 0, pending: 0, failed: 0 };
-			return {
-				id: g.id,
-				name: g.name,
-				slug: g.slug,
-				eventDate: g.eventDate,
-				status: g.status,
-				missing: g.missing,
-				warnings: g.warnings.length + s.failed,
-				cover: cover && cover.status === 'ready' ? { id: cover.id, key: String(cover.version), color: cover.color } : null,
-				stats: s
-			};
-		});
+		.map((a) => ({ id: a.id, galleryId: a.galleryId, galleryName: names.get(a.galleryId) ?? '', kind: a.kind, email: a.email, createdAt: a.createdAt }));
+
+	const soon = inDays(14);
+	const expiring = galleries.filter((g) => g.status === 'published' && g.expiresOn && !g.expired && g.expiresOn <= soon);
+
 	return {
 		galleries,
+		tags: [...new Set(rows.flatMap((g) => g.tags))].sort((a, b) => a.localeCompare(b)),
+		q,
+		results,
+		recent,
+		expiring,
 		library: { path: config.photosDir, available: libraryState.available, scanning: libraryState.scanning }
 	};
 };
@@ -58,3 +111,4 @@ export const actions: Actions = {
 		return { scanned: true };
 	}
 };
+

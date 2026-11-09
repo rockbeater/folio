@@ -1,32 +1,41 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import Copy from '@lucide/svelte/icons/copy';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import { randomPassword } from '$lib/admin-actions';
-	import { useI18n } from '$lib/i18n';
+	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
+	import { LANGUAGE_NAMES, type Language } from '$lib/types';
 	import type { SubmitFunction } from '@sveltejs/kit';
-	import type { EditorGallery } from './editor-types';
+	import type { AdminSection, EditorGallery } from './editor-types';
 
 	interface Props {
 		gallery: EditorGallery;
+		sections: AdminSection[];
 		baseUrl: string;
-		favorites: { email: string; files: string[] }[];
+		languages: string[];
+		watermarks: { id: string; name: string }[];
 		form: { error?: string; section?: string } | null;
 	}
 
-	let { gallery, baseUrl, favorites, form }: Props = $props();
-	const { t, plural } = useI18n();
+	let { gallery, sections, baseUrl, languages, watermarks, form }: Props = $props();
+	const { t, formatDate } = useI18n();
 
 	// svelte-ignore state_referenced_locally
 	let password = $state(gallery.password ?? '');
 	// svelte-ignore state_referenced_locally
-	let download = $state({ ...gallery.download });
+	let download = $state({ ...gallery.download, pin: gallery.download.pin ?? '' });
+	// svelte-ignore state_referenced_locally
+	let limitSections = $state(gallery.download.sections !== null);
+	// svelte-ignore state_referenced_locally
+	let expiresOn = $state(gallery.expiresOn ?? '');
+	// svelte-ignore state_referenced_locally
+	let reminder = $state(gallery.reminderDays !== null);
 
 	const saved: SubmitFunction = () => {
 		return async ({ result, update }) => {
 			await update({ reset: false });
 			if (result.type === 'success') toast(t('common.saved'));
+			else toast(t('common.error'), 'error');
 		};
 	};
 
@@ -35,10 +44,11 @@
 		(event.currentTarget as HTMLInputElement).form?.requestSubmit();
 	}
 
-	async function copyFiles(files: string[]) {
-		await navigator.clipboard.writeText(files.join(', '));
-		toast(t('admin.settings.filenamesCopied'));
+	function randomPin(): string {
+		return String(crypto.getRandomValues(new Uint32Array(1))[0] % 10000).padStart(4, '0');
 	}
+
+	const expired = $derived(Boolean(gallery.expiresOn && gallery.expiresOn < new Date().toLocaleDateString('sv-SE')));
 </script>
 
 <div class="settings stack">
@@ -65,7 +75,34 @@
 			</label>
 		</div>
 		<p class="hint">{t('admin.settings.clientHint')}</p>
+		<div class="two">
+			<label class="field">
+				<span>{t('admin.settings.language')}</span>
+				<select name="language" value={gallery.language}>
+					{#each languages as lang (lang)}<option value={lang}>{LANGUAGE_NAMES[lang as Language] ?? lang}</option>{/each}
+				</select>
+				<p class="hint">{t('admin.settings.languageHint')}</p>
+			</label>
+			<label class="field">
+				<span>{t('admin.settings.tags')}</span>
+				<input type="text" name="tags" value={gallery.tags.join(', ')} autocomplete="off" />
+				<p class="hint">{t('admin.settings.tagsHint')}</p>
+			</label>
+		</div>
 		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
+	</form>
+
+	<form class="card block" method="POST" action="?/options" use:enhance={saved}>
+		<h3>{t('admin.settings.experience')}</h3>
+		{#each [['emailRegistration', 'admin.settings.emailRegistration', 'admin.settings.emailRegistrationHint'], ['galleryAssist', 'admin.settings.galleryAssist', 'admin.settings.galleryAssistHint'], ['slideshow', 'admin.settings.slideshow', 'admin.settings.slideshowHint'], ['showFilenames', 'admin.settings.showFilenames', 'admin.settings.showFilenamesHint'], ['banner', 'admin.settings.banner', 'admin.settings.bannerHint']] as [name, label, hint] (name)}
+			<div class="option">
+				<label class="switch">
+					<input type="checkbox" {name} checked={gallery.options[name as keyof typeof gallery.options]} onchange={submitParent} />
+					<span>{t(label as MessageKey)}</span>
+				</label>
+				<p class="hint">{t(hint as MessageKey)}</p>
+			</div>
+		{/each}
 	</form>
 
 	<form class="card block" method="POST" action="?/privacy" use:enhance={saved}>
@@ -83,13 +120,60 @@
 		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
 	</form>
 
+	<form class="card block" method="POST" action="?/expiry" use:enhance={saved}>
+		<div class="title-row">
+			<h3>{t('admin.settings.expiry')}</h3>
+			{#if expired}<span class="badge failed">{t('admin.settings.expired')}</span>{/if}
+		</div>
+		<label class="field">
+			<span>{t('admin.settings.expiresOn')}</span>
+			<input type="date" name="expiresOn" bind:value={expiresOn} />
+			<p class="hint">{t('admin.settings.expiresOnHint')}</p>
+		</label>
+		<label class="row"><input type="checkbox" name="reminder" bind:checked={reminder} disabled={!expiresOn} />{t('admin.settings.reminder')}</label>
+		{#if reminder && expiresOn}
+			<div class="two">
+				<label class="field">
+					<span>{t('admin.settings.reminderDays')}</span>
+					<input type="number" name="reminderDays" min="1" max="365" value={gallery.reminderDays ?? 7} />
+				</label>
+				<label class="field">
+					<span>{t('admin.settings.reminderTo')}</span>
+					<select name="reminderTo" value={gallery.reminderTo}>
+						<option value="client">{t('admin.settings.reminderToClient')}</option>
+						<option value="all">{t('admin.settings.reminderToAll')}</option>
+					</select>
+				</label>
+			</div>
+			{#if gallery.reminderSentAt}
+				<p class="hint">{t('admin.settings.reminderSent', { date: formatDate(gallery.reminderSentAt) })}</p>
+			{/if}
+		{/if}
+		<div class="row">
+			<button class="btn primary" type="submit">{t('common.save')}</button>
+			{#if expiresOn}<button class="btn ghost" type="button" onclick={() => ((expiresOn = ''), (reminder = false))}>{t('admin.settings.noExpiry')}</button>{/if}
+		</div>
+	</form>
+
+	<form class="card block" method="POST" action="?/watermark" use:enhance={saved}>
+		<h3>{t('admin.settings.watermark')}</h3>
+		<label class="field">
+			<span class="visually-hidden">{t('admin.settings.watermark')}</span>
+			<select name="watermarkId" value={gallery.watermarkId ?? ''} onchange={submitParent}>
+				<option value="">{t('admin.settings.noWatermark')}</option>
+				{#each watermarks as wm (wm.id)}<option value={wm.id}>{wm.name}</option>{/each}
+			</select>
+			<p class="hint">{t('admin.settings.watermarkHint')} <a href="/admin/settings?tab=watermarks">{t('admin.settings.manageWatermarks')}</a></p>
+		</label>
+	</form>
+
 	<form class="card block" method="POST" action="?/download" use:enhance={saved}>
 		<div class="title-row">
 			<h3>{t('admin.settings.download')}</h3>
 			<span class="badge" class:on={download.enabled}>{download.enabled ? t('common.on') : t('common.off')}</span>
 		</div>
 		<label class="switch">
-			<input type="checkbox" name="enabled" bind:checked={download.enabled} onchange={submitParent} />
+			<input type="checkbox" name="enabled" bind:checked={download.enabled} />
 			<span>{t('admin.settings.photoDownload')}</span>
 		</label>
 		<p class="hint">{t('admin.settings.photoDownloadHint')}</p>
@@ -112,6 +196,35 @@
 					{/each}
 				</div>
 			</div>
+
+			<legend class="field-label sub">{t('admin.settings.downloadRules')}</legend>
+			<label class="row"><input type="checkbox" name="single" bind:checked={download.single} />{t('admin.settings.single')}</label>
+			<label class="row"><input type="checkbox" name="requireEmail" bind:checked={download.requireEmail} />{t('admin.settings.requireEmail')}</label>
+			{#if gallery.watermarkId}
+				<label class="row"><input type="checkbox" name="watermarkWeb" bind:checked={download.watermarkWeb} />{t('admin.settings.watermarkWeb')}</label>
+			{/if}
+
+			<label class="field">
+				<span>{t('admin.settings.pin')}</span>
+				<div class="row nowrap">
+					<input class="pin" type="text" name="pin" bind:value={download.pin} inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="––––" />
+					<button class="btn" type="button" onclick={() => (download.pin = randomPin())}><RefreshCw size={14} />{t('common.generate')}</button>
+					{#if download.pin}<button class="btn ghost" type="button" onclick={() => (download.pin = '')}>{t('admin.settings.removePin')}</button>{/if}
+				</div>
+				<p class="hint">{t('admin.settings.pinHint')}</p>
+				{#if form?.section === 'download' && form.error === 'pin'}<p class="error-text">{t('admin.settings.pinInvalid')}</p>{/if}
+			</label>
+
+			<label class="row"><input type="checkbox" name="limitSections" bind:checked={limitSections} />{t('admin.settings.limitSections')}</label>
+			{#if limitSections}
+				<div class="section-list">
+					{#each sections as section (section.id)}
+						<label class="row"
+							><input type="checkbox" name="sections" value={section.id} checked={!gallery.download.sections || gallery.download.sections.includes(section.id)} />{section.name}</label
+						>
+					{/each}
+				</div>
+			{/if}
 		</fieldset>
 		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
 	</form>
@@ -125,26 +238,7 @@
 			<input type="checkbox" name="enabled" checked={gallery.favoritesEnabled} onchange={submitParent} />
 			<span>{t('admin.settings.favoritePhotos')}</span>
 		</label>
-		<p class="hint">{t('admin.settings.favoritePhotosHint')}</p>
-
-		<h4 class="field-label">{t('admin.settings.favoritesBy')}</h4>
-		{#if favorites.length === 0}
-			<p class="hint">{t('admin.settings.favoritesNone')}</p>
-		{:else}
-			<ul class="favs">
-				{#each favorites as fav (fav.email)}
-					<li>
-						<div>
-							<strong>{fav.email}</strong>
-							<span class="hint">{plural('common.photos', fav.files.length)}</span>
-						</div>
-						<button class="btn small" type="button" onclick={() => copyFiles(fav.files)}>
-							<Copy size={14} />{t('admin.settings.copyFilenames')}
-						</button>
-					</li>
-				{/each}
-			</ul>
-		{/if}
+		<p class="hint">{t('admin.settings.favoritePhotosHint')} <a href="?tab=activity" data-sveltekit-noscroll>{t('admin.settings.seeActivity')}</a></p>
 	</form>
 </div>
 
@@ -162,10 +256,6 @@
 
 	h3 {
 		font-size: 1rem;
-	}
-
-	h4 {
-		margin: 8px 0 0;
 	}
 
 	.title-row {
@@ -207,6 +297,16 @@
 		gap: 14px;
 	}
 
+	.option {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.option .hint {
+		padding-left: 50px;
+	}
+
 	.nowrap {
 		flex-wrap: nowrap;
 	}
@@ -222,6 +322,10 @@
 
 	.sizes:disabled {
 		opacity: 0.5;
+	}
+
+	.sub {
+		margin-top: 8px;
 	}
 
 	.size-row {
@@ -258,28 +362,17 @@
 		accent-color: var(--accent);
 	}
 
-	.favs {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
+	.pin {
+		max-width: 120px;
+		letter-spacing: 0.3em;
+		text-align: center;
 	}
 
-	.favs li {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 12px;
-		border: 1px solid var(--line);
-		border-radius: var(--radius);
-	}
-
-	.favs li div {
+	.section-list {
 		display: flex;
 		flex-direction: column;
+		gap: 6px;
+		padding-left: 26px;
 	}
 
 	@media (max-width: 640px) {

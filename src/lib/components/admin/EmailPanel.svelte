@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import Eye from '@lucide/svelte/icons/eye';
 	import Send from '@lucide/svelte/icons/send';
+	import Copy from '@lucide/svelte/icons/copy';
+	import { LANGUAGE_NAMES, type Language } from '$lib/types';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import Modal from '$lib/components/Modal.svelte';
 	import { useI18n, type MessageKey } from '$lib/i18n';
@@ -12,6 +14,7 @@
 	interface Template {
 		id: string;
 		name: string;
+		language: string;
 		subject: string;
 		body: string;
 		isDefault: boolean;
@@ -19,7 +22,9 @@
 
 	interface LogEntry {
 		id: string;
+		kind: 'gallery' | 'reminder' | 'test';
 		recipient: string;
+		scheduledFor: number | null;
 		subject: string;
 		status: 'queued' | 'sent' | 'failed';
 		error: string | null;
@@ -30,17 +35,21 @@
 	interface Props {
 		gallery: EditorGallery;
 		templates: Template[];
+		defaultTemplateId: string | null;
 		log: LogEntry[];
 		smtpConfigured: boolean;
 		adminEmail: string;
 		form: Record<string, unknown> | null;
 	}
 
-	let { gallery, templates, log, smtpConfigured, adminEmail, form }: Props = $props();
-	const { t } = useI18n();
+	let { gallery, templates, defaultTemplateId, log, smtpConfigured, adminEmail, form }: Props = $props();
+	const { t, lang } = useI18n();
 
 	// svelte-ignore state_referenced_locally
-	const initial = templates.find((tpl) => tpl.isDefault) ?? templates[0];
+	const initial = templates.find((tpl) => tpl.id === defaultTemplateId) ?? templates.find((tpl) => tpl.isDefault) ?? templates[0];
+	let later = $state(false);
+	let sendAt = $state('');
+	const multipleLanguages = $derived(new Set(templates.map((tpl) => tpl.language)).size > 1);
 	let templateId = $state(initial?.id ?? '');
 	let subject = $state(initial?.subject ?? '');
 	let body = $state(initial?.body ?? '');
@@ -71,22 +80,37 @@
 		else toast(t('common.error'), 'error');
 	}
 
+	/** Copy the invitation as plain text, for SMS or messaging apps. */
+	async function copyInvitation() {
+		const res = await fetch(`/admin/api/galleries/${gallery.id}/email-preview`, {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ subject, body, includePassword })
+		});
+		if (!res.ok) return toast(t('common.error'), 'error');
+		const data = (await res.json()) as { invitation: string };
+		await navigator.clipboard.writeText(data.invitation);
+		toast(t('admin.email.invitationCopied'));
+	}
+
 	const submit: SubmitFunction = () => {
 		busy = true;
 		return async ({ result, update }) => {
 			await update({ reset: false });
 			busy = false;
 			if (result.type === 'success') {
-				const data = result.data as { queued?: number; testSent?: string } | undefined;
+				const data = result.data as { queued?: number; testSent?: string; scheduled?: boolean; ok?: boolean } | undefined;
 				if (data?.testSent) toast(t('admin.email.testQueued', { email: data.testSent }));
+				else if (data?.scheduled) toast(t('admin.email.scheduled'));
 				else if (data?.queued) toast(t('admin.email.queued'));
+				else if (data?.ok) toast(t('common.saved'));
 			} else if (result.type === 'failure' && result.data?.testError) {
 				toast(t('admin.smtp.testFailed', { error: String(result.data.testError) }), 'error', 8000);
 			}
 		};
 	};
 
-	const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+	const dateFormat = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' });
 </script>
 
 <div class="email stack">
@@ -113,7 +137,7 @@
 				<span>{t('admin.email.template')}</span>
 				<select bind:value={templateId} onchange={chooseTemplate}>
 					{#each templates as tpl (tpl.id)}
-						<option value={tpl.id}>{tpl.name}</option>
+						<option value={tpl.id}>{tpl.name}{multipleLanguages ? ` (${LANGUAGE_NAMES[tpl.language as Language] ?? tpl.language})` : ''}</option>
 					{/each}
 				</select>
 			</label>
@@ -137,14 +161,23 @@
 		{#if gallery.status !== 'published'}
 			<label class="row"><input type="checkbox" name="publish" bind:checked={publish} />{t('admin.email.publishAndSend')}</label>
 		{/if}
+		<label class="row"><input type="checkbox" name="later" bind:checked={later} />{t('admin.email.sendLater')}</label>
+		{#if later}
+			<label class="field">
+				<span>{t('admin.email.sendAt')}</span>
+				<input type="datetime-local" name="sendAt" bind:value={sendAt} />
+				{#if errors.sendAt}<p class="error-text">{t(errors.sendAt as MessageKey)}</p>{/if}
+			</label>
+		{/if}
 
 		<div class="row actions">
+			<button class="btn ghost" type="button" onclick={copyInvitation}><Copy size={16} />{t('admin.email.copyInvitation')}</button>
 			<button class="btn" type="button" onclick={showPreview}><Eye size={16} />{t('admin.email.preview')}</button>
 			{#if adminEmail}
 				<button class="btn" type="submit" name="mode" value="test" disabled={busy || !smtpConfigured}>{t('admin.email.sendTest')}</button>
 			{/if}
-			<button class="btn primary" type="submit" name="mode" value="send" disabled={busy || !smtpConfigured}>
-				<Send size={16} />{t('admin.email.send')}
+			<button class="btn primary" type="submit" name="mode" value="send" disabled={busy || !smtpConfigured || (later && !sendAt)}>
+				<Send size={16} />{later ? t('admin.email.schedule') : t('admin.email.send')}
 			</button>
 		</div>
 	</form>
@@ -159,15 +192,23 @@
 					<li>
 						<div class="who">
 							<strong>{entry.recipient}</strong>
-							<span class="hint">{entry.subject}</span>
+							<span class="hint">{entry.kind === 'reminder' ? `${t('admin.email.reminder')} · ` : ''}{entry.subject}</span>
 							{#if entry.status === 'failed' && entry.error}<span class="error-text">{entry.error}</span>{/if}
 						</div>
-						<span class="hint when">{dateFormat.format(entry.sentAt ?? entry.createdAt)}</span>
-						<span class="badge {entry.status}">{t(`admin.email.status.${entry.status}` as MessageKey)}</span>
-						<form method="POST" action="?/resend" use:enhance={submit}>
-							<input type="hidden" name="id" value={entry.id} />
-							<button class="btn small ghost" type="submit">{t('admin.email.resend')}</button>
-						</form>
+						<span class="hint when">{dateFormat.format(entry.sentAt ?? entry.scheduledFor ?? entry.createdAt)}</span>
+						{#if entry.status === 'queued' && entry.scheduledFor}
+							<span class="badge queued">{t('admin.email.status.scheduled')}</span>
+							<form method="POST" action="?/cancelEmail" use:enhance={submit}>
+								<input type="hidden" name="id" value={entry.id} />
+								<button class="btn small ghost" type="submit">{t('common.cancel')}</button>
+							</form>
+						{:else}
+							<span class="badge {entry.status}">{t(`admin.email.status.${entry.status}` as MessageKey)}</span>
+							<form method="POST" action="?/resend" use:enhance={submit}>
+								<input type="hidden" name="id" value={entry.id} />
+								<button class="btn small ghost" type="submit">{t('admin.email.resend')}</button>
+							</form>
+						{/if}
 					</li>
 				{/each}
 			</ul>

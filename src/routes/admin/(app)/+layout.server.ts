@@ -4,5 +4,7 @@ import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ locals, url }) => {
 	if (!locals.admin) redirect(303, `/admin/login?next=${encodeURIComponent(url.pathname + url.search)}`);
-	return { admin: locals.admin, studioName: getStudio().name };
+	const studio = getStudio();
+	locals.lang = studio.language;
+	return { admin: locals.admin, studioName: studio.name, adminLanguage: studio.language };
 };

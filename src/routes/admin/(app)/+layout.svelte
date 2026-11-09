@@ -5,7 +5,8 @@
 	import { createI18n, provideI18n } from '$lib/i18n';
 
 	let { data, children } = $props();
-	const i18n = createI18n('en');
+	// svelte-ignore state_referenced_locally
+	const i18n = createI18n(data.adminLanguage);
 	provideI18n(i18n);
 	const { t } = i18n;
 

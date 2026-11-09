@@ -1,18 +1,32 @@
-import { error, fail } from '@sveltejs/kit';
-import { and, desc, eq } from 'drizzle-orm';
-import { generateGalleryPassword } from '$lib/server/crypto';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
+import type { ActivityDetail } from '$lib/server/db/schema';
 import { getGalleryById, getPhotosBySection, getSection, getSections, processingStats, toPhotoView, touchGallery } from '$lib/server/galleries';
-import { createSection, LibraryError, renameSection, trashPhotos, trashSection } from '$lib/server/library/ops';
-import { queueGalleryEmail, resendEmail, sendGalleryTest } from '$lib/server/mail/send';
-import { listTemplates } from '$lib/server/mail/templates';
+import {
+	copyPhotos,
+	createSection,
+	LibraryError,
+	movePhotos,
+	renameSection,
+	setPhotosHidden,
+	trashGallery,
+	trashPhotos,
+	trashSection
+} from '$lib/server/library/ops';
+import { cancelScheduledEmail, queueGalleryEmail, resendEmail, sendGalleryTest } from '$lib/server/mail/send';
+import { listTemplates, pickTemplate } from '$lib/server/mail/templates';
+import { galleryValuesFromSettings, getPreset, listPresets, savePreset, settingsFromGallery } from '$lib/server/presets';
 import { getStudio, isSmtpConfigured } from '$lib/server/settings';
+import { listWatermarks } from '$lib/server/watermarks';
 import { slugify } from '$lib/slug';
 import {
 	HIGH_RES_SIZES,
 	normalizeDesign,
 	normalizeDownload,
+	normalizeOptions,
+	SUPPORTED_LANGUAGES,
 	WEB_SIZES,
 	type GalleryStatus,
 	type HighResSize,
@@ -21,6 +35,7 @@ import {
 import type { Actions, PageServerLoad } from './$types';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function requireGallery(id: string) {
 	const gallery = getGalleryById(id);
@@ -32,43 +47,99 @@ function baseUrlFor(url: URL): string {
 	return config.baseUrl || url.origin;
 }
 
+function activityFor(galleryId: string, sectionNames: Map<string, string>, photoNames: Map<string, string>) {
+	const db = getDb();
+	const counts = db
+		.select({ kind: schema.activity.kind, count: sql<number>`count(*)` })
+		.from(schema.activity)
+		.where(eq(schema.activity.galleryId, galleryId))
+		.groupBy(schema.activity.kind)
+		.all();
+	const count = (kind: string) => counts.find((c) => c.kind === kind)?.count ?? 0;
+
+	const downloads = db
+		.select()
+		.from(schema.activity)
+		.where(and(eq(schema.activity.galleryId, galleryId), eq(schema.activity.kind, 'download')))
+		.orderBy(desc(schema.activity.createdAt))
+		.limit(200)
+		.all()
+		.map((a) => {
+			const d = (a.detail ?? {}) as ActivityDetail;
+			return {
+				id: a.id,
+				email: a.email,
+				scope: d.scope ?? 'all',
+				size: d.size ?? 'highres',
+				count: d.count ?? 0,
+				target: d.photoId ? (photoNames.get(d.photoId) ?? '') : d.sectionId ? (sectionNames.get(d.sectionId) ?? '') : '',
+				createdAt: a.createdAt
+			};
+		});
+
+	const visitors = db
+		.select({
+			id: schema.visitors.id,
+			email: schema.visitors.email,
+			createdAt: schema.visitors.createdAt,
+			favorites: sql<number>`(select count(*) from ${schema.favorites} where ${schema.favorites.visitorId} = ${schema.visitors.id})`
+		})
+		.from(schema.visitors)
+		.where(eq(schema.visitors.galleryId, galleryId))
+		.orderBy(desc(schema.visitors.createdAt))
+		.all();
+	const downloadsByEmail = new Map<string, number>();
+	for (const d of downloads) if (d.email) downloadsByEmail.set(d.email, (downloadsByEmail.get(d.email) ?? 0) + 1);
+
+	const favoriteRows = db
+		.select({ email: schema.visitors.email, filename: schema.photos.filename })
+		.from(schema.favorites)
+		.innerJoin(schema.visitors, eq(schema.visitors.id, schema.favorites.visitorId))
+		.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
+		.where(eq(schema.visitors.galleryId, galleryId))
+		.all();
+	const favoritesByEmail = new Map<string, string[]>();
+	for (const row of favoriteRows) favoritesByEmail.set(row.email, [...(favoritesByEmail.get(row.email) ?? []), row.filename]);
+
+	return {
+		visits: count('visit'),
+		downloadCount: count('download'),
+		registrations: count('registration'),
+		downloads,
+		visitors: visitors.map((v) => ({ ...v, downloads: downloadsByEmail.get(v.email) ?? 0 })),
+		favorites: [...favoritesByEmail.entries()].map(([email, files]) => ({ email, files }))
+	};
+}
+
 export const load: PageServerLoad = ({ params, url }) => {
 	const gallery = requireGallery(params.id);
 	const db = getDb();
 	const bySection = getPhotosBySection(gallery.id);
-	const sections = getSections(gallery.id).map((s) => ({
+	const sectionList = getSections(gallery.id);
+	const sections = sectionList.map((s) => ({
 		id: s.id,
 		name: s.folder,
 		slug: s.slug,
 		sortMode: s.sortMode,
-		photos: (bySection.get(s.id) ?? []).map((p) => ({ ...toPhotoView(p), status: p.status, error: p.error }))
+		photos: (bySection.get(s.id) ?? []).map((p) => ({ ...toPhotoView(p), status: p.status, error: p.error, hidden: p.hidden }))
 	}));
-
-	const visitors = db
-		.select({
-			email: schema.visitors.email,
-			filename: schema.photos.filename
-		})
-		.from(schema.favorites)
-		.innerJoin(schema.visitors, eq(schema.visitors.id, schema.favorites.visitorId))
-		.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
-		.where(eq(schema.visitors.galleryId, gallery.id))
-		.all();
-	const favoritesByEmail = new Map<string, string[]>();
-	for (const row of visitors) favoritesByEmail.set(row.email, [...(favoritesByEmail.get(row.email) ?? []), row.filename]);
+	const sectionNames = new Map(sectionList.map((s) => [s.id, s.folder]));
+	const photoNames = new Map([...bySection.values()].flat().map((p) => [p.id, p.filename]));
 
 	const emailLog = db
 		.select({
 			id: schema.emailLog.id,
+			kind: schema.emailLog.kind,
 			recipient: schema.emailLog.recipient,
 			subject: schema.emailLog.subject,
 			status: schema.emailLog.status,
 			error: schema.emailLog.error,
+			scheduledFor: schema.emailLog.scheduledFor,
 			createdAt: schema.emailLog.createdAt,
 			sentAt: schema.emailLog.sentAt
 		})
 		.from(schema.emailLog)
-		.where(and(eq(schema.emailLog.galleryId, gallery.id), eq(schema.emailLog.kind, 'gallery')))
+		.where(and(eq(schema.emailLog.galleryId, gallery.id), ne(schema.emailLog.kind, 'test')))
 		.orderBy(desc(schema.emailLog.createdAt))
 		.limit(50)
 		.all();
@@ -88,16 +159,41 @@ export const load: PageServerLoad = ({ params, url }) => {
 			password: gallery.password,
 			design: normalizeDesign(gallery.design),
 			download: normalizeDownload(gallery.download),
+			options: normalizeOptions(gallery.options),
 			favoritesEnabled: gallery.favoritesEnabled,
+			language: gallery.language,
 			clientName: gallery.clientName,
 			clientEmail: gallery.clientEmail,
+			tags: gallery.tags,
+			watermarkId: gallery.watermarkId,
+			expiresOn: gallery.expiresOn,
+			reminderDays: gallery.reminderDays,
+			reminderTo: gallery.reminderTo,
+			reminderSentAt: gallery.reminderSentAt,
 			warnings: gallery.warnings
 		},
 		sections,
 		stats: processingStats(gallery.id).get(gallery.id) ?? { total: 0, ready: 0, pending: 0, failed: 0 },
-		favorites: [...favoritesByEmail.entries()].map(([email, files]) => ({ email, files })),
-		templates: listTemplates().map((t) => ({ id: t.id, name: t.name, subject: t.subject, body: t.body, isDefault: t.isDefault })),
+		activity: activityFor(gallery.id, sectionNames, photoNames),
+		templates: listTemplates('delivery').map((t) => ({
+			id: t.id,
+			name: t.name,
+			language: t.language,
+			subject: t.subject,
+			body: t.body,
+			isDefault: t.isDefault
+		})),
+		defaultTemplateId: pickTemplate('delivery', gallery.language)?.id ?? null,
 		emailLog,
+		presets: listPresets().map((p) => ({ id: p.id, name: p.name, isDefault: p.isDefault })),
+		watermarks: listWatermarks().map((w) => ({ id: w.id, name: w.name })),
+		otherGalleries: db
+			.select({ id: schema.galleries.id, name: schema.galleries.name })
+			.from(schema.galleries)
+			.where(ne(schema.galleries.id, gallery.id))
+			.orderBy(desc(schema.galleries.createdAt))
+			.all(),
+		languages: [...SUPPORTED_LANGUAGES],
 		smtpConfigured: isSmtpConfigured(),
 		adminEmail: getStudio().email,
 		baseUrl: baseUrlFor(url)
@@ -110,6 +206,7 @@ async function formOf(request: Request) {
 		str: (name: string) => String(form.get(name) ?? '').trim(),
 		bool: (name: string) => form.get(name) === 'on' || form.get(name) === 'true',
 		has: (name: string) => form.has(name),
+		all: (name: string) => form.getAll(name).map(String),
 		json: <T>(name: string): T | null => {
 			try {
 				return JSON.parse(String(form.get(name) ?? '')) as T;
@@ -131,7 +228,7 @@ export const actions: Actions = {
 		const f = await formOf(request);
 		const update: { name?: string; eventDate?: string | null } = {};
 		if (f.has('name') && f.str('name')) update.name = f.str('name').slice(0, 200);
-		if (f.has('eventDate')) update.eventDate = /^\d{4}-\d{2}-\d{2}$/.test(f.str('eventDate')) ? f.str('eventDate') : null;
+		if (f.has('eventDate')) update.eventDate = DATE.test(f.str('eventDate')) ? f.str('eventDate') : null;
 		touchGallery(gallery.id, update);
 		return { ok: true };
 	},
@@ -151,11 +248,10 @@ export const actions: Actions = {
 	cover: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
-		const photoId = f.str('photoId');
 		const photo = getDb()
 			.select({ id: schema.photos.id })
 			.from(schema.photos)
-			.where(and(eq(schema.photos.id, photoId), eq(schema.photos.galleryId, gallery.id)))
+			.where(and(eq(schema.photos.id, f.str('photoId')), eq(schema.photos.galleryId, gallery.id)))
 			.get();
 		if (!photo) return fail(400);
 		touchGallery(gallery.id, { coverPhotoId: photo.id, coverFocalX: 0.5, coverFocalY: 0.5 });
@@ -207,8 +303,7 @@ export const actions: Actions = {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
 		const ids = f.json<string[]>('ids') ?? [];
-		const db = getDb();
-		db.transaction((tx) => {
+		getDb().transaction((tx) => {
 			ids.forEach((id, position) => {
 				tx.update(schema.sections)
 					.set({ position })
@@ -247,8 +342,7 @@ export const actions: Actions = {
 		const ids = f.json<string[]>('ids') ?? [];
 		const section = getSection(gallery.id, f.str('sectionId'));
 		if (!section) return fail(404);
-		const db = getDb();
-		db.transaction((tx) => {
+		getDb().transaction((tx) => {
 			tx.update(schema.sections).set({ sortMode: 'manual' }).where(eq(schema.sections.id, section.id)).run();
 			ids.forEach((id, position) => {
 				tx.update(schema.photos)
@@ -267,6 +361,23 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
+	hidePhotos: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		setPhotosHidden(gallery, f.json<string[]>('ids') ?? [], f.bool('hidden'));
+		return { ok: true };
+	},
+
+	movePhotos: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const target = getSection(gallery.id, f.str('sectionId'));
+		if (!target) return fail(404);
+		const ids = f.json<string[]>('ids') ?? [];
+		const count = f.str('mode') === 'copy' ? await copyPhotos(gallery, ids, target) : await movePhotos(gallery, ids, target);
+		return { ok: true, count };
+	},
+
 	design: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
@@ -278,29 +389,58 @@ export const actions: Actions = {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
 		const slug = slugify(f.str('slug') || gallery.name);
-		const taken = getDb()
-			.select({ id: schema.galleries.id })
-			.from(schema.galleries)
-			.where(eq(schema.galleries.slug, slug))
-			.get();
+		const taken = getDb().select({ id: schema.galleries.id }).from(schema.galleries).where(eq(schema.galleries.slug, slug)).get();
 		if (taken && taken.id !== gallery.id) return fail(400, { error: 'slugTaken', section: 'general' });
 		const clientEmail = f.str('clientEmail');
 		if (clientEmail && !EMAIL.test(clientEmail)) return fail(400, { error: 'clientEmail', section: 'general' });
-		touchGallery(gallery.id, { slug, clientName: f.str('clientName') || null, clientEmail: clientEmail || null });
+		const language = (SUPPORTED_LANGUAGES as readonly string[]).includes(f.str('language')) ? f.str('language') : gallery.language;
+		const tags = [...new Set(f.str('tags').split(',').map((t) => t.trim()).filter(Boolean))].slice(0, 20);
+		touchGallery(gallery.id, { slug, clientName: f.str('clientName') || null, clientEmail: clientEmail || null, language, tags });
 		return { ok: true, section: 'general' };
+	},
+
+	options: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		touchGallery(gallery.id, {
+			options: normalizeOptions({
+				emailRegistration: f.bool('emailRegistration'),
+				galleryAssist: f.bool('galleryAssist'),
+				slideshow: f.bool('slideshow'),
+				showFilenames: f.bool('showFilenames'),
+				banner: f.bool('banner')
+			})
+		});
+		return { ok: true, section: 'options' };
 	},
 
 	privacy: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
-		const password = f.str('password').slice(0, 100);
-		touchGallery(gallery.id, { password: password || null });
+		touchGallery(gallery.id, { password: f.str('password').slice(0, 100) || null });
 		return { ok: true, section: 'privacy' };
 	},
 
-	generatePassword: async ({ params }) => {
-		requireGallery(params.id);
-		return { generated: generateGalleryPassword() };
+	watermark: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const id = f.str('watermarkId');
+		const exists = id ? listWatermarks().some((w) => w.id === id) : true;
+		if (!exists) return fail(400);
+		touchGallery(gallery.id, { watermarkId: id || null });
+		return { ok: true, section: 'watermark' };
+	},
+
+	expiry: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const expiresOn = DATE.test(f.str('expiresOn')) ? f.str('expiresOn') : null;
+		const days = Number.parseInt(f.str('reminderDays'), 10);
+		const reminderDays = expiresOn && f.bool('reminder') && Number.isFinite(days) && days > 0 ? Math.min(days, 365) : null;
+		const reminderTo = f.str('reminderTo') === 'all' ? 'all' : 'client';
+		const changed = expiresOn !== gallery.expiresOn || reminderDays !== gallery.reminderDays;
+		touchGallery(gallery.id, { expiresOn, reminderDays, reminderTo, ...(changed ? { reminderSentAt: null } : {}) });
+		return { ok: true, section: 'expiry' };
 	},
 
 	download: async ({ params, request }) => {
@@ -308,13 +448,22 @@ export const actions: Actions = {
 		const f = await formOf(request);
 		const highResSize = f.str('highResSize') as HighResSize;
 		const webSize = f.str('webSize') as WebSize;
+		const pin = f.str('pin');
+		if (pin && !/^\d{4}$/.test(pin)) return fail(400, { error: 'pin', section: 'download' });
+		const sectionIds = new Set(getSections(gallery.id).map((s) => s.id));
+		const limit = f.bool('limitSections') ? f.all('sections').filter((id) => sectionIds.has(id)) : null;
 		touchGallery(gallery.id, {
 			download: normalizeDownload({
 				enabled: f.bool('enabled'),
 				highRes: f.bool('highRes'),
 				highResSize: HIGH_RES_SIZES.includes(highResSize) ? highResSize : undefined,
 				web: f.bool('web'),
-				webSize: WEB_SIZES.includes(webSize) ? webSize : undefined
+				webSize: WEB_SIZES.includes(webSize) ? webSize : undefined,
+				pin: pin || null,
+				requireEmail: f.bool('requireEmail'),
+				single: f.bool('single'),
+				sections: limit,
+				watermarkWeb: f.bool('watermarkWeb')
 			})
 		});
 		return { ok: true, section: 'download' };
@@ -327,6 +476,42 @@ export const actions: Actions = {
 		return { ok: true, section: 'favorites' };
 	},
 
+	applyPreset: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const preset = getPreset(f.str('presetId'));
+		if (!preset) return fail(404);
+		const values = galleryValuesFromSettings(preset.settings);
+		touchGallery(gallery.id, { ...values, reminderSentAt: null });
+		return { ok: true };
+	},
+
+	saveAsPreset: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const name = f.str('name');
+		if (!name) return fail(400);
+		savePreset({ name: name.slice(0, 100), settings: settingsFromGallery(gallery) });
+		return { ok: true };
+	},
+
+	copySettings: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const source = getGalleryById(f.str('fromId'));
+		if (!source) return fail(404);
+		const values = galleryValuesFromSettings(settingsFromGallery(source));
+		// Keep this gallery's own expiry date; only copy how things look and work.
+		touchGallery(gallery.id, { ...values, expiresOn: gallery.expiresOn, reminderSentAt: null });
+		return { ok: true };
+	},
+
+	deleteGallery: async ({ params }) => {
+		const gallery = requireGallery(params.id);
+		await trashGallery(gallery);
+		redirect(303, '/admin');
+	},
+
 	sendEmail: async ({ params, request, url }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
@@ -334,6 +519,8 @@ export const actions: Actions = {
 		const errors: Record<string, string> = {};
 		if (recipients.length === 0 || recipients.some((r) => !EMAIL.test(r))) errors.recipients = 'admin.email.errRecipients';
 		if (!f.str('subject')) errors.subject = 'admin.email.errSubject';
+		const scheduledFor = f.bool('later') && f.str('sendAt') ? new Date(f.str('sendAt')).getTime() : null;
+		if (scheduledFor !== null && (!Number.isFinite(scheduledFor) || scheduledFor <= Date.now())) errors.sendAt = 'admin.email.errSendAt';
 		if (Object.keys(errors).length > 0) return fail(400, { emailErrors: errors });
 
 		const payload = {
@@ -354,8 +541,14 @@ export const actions: Actions = {
 		}
 		// Remember the client's email for next time.
 		if (!gallery.clientEmail && recipients.length === 1) touchGallery(gallery.id, { clientEmail: recipients[0] });
-		queueGalleryEmail(getGalleryById(gallery.id)!, recipients, payload, f.str('templateId') || null);
-		return { queued: recipients.length };
+		queueGalleryEmail(getGalleryById(gallery.id)!, recipients, payload, f.str('templateId') || null, { scheduledFor });
+		return { queued: recipients.length, scheduled: scheduledFor !== null };
+	},
+
+	cancelEmail: async ({ params, request }) => {
+		requireGallery(params.id);
+		const f = await formOf(request);
+		return cancelScheduledEmail(f.str('id')) ? { ok: true } : fail(404);
 	},
 
 	resend: async ({ params, request }) => {

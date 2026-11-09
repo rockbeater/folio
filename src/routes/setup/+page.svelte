@@ -2,9 +2,18 @@
 	import { enhance } from '$app/forms';
 	import AuthCard from '$lib/components/admin/AuthCard.svelte';
 	import { createI18n, type MessageKey } from '$lib/i18n';
+	import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from '$lib/types';
 
 	let { form } = $props();
-	const { t } = createI18n('en');
+	// Start in the browser's language when Folio has it.
+	// svelte-ignore state_referenced_locally
+	let language = $state<string>(form?.language ?? 'en');
+	$effect(() => {
+		if (form?.language) return;
+		const preferred = navigator.languages.map((l) => l.slice(0, 2)).find((l) => (SUPPORTED_LANGUAGES as readonly string[]).includes(l));
+		if (preferred) language = preferred;
+	});
+	const t = $derived(createI18n(language).t);
 	let busy = $state(false);
 	const err = (field: string) => {
 		const key = (form?.errors as Record<string, string> | undefined)?.[field];
@@ -26,6 +35,12 @@
 			};
 		}}
 	>
+		<label class="field">
+			<span>{t('admin.setup.language')}</span>
+			<select name="language" bind:value={language}>
+				{#each SUPPORTED_LANGUAGES as lang (lang)}<option value={lang}>{LANGUAGE_NAMES[lang]}</option>{/each}
+			</select>
+		</label>
 		<label class="field">
 			<span>{t('admin.setup.studioName')}</span>
 			<input type="text" name="studioName" value={form?.studioName ?? ''} required autocomplete="organization" />

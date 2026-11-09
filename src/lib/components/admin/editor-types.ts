@@ -1,8 +1,9 @@
-import type { DownloadSettings, GalleryDesign, GalleryStatus, PhotoView } from '$lib/types';
+import type { DownloadSettings, GalleryDesign, GalleryOptions, GalleryStatus, PhotoView } from '$lib/types';
 
 export interface AdminPhoto extends PhotoView {
 	status: 'pending' | 'ready' | 'error';
 	error: string | null;
+	hidden: boolean;
 }
 
 export interface AdminSection {
@@ -27,8 +28,16 @@ export interface EditorGallery {
 	password: string | null;
 	design: GalleryDesign;
 	download: DownloadSettings;
+	options: GalleryOptions;
 	favoritesEnabled: boolean;
+	language: string;
 	clientName: string | null;
 	clientEmail: string | null;
+	tags: string[];
+	watermarkId: string | null;
+	expiresOn: string | null;
+	reminderDays: number | null;
+	reminderTo: 'client' | 'all';
+	reminderSentAt: number | null;
 	warnings: { code: string; section?: string; count?: number }[];
 }

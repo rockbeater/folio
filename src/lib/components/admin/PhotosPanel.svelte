@@ -7,7 +7,12 @@
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Grid2 from '@lucide/svelte/icons/images';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import Eye from '@lucide/svelte/icons/eye';
+	import X from '@lucide/svelte/icons/x';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { callAction } from '$lib/admin-actions';
+	import { uploadFile, type DuplicatePolicy } from '$lib/admin-upload';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
 	import { displayUrl } from '$lib/types';
@@ -26,7 +31,21 @@
 
 	let large = $state(false);
 	let dropping = $state(false);
-	let uploading = $state<{ done: number; total: number; failed: number } | null>(null);
+	let uploading = $state<{ done: number; total: number; failed: number; skipped: number; bytes: number; totalBytes: number } | null>(null);
+	let duplicate = $state<DuplicatePolicy>('skip');
+	const selected = new SvelteSet<string>();
+	let lastClicked: string | null = null;
+	let target = $state('');
+
+	// Remember the duplicate choice in this browser.
+	$effect(() => {
+		try {
+			const stored = localStorage.getItem('folio-duplicate');
+			if (stored === 'skip' || stored === 'replace' || stored === 'rename') duplicate = stored;
+		} catch {
+			// ignore
+		}
+	});
 	let order = $state<string[]>([]);
 	let dragId = $state<string | null>(null);
 	let fileInput: HTMLInputElement;
@@ -73,23 +92,28 @@
 	}
 
 	async function upload(items: Pending[]) {
-		const files = items.filter((i) => IMAGE.test(i.file.name) && !i.file.name.startsWith('.'));
+		const files = items.filter((i) => IMAGE.test(i.file.name) && !i.file.name.startsWith('.') && i.file.size > 0);
 		if (files.length === 0) return;
-		uploading = { done: 0, total: files.length, failed: 0 };
+		const totalBytes = files.reduce((sum, i) => sum + i.file.size, 0);
+		uploading = { done: 0, total: files.length, failed: 0, skipped: 0, bytes: 0, totalBytes };
 		let firstNewSection: string | null = null;
 		const queue = [...files];
 
 		async function worker() {
 			for (let item = queue.shift(); item; item = queue.shift()) {
-				const params = new URLSearchParams({ name: item.file.name });
-				if (item.folder) params.set('newSection', item.folder);
-				else if (section) params.set('section', section.id);
-				else params.set('newSection', t('admin.editor.defaultSection'));
+				const targetSection = item.folder
+					? { newSection: item.folder }
+					: section
+						? { sectionId: section.id }
+						: { newSection: t('admin.editor.defaultSection') };
+				let reported = 0;
 				try {
-					const res = await fetch(`/admin/api/galleries/${gallery.id}/upload?${params}`, { method: 'PUT', body: item.file });
-					if (!res.ok) throw new Error(String(res.status));
-					const json = (await res.json()) as { sectionId: string };
-					if (!section || item.folder) firstNewSection ??= json.sectionId;
+					const result = await uploadFile(gallery.id, item.file, targetSection, duplicate, (bytes) => {
+						uploading!.bytes += bytes - reported;
+						reported = bytes;
+					});
+					if (result.skipped) uploading!.skipped += 1;
+					if (!section || item.folder) firstNewSection ??= result.sectionId;
 				} catch {
 					uploading!.failed += 1;
 				}
@@ -98,14 +122,65 @@
 		}
 
 		await Promise.all([worker(), worker(), worker()]);
-		const failed = uploading.failed;
+		const { failed, skipped } = uploading;
 		uploading = null;
 		if (failed > 0) toast(t('admin.editor.uploadFailed', { count: failed }), 'error');
+		if (skipped > 0) toast(t('admin.editor.uploadSkipped', { count: skipped }));
 		// Give the library scan a moment to register the new files.
 		setTimeout(async () => {
 			await invalidateAll();
 			if (firstNewSection) goto(`?tab=photos&section=${firstNewSection}`, { noScroll: true, replaceState: true });
 		}, 1200);
+	}
+
+	function setDuplicate(event: Event) {
+		duplicate = (event.currentTarget as HTMLSelectElement).value as DuplicatePolicy;
+		try {
+			localStorage.setItem('folio-duplicate', duplicate);
+		} catch {
+			// ignore
+		}
+	}
+
+	function toggleSelect(id: string, event: MouseEvent) {
+		if (event.shiftKey && lastClicked) {
+			const ids = photos.map((p) => p.id);
+			const [a, b] = [ids.indexOf(lastClicked), ids.indexOf(id)].sort((x, y) => x - y);
+			if (a >= 0 && b >= 0) for (const pid of ids.slice(a, b + 1)) selected.add(pid);
+		} else if (selected.has(id)) selected.delete(id);
+		else selected.add(id);
+		lastClicked = id;
+	}
+
+	async function bulk(action: 'hide' | 'show' | 'delete' | 'move' | 'copy') {
+		const ids = [...selected];
+		if (ids.length === 0) return;
+		if (action === 'delete' && !confirm(t('admin.bulk.deleteConfirm', { count: ids.length }))) return;
+		let result;
+		if (action === 'hide' || action === 'show') result = await callAction('hidePhotos', { ids, hidden: action === 'hide' });
+		else if (action === 'delete') result = await callAction('deletePhotos', { ids });
+		else {
+			if (!target) return;
+			result = await callAction('movePhotos', { ids, sectionId: target, mode: action });
+		}
+		if (result.type === 'success') {
+			selected.clear();
+			target = '';
+			toast(t('common.saved'));
+		} else toast(t('common.error'), 'error');
+	}
+
+	function downloadSelected() {
+		const a = document.createElement('a');
+		a.href = `/admin/api/galleries/${gallery.id}/download?ids=${[...selected].join(',')}`;
+		a.download = '';
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+	}
+
+	async function toggleHidden(id: string, hidden: boolean) {
+		await callAction('hidePhotos', { ids: [id], hidden });
 	}
 
 	async function onDrop(event: DragEvent) {
@@ -215,6 +290,14 @@
 				aria-label={large ? t('admin.editor.small') : t('admin.editor.large')}
 				title={large ? t('admin.editor.small') : t('admin.editor.large')}><Grid2 size={18} /></button
 			>
+			<label class="duplicate">
+				<span class="visually-hidden">{t('admin.upload.duplicates')}</span>
+				<select value={duplicate} onchange={setDuplicate} title={t('admin.upload.duplicates')}>
+					<option value="skip">{t('admin.upload.skip')}</option>
+					<option value="replace">{t('admin.upload.replace')}</option>
+					<option value="rename">{t('admin.upload.rename')}</option>
+				</select>
+			</label>
 			<button class="btn primary" type="button" onclick={() => fileInput.click()} disabled={uploading !== null}>
 				<Upload size={16} />{t('admin.editor.upload')}
 			</button>
@@ -225,7 +308,26 @@
 	{#if uploading}
 		<div class="upload-progress" role="status">
 			<span>{t('admin.editor.uploading', { done: uploading.done, total: uploading.total })}</span>
-			<div class="bar"><div style:width="{(uploading.done / uploading.total) * 100}%"></div></div>
+			<div class="bar"><div style:width="{(uploading.bytes / Math.max(1, uploading.totalBytes)) * 100}%"></div></div>
+		</div>
+	{/if}
+
+	{#if selected.size > 0}
+		<div class="bulk card" role="toolbar" aria-label={t('admin.bulk.title')}>
+			<strong>{t('admin.bulk.selected', { count: selected.size })}</strong>
+			<div class="row">
+				<select bind:value={target} aria-label={t('admin.bulk.target')}>
+					<option value="">{t('admin.bulk.target')}</option>
+					{#each sections as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
+				</select>
+				<button class="btn small" type="button" disabled={!target} onclick={() => bulk('move')}>{t('admin.bulk.move')}</button>
+				<button class="btn small" type="button" disabled={!target} onclick={() => bulk('copy')}>{t('admin.bulk.copy')}</button>
+				<button class="btn small" type="button" onclick={() => bulk('hide')}><EyeOff size={14} />{t('admin.bulk.hide')}</button>
+				<button class="btn small" type="button" onclick={() => bulk('show')}><Eye size={14} />{t('admin.bulk.show')}</button>
+				<button class="btn small" type="button" onclick={downloadSelected}>{t('admin.bulk.download')}</button>
+				<button class="btn small danger" type="button" onclick={() => bulk('delete')}><Trash size={14} />{t('common.delete')}</button>
+				<button class="icon-btn" type="button" onclick={() => selected.clear()} aria-label={t('admin.bulk.clear')}><X size={16} /></button>
+			</div>
 		</div>
 	{/if}
 
@@ -242,7 +344,10 @@
 			{#each photos as photo (photo.id)}
 				<li
 					class:dragging={dragId === photo.id}
-					draggable={!searching}
+					class:hidden-photo={photo.hidden}
+					class:is-selected={selected.has(photo.id)}
+					class:selecting={selected.size > 0}
+					draggable={!searching && selected.size === 0}
 					ondragstart={(e) => {
 						dragId = photo.id;
 						e.dataTransfer?.setData('text/plain', photo.id);
@@ -256,6 +361,18 @@
 					ondragend={onPhotoDrop}
 				>
 					<div class="thumb">
+						<label class="select" title={t('admin.bulk.select')}>
+							<input
+								type="checkbox"
+								checked={selected.has(photo.id)}
+								onclick={(e) => {
+									e.preventDefault();
+									toggleSelect(photo.id, e);
+								}}
+								aria-label={t('admin.bulk.select')}
+							/>
+						</label>
+						{#if photo.hidden}<span class="badge hidden-badge"><EyeOff size={12} />{t('admin.bulk.hidden')}</span>{/if}
 						{#if photo.status === 'ready'}
 							<img src={displayUrl(photo, 480)} alt="" loading="lazy" draggable="false" />
 						{:else if photo.status === 'pending'}
@@ -272,6 +389,14 @@
 									><Star size={16} /></button
 								>
 							{/if}
+							<button
+								type="button"
+								class="icon-btn"
+								onclick={() => toggleHidden(photo.id, !photo.hidden)}
+								title={photo.hidden ? t('admin.bulk.show') : t('admin.bulk.hide')}
+								aria-label={photo.hidden ? t('admin.bulk.show') : t('admin.bulk.hide')}
+								>{#if photo.hidden}<Eye size={16} />{:else}<EyeOff size={16} />{/if}</button
+							>
 							<button type="button" class="icon-btn" onclick={() => remove(photo.id)} title={t('admin.editor.deletePhoto')} aria-label={t('admin.editor.deletePhoto')}
 								><Trash size={16} /></button
 							>
@@ -423,8 +548,8 @@
 
 	.badge.cover {
 		position: absolute;
-		top: 6px;
-		left: 6px;
+		bottom: 6px;
+		right: 6px;
 		background: var(--accent);
 		color: #fff;
 	}
@@ -447,6 +572,67 @@
 	.tools .icon-btn {
 		width: 30px;
 		height: 30px;
+	}
+
+	.select {
+		position: absolute;
+		top: 6px;
+		left: 6px;
+		z-index: 2;
+		display: none;
+		padding: 4px;
+		border-radius: 4px;
+		background: var(--panel);
+	}
+
+	.select input {
+		width: 16px;
+		height: 16px;
+		margin: 0;
+		accent-color: var(--accent);
+	}
+
+	li:hover .select,
+	li.selecting .select,
+	li.is-selected .select {
+		display: block;
+	}
+
+	li.is-selected .thumb {
+		border-color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+
+	li.hidden-photo img {
+		opacity: 0.4;
+	}
+
+	.hidden-badge {
+		position: absolute;
+		bottom: 6px;
+		left: 6px;
+	}
+
+	.bulk {
+		position: sticky;
+		top: 64px;
+		z-index: 5;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		flex-wrap: wrap;
+		padding: 10px 14px;
+	}
+
+	.bulk select {
+		width: auto;
+		min-height: 32px;
+		padding: 4px 8px;
+	}
+
+	.duplicate select {
+		width: auto;
 	}
 
 	.filename {

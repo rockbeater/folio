@@ -2,34 +2,35 @@
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 	import ImageIcon from '@lucide/svelte/icons/image';
-	import EditorHeader from '$lib/components/admin/EditorHeader.svelte';
-	import SectionList from '$lib/components/admin/SectionList.svelte';
-	import PhotosPanel from '$lib/components/admin/PhotosPanel.svelte';
+	import ActivityPanel from '$lib/components/admin/ActivityPanel.svelte';
+	import CoverPicker from '$lib/components/admin/CoverPicker.svelte';
 	import DesignPanel from '$lib/components/admin/DesignPanel.svelte';
-	import SettingsPanel from '$lib/components/admin/SettingsPanel.svelte';
+	import EditorHeader from '$lib/components/admin/EditorHeader.svelte';
 	import EmailPanel from '$lib/components/admin/EmailPanel.svelte';
+	import PhotosPanel from '$lib/components/admin/PhotosPanel.svelte';
+	import SectionList from '$lib/components/admin/SectionList.svelte';
+	import SettingsPanel from '$lib/components/admin/SettingsPanel.svelte';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { displayUrl } from '$lib/types';
 
 	let { data, form } = $props();
 	const { t } = useI18n();
 
-	const TABS = ['photos', 'design', 'settings', 'email'] as const;
+	const TABS = ['photos', 'design', 'settings', 'activity', 'email'] as const;
 	type Tab = (typeof TABS)[number];
-	const tab = $derived<Tab>((TABS as readonly string[]).includes(page.url.searchParams.get('tab') ?? '') ? (page.url.searchParams.get('tab') as Tab) : 'photos');
-	const activeSection = $derived(
-		data.sections.find((s) => s.id === page.url.searchParams.get('section')) ?? data.sections[0] ?? null
+	const tab = $derived<Tab>(
+		(TABS as readonly string[]).includes(page.url.searchParams.get('tab') ?? '') ? (page.url.searchParams.get('tab') as Tab) : 'photos'
 	);
+	const activeSection = $derived(data.sections.find((s) => s.id === page.url.searchParams.get('section')) ?? data.sections[0] ?? null);
 	const allPhotos = $derived(data.sections.flatMap((s) => s.photos));
 	const cover = $derived(
-		allPhotos.find((p) => p.id === data.gallery.coverPhotoId && p.status === 'ready') ??
-			allPhotos.find((p) => p.status === 'ready') ??
-			null
+		allPhotos.find((p) => p.id === data.gallery.coverPhotoId && p.status === 'ready') ?? allPhotos.find((p) => p.status === 'ready') ?? null
 	);
+	let pickingCover = $state(false);
 
 	// Keep refreshing while photos are processed or emails are being sent.
 	$effect(() => {
-		const busy = data.stats.pending > 0 || data.emailLog.some((e) => e.status === 'queued');
+		const busy = data.stats.pending > 0 || data.emailLog.some((e) => e.status === 'queued' && !e.scheduledFor);
 		if (!busy) return;
 		const timer = setInterval(() => invalidateAll(), 3000);
 		return () => clearInterval(timer);
@@ -39,13 +40,14 @@
 		photos: 'admin.editor.tabPhotos',
 		design: 'admin.editor.tabDesign',
 		settings: 'admin.editor.tabSettings',
+		activity: 'admin.editor.tabActivity',
 		email: 'admin.editor.tabEmail'
 	};
 </script>
 
 <svelte:head><title>{data.gallery.name} · Folio</title></svelte:head>
 
-<EditorHeader gallery={data.gallery} baseUrl={data.baseUrl} />
+<EditorHeader gallery={data.gallery} baseUrl={data.baseUrl} presets={data.presets} otherGalleries={data.otherGalleries} />
 
 {#if data.gallery.status !== 'published' && tab !== 'email'}
 	<div class="notice">{t('admin.editor.notPublished')}</div>
@@ -59,12 +61,13 @@
 			{:else}
 				<ImageIcon size={28} strokeWidth={1.25} />
 			{/if}
+			{#if allPhotos.some((p) => p.status === 'ready')}
+				<button class="btn small change-cover" type="button" onclick={() => (pickingCover = true)}>{t('admin.cover.change')}</button>
+			{/if}
 		</div>
-		<nav class="tabs" aria-label="Gallery">
+		<nav class="tabs" aria-label={t('admin.editor.tabs')}>
 			{#each TABS as item (item)}
-				<a href="?tab={item}" aria-current={tab === item ? 'page' : undefined} data-sveltekit-noscroll data-sveltekit-replacestate
-					>{t(tabLabel[item])}</a
-				>
+				<a href="?tab={item}" aria-current={tab === item ? 'page' : undefined} data-sveltekit-noscroll data-sveltekit-replacestate>{t(tabLabel[item])}</a>
 			{/each}
 		</nav>
 		{#if tab === 'photos'}
@@ -76,18 +79,23 @@
 		{#if tab === 'photos'}
 			<PhotosPanel gallery={data.gallery} section={activeSection} sections={data.sections} stats={data.stats} />
 		{:else if tab === 'design'}
-			<DesignPanel gallery={data.gallery} {cover} />
+			<DesignPanel gallery={data.gallery} {cover} onpickcover={() => (pickingCover = true)} />
 		{:else if tab === 'settings'}
 			<SettingsPanel
 				gallery={data.gallery}
+				sections={data.sections}
 				baseUrl={data.baseUrl}
-				favorites={data.favorites}
+				languages={data.languages}
+				watermarks={data.watermarks}
 				form={form as { error?: string; section?: string } | null}
 			/>
+		{:else if tab === 'activity'}
+			<ActivityPanel activity={data.activity} galleryName={data.gallery.slug} />
 		{:else}
 			<EmailPanel
 				gallery={data.gallery}
 				templates={data.templates}
+				defaultTemplateId={data.defaultTemplateId}
 				log={data.emailLog}
 				smtpConfigured={data.smtpConfigured}
 				adminEmail={data.adminEmail}
@@ -96,6 +104,10 @@
 		{/if}
 	</section>
 </div>
+
+{#if pickingCover}
+	<CoverPicker sections={data.sections} coverId={data.gallery.coverPhotoId} onclose={() => (pickingCover = false)} />
+{/if}
 
 <style>
 	.notice {
@@ -121,6 +133,7 @@
 	}
 
 	.cover {
+		position: relative;
 		aspect-ratio: 3 / 2;
 		display: grid;
 		place-items: center;
@@ -135,14 +148,24 @@
 		object-fit: cover;
 	}
 
+	.change-cover {
+		position: absolute;
+		right: 8px;
+		bottom: 8px;
+		background: rgba(255, 255, 255, 0.92);
+		color: #1e1e1e;
+		border-color: transparent;
+	}
+
 	.tabs {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		display: flex;
+		flex-wrap: wrap;
 		border-bottom: 1px solid var(--line);
 	}
 
 	.tabs a {
-		padding: 10px 2px;
+		flex: 1 1 auto;
+		padding: 10px 6px;
 		text-align: center;
 		color: var(--muted);
 		text-decoration: none;

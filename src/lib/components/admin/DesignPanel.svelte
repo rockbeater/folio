@@ -15,7 +15,7 @@
 	} from '$lib/types';
 	import type { AdminPhoto, EditorGallery } from './editor-types';
 
-	let { gallery, cover }: { gallery: EditorGallery; cover: AdminPhoto | null } = $props();
+	let { gallery, cover, onpickcover }: { gallery: EditorGallery; cover: AdminPhoto | null; onpickcover: () => void } = $props();
 	const { t } = useI18n();
 
 	// svelte-ignore state_referenced_locally
@@ -78,6 +78,10 @@
 		</section>
 
 		<section class="stack-sm">
+			<div class="row between">
+				<h3 class="field-label">{t('admin.design.coverPhoto')}</h3>
+				<button class="btn small" type="button" onclick={onpickcover}>{t('admin.cover.change')}</button>
+			</div>
 			<h3 class="field-label">{t('admin.design.focal')}</h3>
 			{#if cover}
 				<button class="focal" type="button" onclick={setFocal} aria-label={t('admin.design.focal')}>
@@ -193,6 +197,10 @@
 
 	.options {
 		gap: 28px;
+	}
+
+	.between {
+		justify-content: space-between;
 	}
 
 	.stack-sm {

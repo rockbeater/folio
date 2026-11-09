@@ -1,30 +1,76 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fail } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { changeEmail, changePassword, checkPassword } from '$lib/server/auth';
 import { config } from '$lib/server/config';
+import { getDb, schema } from '$lib/server/db';
+import type { TextWatermark } from '$lib/server/db/schema';
 import { deleteTemplate, listTemplates, saveTemplate, setDefaultTemplate } from '$lib/server/mail/templates';
 import { sendTestEmail } from '$lib/server/mail/send';
-import { getSmtp, getStudio, isSmtpConfigured, saveSmtp, saveStudio, type SmtpSecurity } from '$lib/server/settings';
+import { deletePreset, listPresets, renamePreset, setDefaultPreset } from '$lib/server/presets';
+import {
+	getPreferences,
+	getSmtp,
+	getStudio,
+	isSmtpConfigured,
+	savePreferences,
+	saveSmtp,
+	saveStudio,
+	type SmtpSecurity
+} from '$lib/server/settings';
+import { getWatermark, listWatermarks, removeWatermarkFile, saveWatermarkImage } from '$lib/server/watermarks';
+import { SUPPORTED_LANGUAGES, WATERMARK_POSITIONS, type WatermarkPosition } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const LOGO_TYPES: Record<string, string> = {
+const IMAGE_TYPES: Record<string, string> = {
 	'image/png': '.png',
 	'image/jpeg': '.jpg',
 	'image/webp': '.webp',
-	'image/svg+xml': '.svg'
+	'image/svg+xml': '.svg',
+	'image/x-icon': '.ico',
+	'image/vnd.microsoft.icon': '.ico'
 };
+
+const brandingDir = () => path.join(config.dataDir, 'branding');
+
+async function storeBrandingFile(file: File, prefix: string): Promise<string | null> {
+	const ext = IMAGE_TYPES[file.type];
+	if (!ext || file.size > 5 * 1024 * 1024) return null;
+	await fs.mkdir(brandingDir(), { recursive: true });
+	const name = `${prefix}-${Date.now()}${ext}`;
+	await fs.writeFile(path.join(brandingDir(), name), Buffer.from(await file.arrayBuffer()));
+	return name;
+}
+
+function isLanguage(value: string): boolean {
+	return (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
+}
 
 export const load: PageServerLoad = ({ locals }) => {
 	const smtp = getSmtp();
 	return {
 		studio: getStudio(),
+		preferences: getPreferences(),
 		smtp: { ...smtp, pass: '', hasPass: Boolean(smtp.pass) },
 		smtpFromEnv: config.smtpFromEnv,
 		smtpConfigured: isSmtpConfigured(smtp),
 		templates: listTemplates(),
+		watermarks: listWatermarks().map((w) => ({
+			id: w.id,
+			name: w.name,
+			kind: w.kind,
+			text: w.text,
+			position: w.position,
+			scale: w.scale,
+			opacity: w.opacity,
+			version: w.version
+		})),
+		presets: listPresets().map((p) => ({ id: p.id, name: p.name, isDefault: p.isDefault })),
+		languages: [...SUPPORTED_LANGUAGES],
 		account: { email: locals.admin!.email }
 	};
 };
@@ -34,33 +80,59 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '').trim();
 		if (email && !EMAIL.test(email)) return fail(400, { tab: 'branding', error: 'admin.setup.errEmail' });
+		const studio = getStudio();
 		const update = {
 			name: String(form.get('name') ?? '').trim(),
 			email,
 			phone: String(form.get('phone') ?? '').trim(),
-			website: String(form.get('website') ?? '').trim()
+			website: String(form.get('website') ?? '').trim(),
+			logo: form.get('removeLogo') === 'on' ? null : studio.logo,
+			coverLogo: form.get('removeCoverLogo') === 'on' ? null : studio.coverLogo,
+			favicon: form.get('removeFavicon') === 'on' ? null : studio.favicon
 		};
 		if (!update.name) return fail(400, { tab: 'branding', error: 'admin.setup.errName' });
 
-		const brandingDir = path.join(config.dataDir, 'branding');
 		const logo = form.get('logo');
-		let logoName = getStudio().logo;
-		if (form.get('removeLogo') === 'on') logoName = null;
 		if (logo instanceof File && logo.size > 0) {
-			const ext = LOGO_TYPES[logo.type];
-			if (!ext || logo.size > 5 * 1024 * 1024) return fail(400, { tab: 'branding', error: 'common.error' });
-			await fs.mkdir(brandingDir, { recursive: true });
-			const data = Buffer.from(await logo.arrayBuffer());
-			logoName = `logo-${Date.now()}${ext}`;
-			await fs.writeFile(path.join(brandingDir, logoName), data);
+			const name = await storeBrandingFile(logo, 'logo');
+			if (!name) return fail(400, { tab: 'branding', error: 'admin.studio.fileInvalid' });
+			update.logo = name;
 			// PNG version for emails (many email clients cannot show SVG or WebP).
-			await sharp(data, { density: 300 })
+			await sharp(path.join(brandingDir(), name), { density: 300 })
 				.resize({ height: 200, width: 800, fit: 'inside', withoutEnlargement: true })
 				.png()
-				.toFile(path.join(brandingDir, 'logo.png'));
+				.toFile(path.join(brandingDir(), 'logo.png'));
 		}
-		saveStudio({ ...update, logo: logoName });
+		const coverLogo = form.get('coverLogo');
+		if (coverLogo instanceof File && coverLogo.size > 0) {
+			const name = await storeBrandingFile(coverLogo, 'cover-logo');
+			if (!name) return fail(400, { tab: 'branding', error: 'admin.studio.fileInvalid' });
+			update.coverLogo = name;
+		}
+		const favicon = form.get('favicon');
+		if (favicon instanceof File && favicon.size > 0) {
+			const name = await storeBrandingFile(favicon, 'favicon');
+			if (!name) return fail(400, { tab: 'branding', error: 'admin.studio.fileInvalid' });
+			update.favicon = name;
+		}
+		saveStudio(update);
 		return { tab: 'branding', saved: true };
+	},
+
+	preferences: async ({ request }) => {
+		const form = await request.formData();
+		const adminLanguage = String(form.get('adminLanguage') ?? '');
+		const defaultLanguage = String(form.get('defaultLanguage') ?? '');
+		if (isLanguage(adminLanguage)) saveStudio({ language: adminLanguage });
+		savePreferences({
+			defaultLanguage: isLanguage(defaultLanguage) ? defaultLanguage : getPreferences().defaultLanguage,
+			banner: {
+				enabled: form.get('bannerEnabled') === 'on',
+				text: String(form.get('bannerText') ?? '').trim().slice(0, 200),
+				code: String(form.get('bannerCode') ?? '').trim().slice(0, 50)
+			}
+		});
+		return { tab: 'preferences', saved: true };
 	},
 
 	smtp: async ({ request }) => {
@@ -90,11 +162,11 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
 		if (!name) return fail(400, { tab: 'templates', error: 'admin.templates.errName' });
-		const kind = form.get('kind') === 'reminder' ? 'reminder' : 'delivery';
+		const language = String(form.get('language') ?? '');
 		saveTemplate({
 			id: String(form.get('id') ?? '') || undefined,
-			kind,
-			language: String(form.get('language') ?? '') || getStudio().language,
+			kind: form.get('kind') === 'reminder' ? 'reminder' : 'delivery',
+			language: isLanguage(language) ? language : getStudio().language,
 			name,
 			subject: String(form.get('subject') ?? '').trim(),
 			body: String(form.get('body') ?? '')
@@ -112,6 +184,92 @@ export const actions: Actions = {
 		const form = await request.formData();
 		deleteTemplate(String(form.get('id')));
 		return { tab: 'templates', saved: true };
+	},
+
+	saveWatermark: async ({ request }) => {
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '');
+		const existing = id ? getWatermark(id) : undefined;
+		const name = String(form.get('name') ?? '').trim().slice(0, 100);
+		if (!name) return fail(400, { tab: 'watermarks', error: 'admin.templates.errName' });
+		const kind = form.get('kind') === 'text' ? 'text' : 'image';
+		const position = String(form.get('position') ?? 'center') as WatermarkPosition;
+		const scale = Math.min(1, Math.max(0.05, Number(form.get('scale')) || 0.3));
+		const opacity = Math.min(1, Math.max(0.05, Number(form.get('opacity')) || 0.5));
+
+		// The image: an uploaded file, or a PNG the browser rendered from the text.
+		let file = existing?.file ?? null;
+		const upload = form.get('image');
+		const rendered = String(form.get('rendered') ?? '');
+		let data: Buffer | null = null;
+		if (upload instanceof File && upload.size > 0) {
+			if (!IMAGE_TYPES[upload.type] || upload.size > 10 * 1024 * 1024) return fail(400, { tab: 'watermarks', error: 'admin.studio.fileInvalid' });
+			data = Buffer.from(await upload.arrayBuffer());
+		} else if (rendered.startsWith('data:image/png;base64,')) {
+			data = Buffer.from(rendered.slice('data:image/png;base64,'.length), 'base64');
+		}
+		if (data) {
+			const newFile = await saveWatermarkImage(data);
+			if (file) await removeWatermarkFile(file);
+			file = newFile;
+		}
+		if (!file) return fail(400, { tab: 'watermarks', error: 'admin.watermarks.errImage' });
+
+		let text: TextWatermark | null = null;
+		if (kind === 'text') {
+			text = {
+				text: String(form.get('text') ?? '').slice(0, 100),
+				font: String(form.get('font') ?? 'modern'),
+				color: /^#[0-9a-f]{6}$/i.test(String(form.get('color'))) ? String(form.get('color')) : '#ffffff'
+			};
+		}
+
+		const values = {
+			name,
+			kind: kind as 'image' | 'text',
+			file,
+			text,
+			position: WATERMARK_POSITIONS.includes(position) ? position : 'center',
+			scale,
+			opacity
+		};
+		const db = getDb();
+		if (existing) {
+			db.update(schema.watermarks).set({ ...values, version: existing.version + 1 }).where(eq(schema.watermarks.id, existing.id)).run();
+		} else {
+			db.insert(schema.watermarks).values({ id: crypto.randomUUID(), ...values }).run();
+		}
+		return { tab: 'watermarks', saved: true };
+	},
+
+	deleteWatermark: async ({ request }) => {
+		const form = await request.formData();
+		const wm = getWatermark(String(form.get('id') ?? ''));
+		if (!wm) return fail(404);
+		const db = getDb();
+		db.update(schema.galleries).set({ watermarkId: null }).where(eq(schema.galleries.watermarkId, wm.id)).run();
+		db.delete(schema.watermarks).where(eq(schema.watermarks.id, wm.id)).run();
+		await removeWatermarkFile(wm.file);
+		return { tab: 'watermarks', saved: true };
+	},
+
+	renamePreset: async ({ request }) => {
+		const form = await request.formData();
+		const name = String(form.get('name') ?? '').trim();
+		if (name) renamePreset(String(form.get('id')), name.slice(0, 100));
+		return { tab: 'presets', saved: true };
+	},
+
+	defaultPreset: async ({ request }) => {
+		const form = await request.formData();
+		setDefaultPreset(String(form.get('id') ?? '') || null);
+		return { tab: 'presets', saved: true };
+	},
+
+	deletePreset: async ({ request }) => {
+		const form = await request.formData();
+		deletePreset(String(form.get('id')));
+		return { tab: 'presets', saved: true };
 	},
 
 	account: async ({ request, locals }) => {

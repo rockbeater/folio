@@ -10,13 +10,15 @@ const TYPES: Record<string, string> = {
 	'.jpg': 'image/jpeg',
 	'.jpeg': 'image/jpeg',
 	'.webp': 'image/webp',
-	'.svg': 'image/svg+xml'
+	'.svg': 'image/svg+xml',
+	'.ico': 'image/x-icon'
 };
 
+/** Public branding files: logo, cover logo, favicon and the PNG logo for emails. */
 export const GET: RequestHandler = async ({ params }) => {
 	const studio = getStudio();
-	const allowed = new Set([studio.logo, 'logo.png'].filter(Boolean));
-	if (!studio.logo || !allowed.has(params.file)) error(404);
+	const allowed = new Set([studio.logo, studio.coverLogo, studio.favicon, studio.logo ? 'logo.png' : null].filter(Boolean));
+	if (!allowed.has(params.file)) error(404);
 	const file = path.join(config.dataDir, 'branding', path.basename(params.file));
 	const data = await fs.promises.readFile(file).catch(() => null);
 	if (!data) error(404);

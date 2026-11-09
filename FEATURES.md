@@ -39,8 +39,8 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `MVP` Dashboard med to områder: **Gallerier** og **Butik**.
 - [x] `MVP` Galleri-oversigt: alle gallerier som kort med cover, navn, dato, status og antal billeder.
 - [x] `MVP` Opret galleri med navn og valgfri event-dato. Det opretter mappen i `/photos`.
-- [ ] `v1` Filtrér gallerier på status og kategori-tags, søg på navn, og sortér efter dato, navn eller oprettelse.
-- [ ] `v1` Søg i hele billedbiblioteket på tværs af gallerier (filnavn).
+- [x] `v1` Filtrér gallerier på status og kategori-tags, søg på navn, og sortér efter dato, navn eller oprettelse.
+- [x] `v1` Søg i hele billedbiblioteket på tværs af gallerier (filnavn).
 - [ ] `v1` Nøgletal på dashboardet: nye ordrer, seneste aktivitet og gallerier, der snart udløber.
 
 ## 2. Galleri og filsystem
@@ -68,11 +68,11 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `MVP` Sortering per sektion: filnavn (naturlig sortering, så `IMG_2` kommer før `IMG_10`), optagelsesdato (EXIF) eller manuelt med træk og slip.
 - [x] `MVP` Valg af thumbnail-størrelse i admin-visningen.
 - [x] `MVP` Vælg cover-billede fra galleriet.
-- [ ] `v1` Robust upload af store mængder: chunked upload, der kan genoptages, og håndtering af dubletter (spring over / erstat / omdøb).
+- [x] `v1` Robust upload af store mængder: chunked upload, der kan genoptages, og håndtering af dubletter (spring over / erstat / omdøb).
 - [x] `v1` Fokuspunkt på coveret, så beskæringen rammer rigtigt på både mobil og desktop.
 - [ ] `v1` Massehandlinger: vælg flere billeder og flyt, kopier, skjul, slet, download dem eller opret et hurtigt delingslink (se afsnit 7).
-- [ ] `v1` Skjul enkelte billeder for kunden uden at slette filen.
-- [ ] `v1` "Mere"-menu: anvend preset, kopier indstillinger fra et andet galleri, download originaler og slet galleri.
+- [x] `v1` Skjul enkelte billeder for kunden uden at slette filen.
+- [x] `v1` "Mere"-menu: anvend preset, kopier indstillinger fra et andet galleri, download originaler og slet galleri.
 
 ## 4. Galleri-editor: design
 
@@ -84,7 +84,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `v1` **Thumbnail-størrelse:** Normal / Stor.
 - [x] `v1` **Grid-afstand:** Normal / Stor.
 - [x] `v1` **Navigationsstil:** Kun ikon / Ikon og tekst.
-- [ ] `v1` Design-presets: gem et design og brug det som standard for nye gallerier.
+- [x] `v1` Design-presets: gem et design og brug det som standard for nye gallerier.
 
 De konkrete layouts, skrifttyper og farver beskrives i [DESIGN.md](DESIGN.md).
 
@@ -96,14 +96,14 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 
 - [x] `MVP` Galleri-URL (slug): unik og autogenereret ud fra navnet med korrekt translitterering af æ, ø og å, så "Rørvig" bliver til `roervig` og ikke `rrvig`.
 - [x] `v1` Kunde tilknyttet galleriet (navn og e-mail). Bruges til deling og notifikationer, ikke som CRM.
-- [ ] `v1` Kategori-tags, fx bryllup, familie eller udendørs.
-- [ ] `v1` Standard-vandmærke: vælg blandt vandmærkerne fra de globale indstillinger, eller intet.
-- [ ] `v1` Auto-udløb: galleriet skjules automatisk på en bestemt dato, og kunden kan få en påmindelsesmail et antal dage før.
-- [ ] `v1` E-mailregistrering: besøgende angiver e-mail, før de får adgang. Registreringerne vises under Aktivitet.
-- [ ] `v1` Galleri-guide: introkort, der viser nye besøgende, hvordan man favoritmarkerer, downloader og køber.
-- [ ] `v1` Slideshow til/fra.
-- [ ] `v1` Vis filnavne til/fra, så kunden kan henvise til et bestemt billede.
-- [ ] `v1` Sprog for kundevisningen per galleri. Standardsproget kommer fra de globale indstillinger.
+- [x] `v1` Kategori-tags, fx bryllup, familie eller udendørs.
+- [x] `v1` Standard-vandmærke: vælg blandt vandmærkerne fra de globale indstillinger, eller intet.
+- [x] `v1` Auto-udløb: galleriet skjules automatisk på en bestemt dato, og kunden kan få en påmindelsesmail et antal dage før.
+- [x] `v1` E-mailregistrering: besøgende angiver e-mail, før de får adgang. Registreringerne vises under Aktivitet.
+- [x] `v1` Galleri-guide: introkort, der viser nye besøgende, hvordan man favoritmarkerer, downloader og køber.
+- [x] `v1` Slideshow til/fra.
+- [x] `v1` Vis filnavne til/fra, så kunden kan henvise til et bestemt billede.
+- [x] `v1` Sprog for kundevisningen per galleri. Standardsproget kommer fra de globale indstillinger.
 
 ### 5.2 Privatliv
 
@@ -126,11 +126,11 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 - [x] `MVP` Fotodownload til/fra.
 - [x] `MVP` Downloadstørrelser: Høj opløsning (Original eller 3600px) og/eller Webstørrelse (2048, 1024 eller 640px). Fotografen bestemmer, hvilke kunden kan vælge imellem.
-- [ ] `v1` Download-PIN: kunden skal indtaste en 4-cifret PIN for at downloade.
-- [ ] `v1` Avancerede indstillinger: begræns download til udvalgte sektioner.
-- [ ] `v1` Download af enkeltbilleder til/fra, adskilt fra "download alle".
-- [ ] `v1` Kræv e-mail ved download, så downloads kan spores per person.
-- [ ] `v1` Vandmærke på downloads i webstørrelse til/fra.
+- [x] `v1` Download-PIN: kunden skal indtaste en 4-cifret PIN for at downloade.
+- [x] `v1` Avancerede indstillinger: begræns download til udvalgte sektioner.
+- [x] `v1` Download af enkeltbilleder til/fra, adskilt fra "download alle".
+- [x] `v1` Kræv e-mail ved download, så downloads kan spores per person.
+- [x] `v1` Vandmærke på downloads i webstørrelse til/fra.
 - [ ] `Senere` Begrænset antal gratis downloads, fx maks. N billeder.
 
 ### 5.4 Favoritter
@@ -161,13 +161,13 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ## 6. Galleri-editor: aktivitet
 
-- [ ] `v1` Download-aktivitet: hvem (e-mail), hvad (galleri, sektion eller billede), hvilken størrelse og hvornår.
+- [x] `v1` Download-aktivitet: hvem (e-mail), hvad (galleri, sektion eller billede), hvilken størrelse og hvornår.
 - [ ] `v1` Favorit-aktivitet: lister per e-mail med noter og mulighed for eksport.
-- [ ] `v1` E-mailregistreringer.
+- [x] `v1` E-mailregistreringer.
 - [ ] `v1` Private billeder: de billeder, kunden har markeret som private, med mulighed for at fjerne markeringen.
 - [ ] `v1` Delingslinks: hurtige delingslinks og delte favoritlister med antal visninger og downloads. Hvert link kan kopieres igen, redigeres eller deaktiveres.
 - [ ] `v1` Ordrer fra dette galleri.
-- [ ] `v1` Simpel optælling af besøg uden tredjeparts-tracking.
+- [x] `v1` Simpel optælling af besøg uden tredjeparts-tracking.
 
 ## 7. Deling og preview
 
@@ -187,9 +187,9 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `MVP` Lightbox i fuldskærm: swipe på mobil, piletaster på desktop, pinch-zoom samt knapper til favorit, download og køb.
 - [x] `MVP` Favoritmarkering fra både grid og lightbox, og en visning af kun favoritter.
 - [x] `MVP` Adgangskodeside for beskyttede gallerier.
-- [ ] `v1` Slideshow.
-- [ ] `v1` Kampagnebanner øverst i galleriet, fx "Gratis fragt på ordrer over 499 kr. Brug koden FRAGT". Det kan lukkes.
-- [ ] `v1` Side for udløbne gallerier med kontaktinfo til fotografen.
+- [x] `v1` Slideshow.
+- [x] `v1` Kampagnebanner øverst i galleriet, fx "Gratis fragt på ordrer over 499 kr. Brug koden FRAGT". Det kan lukkes.
+- [x] `v1` Side for udløbne gallerier med kontaktinfo til fotografen.
 - [x] `v1` Del-knap: kopier link, eller brug den indbyggede delingsfunktion på mobil.
 - [ ] `v1` "Log ind som kunde" i menuen. Når kunden er logget ind, vises det diskret i headeren, og "Markér som privat" findes i lightboxen og i massevalg.
 - [ ] `v1` Favoritlister: opret, omdøb, skift mellem og del lister direkte fra favoritvisningen.
@@ -201,8 +201,8 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `MVP` Valg af størrelse blandt dem, fotografen har tilladt.
 - [x] `MVP` ZIP-filen streames, så downloaden starter med det samme uden ventetid på pakning.
 - [x] `MVP` På mobil kan et enkelt billede gemmes direkte i fotoappen via den indbyggede delingsfunktion.
-- [ ] `v1` Download-PIN og e-mailkrav håndteres i samme flow uden at forlade siden.
-- [ ] `v1` Meget store downloads kan deles op i flere ZIP-filer.
+- [x] `v1` Download-PIN og e-mailkrav håndteres i samme flow uden at forlade siden.
+- [x] `v1` Meget store downloads kan deles op i flere ZIP-filer.
 
 ## 10. Forside
 
@@ -318,7 +318,7 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `MVP` Afsenderen vises med studiets navn (fx "Fotograf Sebastian") og egen afsenderadresse. Svar fra kunden går direkte til fotografens e-mail (Reply-To).
 - [x] `MVP` "Send testmail" med en tydelig og forståelig fejlbesked, hvis opsætningen ikke virker.
 - [x] `MVP` Mails sendes i baggrunden og forsøges igen automatisk ved midlertidige fejl.
-- [ ] `v1` Forudfyldte indstillinger og en kort guide for almindelige udbydere (fx Google Workspace, Microsoft 365, Simply, One.com, Brevo og Postmark), herunder SPF og DKIM, så mails ikke havner i spam.
+- [x] `v1` Forudfyldte indstillinger og en kort guide for almindelige udbydere (fx Google Workspace, Microsoft 365, Simply, One.com, Brevo og Postmark), herunder SPF og DKIM, så mails ikke havner i spam.
 
 ### 19.2 Levering af galleri
 
@@ -329,34 +329,34 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `MVP` Mailen ser godt ud i både lys og mørk tilstand og på mobil og har en ren tekstversion.
 - [x] `MVP` "Publicer og send" i ét trin, hvis galleriet stadig er en kladde.
 - [x] `MVP` Afsendelseslog per galleri: modtager, tidspunkt, skabelon og status (sendt eller fejlet), og mulighed for at sende igen.
-- [ ] `v1` Send senere: planlæg afsendelsen til et bestemt tidspunkt.
-- [ ] `v1` Kopiér invitationsteksten med link til brug i SMS eller Messenger.
+- [x] `v1` Send senere: planlæg afsendelsen til et bestemt tidspunkt.
+- [x] `v1` Kopiér invitationsteksten med link til brug i SMS eller Messenger.
 
 ### 19.3 Skabeloner
 
 - [x] `MVP` Flere navngivne skabeloner til levering af gallerier, fx "Tidlig levering" og "Bryllup", hver med emne og besked. Én skabelon er standard.
 - [x] `MVP` Flettefelter i emne og besked: `{client_name}`, `{gallery_name}`, `{gallery_link}`, `{password}`, `{studio_name}` og `{event_date}`.
 - [x] `MVP` Skabelonerne administreres under Indstillinger → E-mail-skabeloner.
-- [ ] `v1` Skabelon til udløbspåmindelse.
+- [x] `v1` Skabelon til udløbspåmindelse.
 - [ ] `v1` Skabeloner til butikken: ordrebekræftelse, digital levering, afsendt og refundering.
-- [ ] `v1` Skabeloner per sprog, så mailen automatisk følger galleriets sprog.
+- [x] `v1` Skabeloner per sprog, så mailen automatisk følger galleriets sprog.
 
 ### 19.4 Automatiske mails og notifikationer
 
-- [ ] `v1` Udløbspåmindelse et valgt antal dage før galleriet udløber. Den kan sendes til kunden og/eller til alle, der har registreret sig, favoritmarkeret eller downloadet.
+- [x] `v1` Udløbspåmindelse et valgt antal dage før galleriet udløber. Den kan sendes til kunden og/eller til alle, der har registreret sig, favoritmarkeret eller downloadet.
 - [ ] `v1` Butiksmails: ordrebekræftelse, digital levering, afsendt (med trackingnummer) og refundering.
 - [ ] `v1` Notifikationer til fotografen: ny ordre og indsendt favoritliste.
-- [ ] `v1` Alle mails sendes på galleriets sprog.
+- [x] `v1` Alle mails sendes på galleriets sprog.
 
 ## 20. Globale indstillinger
 
 - [x] `MVP` Studie-branding: studienavn, logo og kontaktinfo (e-mail, telefon og website).
-- [ ] `v1` Cover-logo: en lys version af logoet til brug oven på coverbilleder, samt favicon.
+- [x] `v1` Cover-logo: en lys version af logoet til brug oven på coverbilleder, samt favicon.
 - [x] `MVP` Admin-konto: skift e-mail og adgangskode.
-- [ ] `v1` Vandmærker af tekst eller billede med valg af position, størrelse og gennemsigtighed. Der kan være flere vandmærker. De lægges på billederne i `/cache`, aldrig på originalerne.
+- [x] `v1` Vandmærker af tekst eller billede med valg af position, størrelse og gennemsigtighed. Der kan være flere vandmærker. De lægges på billederne i `/cache`, aldrig på originalerne.
 - [ ] `v1` Standardindstillinger for nye gallerier: design, download, favoritter, butik og sprog.
-- [ ] `v1` Standardsprog for nye gallerier.
-- [ ] `v1` Vis filnavne som standard (kan ændres per galleri).
+- [x] `v1` Standardsprog for nye gallerier.
+- [x] `v1` Vis filnavne som standard (kan ændres per galleri).
 - [ ] `v1` Søgemaskine-synlighed: Ingen (standard) eller Kun forsiden. Gallerier indekseres aldrig.
 - [ ] `v1` Skarphed for visningskopier: Ingen, Standard eller Optimal. Originalerne ændres ikke.
 
@@ -364,8 +364,8 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 
 - [x] `MVP` Al tekst i både kunde- og admininterfacet hentes fra oversættelsesfiler (i18n) fra første linje kode, så intet er hardcodet.
 - [x] `MVP` Engelsk er første sprog og standardsprog.
-- [ ] `v1` Dansk.
-- [ ] `v1` Sprog kan vælges per galleri for kundevisningen og separat for admin.
+- [x] `v1` Dansk.
+- [x] `v1` Sprog kan vælges per galleri for kundevisningen og separat for admin.
 - [ ] `v1` Formatering af dato, tal og valuta følger sproget, fx `DKK 1,320.00` på engelsk og `1.320,00 kr.` på dansk.
 - [ ] `Senere` Flere sprog, fx svensk, norsk og tysk. Det kræver kun en ny oversættelsesfil.
 

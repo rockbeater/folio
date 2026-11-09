@@ -3,8 +3,9 @@
 	import AuthCard from '$lib/components/admin/AuthCard.svelte';
 	import { createI18n, type MessageKey } from '$lib/i18n';
 
-	let { form } = $props();
-	const { t } = createI18n('en');
+	let { data, form } = $props();
+	// svelte-ignore state_referenced_locally
+	const { t } = createI18n(data.language);
 	let busy = $state(false);
 </script>
 

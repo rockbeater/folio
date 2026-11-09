@@ -1,12 +1,13 @@
 import { getContext, setContext } from 'svelte';
 import en, { type Messages } from './en';
+import da from './da';
 import { SUPPORTED_LANGUAGES, type Language } from '$lib/types';
 
 export type MessageKey = keyof Messages;
 export type Params = Record<string, string | number>;
 export type Translate = (key: MessageKey, params?: Params) => string;
 
-const catalogs: Record<Language, Messages> = { en, da: en }; // da replaced below
+const catalogs: Record<Language, Messages> = { en, da };
 
 export function isLanguage(value: unknown): value is Language {
 	return typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
