@@ -32,6 +32,13 @@
 
 ## Arkitektur i hovedtræk
 
+### Teknologi
+
+- **TypeScript hele vejen** med SvelteKit (Svelte 5) til både kundegalleri, admin og server. Siderne renderes på serveren, så coveret vises hurtigt, og Svelte giver glatte overgange i brugerfladen.
+- **SQLite** (via Drizzle) som database i `/data`. Der er ingen separat databaseserver, og migrationer køres automatisk ved opstart.
+- **sharp (libvips)** til billedbehandling: hurtig og med færdigbyggede binære filer til både `amd64` og `arm64`.
+- **nodemailer** til e-mail via fotografens egen SMTP-udbyder.
+
 ### Docker
 
 Folio leveres som et **rigtigt Docker-image**, der bygges og publiceres automatisk (fx på GitHub Container Registry). Imaget skal være multi-arch (`amd64` og `arm64`), så det også kører på NAS'er og små servere.
@@ -85,6 +92,7 @@ HTTPS håndteres af en reverse proxy foran containeren (fx Caddy, Traefik eller 
 - **Hver mappe i roden er et galleri.**
 - **Hver undermappe i et galleri er en sektion**, ligesom "sets" i Pixieset. Sektionerne sorteres alfabetisk som standard, og rækkefølgen kan ændres i admin.
 - **En sektion indeholder kun billeder.** Dybere mapper og andre filtyper ignoreres og vises som en advarsel i admin.
+- **Billeder direkte i galleriets mappe** (uden sektion) ignoreres, og admin viser en advarsel om at flytte dem ind i en sektion.
 - **Understøttede formater:** JPEG, PNG og WebP fra start. HEIC og AVIF er mål. RAW-filer understøttes ikke.
 - **To veje ind, samme resultat:** Billeder kan tilføjes ved at oprette mapper og kopiere filer direkte (fx via SMB) eller ved at oprette gallerier og sektioner og uploade via webinterfacet. Begge dele ender som filer i `/photos`.
 - **Ændringer opdages automatisk.** Der bruges en filwatcher kombineret med periodisk scanning, fordi filnotifikationer ikke virker pålideligt på netværksdrev.
@@ -167,9 +175,7 @@ Webshoppen er forberedt i arkitekturen fra start og implementeres efter galleri-
 
 ## Åbne spørgsmål
 
-- Hvad sker der med billeder, der ligger direkte i galleriets rod uden en sektion? De kan vises som en standardsektion eller ignoreres med en advarsel.
 - Skal vi have en `galleri.yml` som skabelon ved oprettelse fra filsystemet?
-- Teknologivalg: sprog, framework og om SQLite skal suppleres med Postgres som mulighed.
 - Får kunder rigtige konti, eller er adgang via link, e-mail og PIN nok?
 - Hvad skal der ske med ordrer, når et billede slettes fra disken?
 
