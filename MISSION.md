@@ -27,6 +27,7 @@ Vi bygger et **selvhostet alternativ til Pixieset**. Fotografer bruger det til a
 4. **Klar til salg fra start.** Webshoppen bygges efter galleri-kernen, men datamodellen og arkitekturen tager højde for den fra dag ét.
 5. **Betaling uden friktion.** Stripe skal kunne sættes op af en fotograf med en helt almindelig Stripe-konto, uden udviklerhjælp.
 6. **Privatliv og sikkerhed som standard.** Gallerier er private, indtil fotografen siger andet. Ingen kortdata rører vores server.
+7. **Flersproget fra start.** Al tekst ligger i oversættelsesfiler. Engelsk kommer først og dansk derefter, og sproget kan vælges per galleri.
 
 ---
 
@@ -152,6 +153,7 @@ Webshoppen er forberedt i arkitekturen fra start og implementeres efter galleri-
 - Andre betalingsudbydere end Stripe.
 - CRM, kontrakter, fakturering og bookingkalender (svarende til Pixieset Studio Manager).
 - Website-builder.
+- Mobil-app og foto-editor (svarende til Pixieset Mobile Gallery App og Photo Editor).
 - Video i gallerier.
 - RAW-filer.
 
