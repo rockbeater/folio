@@ -2,12 +2,16 @@
 	import { page } from '$app/state';
 	import { createI18n, provideI18n } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
+	import Banner from '$lib/components/client/Banner.svelte';
 	import Cover from '$lib/components/client/Cover.svelte';
-	import GalleryHeader from '$lib/components/client/GalleryHeader.svelte';
-	import PasswordGate from '$lib/components/client/PasswordGate.svelte';
 	import DownloadDialog from '$lib/components/client/DownloadDialog.svelte';
 	import EmailDialog from '$lib/components/client/EmailDialog.svelte';
+	import ExpiredPage from '$lib/components/client/ExpiredPage.svelte';
+	import GalleryAssist from '$lib/components/client/GalleryAssist.svelte';
+	import GalleryHeader from '$lib/components/client/GalleryHeader.svelte';
 	import OwnerBar from '$lib/components/client/OwnerBar.svelte';
+	import PasswordGate from '$lib/components/client/PasswordGate.svelte';
+	import RegisterGate from '$lib/components/client/RegisterGate.svelte';
 	import { GalleryState, setGalleryState } from '$lib/components/client/gallery-state.svelte';
 
 	let { data, children } = $props();
@@ -18,13 +22,7 @@
 	const { t } = i18n;
 
 	// svelte-ignore state_referenced_locally
-	const gallery = setGalleryState(
-		new GalleryState(
-			data.gallery.slug,
-			data.visitor.email,
-			data.visitor.favorites
-		)
-	);
+	const gallery = setGalleryState(new GalleryState(data.gallery.slug, data.visitor.email, data.visitor.favorites));
 
 	const isLanding = $derived(page.route.id === '/g/[slug]');
 	const activeSlug = $derived(
@@ -35,6 +33,11 @@
 				: null
 	);
 	const activeSection = $derived(data.sections.find((s) => s.slug === activeSlug) ?? null);
+	const options = $derived(data.gallery.options);
+	const download = $derived(data.gallery.download);
+	const canDownloadSomething = $derived(
+		download.enabled && (download.highRes || download.web) && (!download.sections || download.sections.length > 0)
+	);
 
 	function scrollToGallery() {
 		document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' });
@@ -61,7 +64,14 @@
 </svelte:head>
 
 <div class="gallery-root" data-theme={data.gallery.design.theme} data-fonts={data.gallery.design.fonts}>
-	{#if data.locked}
+	{#if data.state === 'expired'}
+		<ExpiredPage
+			name={data.gallery.name}
+			studio={data.studio}
+			placeholder={data.lockedCover?.placeholder ?? null}
+			color={data.lockedCover?.color ?? null}
+		/>
+	{:else if data.state === 'locked'}
 		<PasswordGate
 			slug={data.gallery.slug}
 			name={data.gallery.name}
@@ -70,9 +80,19 @@
 			error={page.url.searchParams.get('error') === 'tooMany' ? 'tooMany' : page.url.searchParams.get('error') ? 'wrong' : null}
 			redirectTo={page.url.pathname}
 		/>
+	{:else if data.state === 'register'}
+		<RegisterGate
+			slug={data.gallery.slug}
+			name={data.gallery.name}
+			placeholder={data.lockedCover?.placeholder ?? null}
+			color={data.lockedCover?.color ?? null}
+		/>
 	{:else}
 		{#if data.isAdmin && !data.isPreview}
 			<OwnerBar galleryId={data.gallery.id} status={data.gallery.status} />
+		{/if}
+		{#if data.banner}
+			<Banner galleryId={data.gallery.id} text={data.banner.text} code={data.banner.code} />
 		{/if}
 
 		{#if isLanding}
@@ -80,6 +100,7 @@
 				name={data.gallery.name}
 				eventDate={data.gallery.eventDate}
 				studioName={data.studio.name}
+				coverLogo={data.studio.coverLogo}
 				layout={data.gallery.design.cover}
 				cover={data.cover}
 				focalX={data.gallery.coverFocalX}
@@ -98,10 +119,12 @@
 				favoritesActive={page.route.id === '/g/[slug]/favorites'}
 				favoritesCount={gallery.favorites.size}
 				showFavorites={data.gallery.favoritesEnabled}
-				showDownload={data.gallery.download.enabled}
+				showDownload={canDownloadSomething}
+				showSlideshow={options.slideshow && data.totalPhotos > 0}
 				navStyle={data.gallery.design.navStyle}
 				ondownload={() => (gallery.download = { scope: 'all', sectionId: activeSection?.id })}
 				onshare={share}
+				onslideshow={() => (gallery.slideshowRequests += 1)}
 			/>
 			<main class="content">
 				{#if data.pending > 0}
@@ -116,6 +139,9 @@
 		{/if}
 		{#if gallery.emailPrompt}
 			<EmailDialog />
+		{/if}
+		{#if options.galleryAssist && !data.isPreview}
+			<GalleryAssist galleryId={data.gallery.id} favorites={data.gallery.favoritesEnabled} downloads={canDownloadSomething} />
 		{/if}
 	{/if}
 </div>

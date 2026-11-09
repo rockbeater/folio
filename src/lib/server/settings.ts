@@ -9,6 +9,10 @@ export interface StudioSettings {
 	website: string;
 	/** File name of the uploaded logo inside DATA_DIR/branding, if any. */
 	logo: string | null;
+	/** Light version of the logo for use on top of cover photos. */
+	coverLogo: string | null;
+	favicon: string | null;
+	/** Language of the admin interface. */
 	language: string;
 }
 
@@ -30,6 +34,8 @@ const DEFAULT_STUDIO: StudioSettings = {
 	phone: '',
 	website: '',
 	logo: null,
+	coverLogo: null,
+	favicon: null,
 	language: 'en'
 };
 
@@ -87,6 +93,29 @@ export function getSmtp(): SmtpSettings {
 export function saveSmtp(update: Partial<SmtpSettings>): SmtpSettings {
 	const next = { ...read('smtp', DEFAULT_SMTP), ...update };
 	write('smtp', next);
+	return next;
+}
+
+export interface Preferences {
+	/** Language of new galleries. */
+	defaultLanguage: string;
+	/** Announcement banner shown at the top of galleries (each gallery can turn it off). */
+	banner: { enabled: boolean; text: string; code: string };
+}
+
+const DEFAULT_PREFERENCES: Preferences = {
+	defaultLanguage: 'en',
+	banner: { enabled: false, text: '', code: '' }
+};
+
+export function getPreferences(): Preferences {
+	const stored = read('preferences', DEFAULT_PREFERENCES);
+	return { ...stored, banner: { ...DEFAULT_PREFERENCES.banner, ...stored.banner } };
+}
+
+export function savePreferences(update: Partial<Preferences>): Preferences {
+	const next = { ...getPreferences(), ...update };
+	write('preferences', next);
 	return next;
 }
 

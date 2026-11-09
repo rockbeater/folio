@@ -7,7 +7,8 @@ const values = {
 	gallery_link: 'https://photos.example.com/g/anna-mads',
 	password: 'k3x9pq',
 	studio_name: 'Example Studio',
-	event_date: 'June 14, 2026'
+	event_date: 'June 14, 2026',
+	expiry_date: ''
 };
 
 describe('mergeFields', () => {

@@ -5,6 +5,8 @@
 	import Download from '@lucide/svelte/icons/download';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Play from '@lucide/svelte/icons/play';
+	import Pause from '@lucide/svelte/icons/pause';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, DISPLAY_WIDTHS, type PhotoView } from '$lib/types';
 
@@ -14,14 +16,30 @@
 		favorites: Set<string>;
 		canFavorite: boolean;
 		canDownload: boolean;
+		canSlideshow?: boolean;
+		/** Start playing the slideshow right away. */
+		autoplay?: boolean;
+		showFilenames?: boolean;
 		onchange: (index: number) => void;
 		onclose: () => void;
 		onfavorite: (id: string) => void;
 		ondownload: (id: string) => void;
 	}
 
-	let { photos, index, favorites, canFavorite, canDownload, onchange, onclose, onfavorite, ondownload }: Props =
-		$props();
+	let {
+		photos,
+		index,
+		favorites,
+		canFavorite,
+		canDownload,
+		canSlideshow = false,
+		autoplay = false,
+		showFilenames = false,
+		onchange,
+		onclose,
+		onfavorite,
+		ondownload
+	}: Props = $props();
 	const { t } = useI18n();
 
 	let dialog: HTMLDialogElement;
@@ -36,6 +54,19 @@
 	let dragging = $state(false);
 	let controlsVisible = $state(true);
 	let hideTimer: ReturnType<typeof setTimeout> | undefined;
+	// svelte-ignore state_referenced_locally
+	let playing = $state(autoplay);
+
+	// Slideshow: advance every few seconds and stop at the last photo.
+	$effect(() => {
+		if (!playing) return;
+		const current = index;
+		const timer = setTimeout(() => {
+			if (current < photos.length - 1) go(1);
+			else playing = false;
+		}, 4500);
+		return () => clearTimeout(timer);
+	});
 
 	onMount(() => {
 		dialog.showModal();
@@ -81,6 +112,7 @@
 	function onKey(event: KeyboardEvent) {
 		if (event.key === 'ArrowRight') go(1);
 		else if (event.key === 'ArrowLeft') go(-1);
+		else if (event.key === ' ' && canSlideshow) playing = !playing;
 		else return;
 		event.preventDefault();
 		showControls();
@@ -204,8 +236,21 @@
 			<button type="button" class="icon" onclick={onclose} aria-label={t('common.close')}>
 				<X size={24} strokeWidth={1.5} />
 			</button>
-			<span class="label counter tabular">{t('client.counter', { current: index + 1, total: photos.length })}</span>
+			<span class="label counter tabular">
+				{t('client.counter', { current: index + 1, total: photos.length })}
+				{#if showFilenames}<span class="filename">{photo.filename}</span>{/if}
+			</span>
 			<div class="top-actions">
+				{#if canSlideshow}
+					<button
+						type="button"
+						class="icon"
+						onclick={() => (playing = !playing)}
+						aria-label={playing ? t('client.slideshow.pause') : t('client.slideshow.play')}
+					>
+						{#if playing}<Pause size={22} strokeWidth={1.5} />{:else}<Play size={22} strokeWidth={1.5} />{/if}
+					</button>
+				{/if}
 				{#if canFavorite}
 					<button
 						type="button"
@@ -299,7 +344,18 @@
 	}
 
 	.counter {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
 		color: var(--color-text-muted);
+	}
+
+	.filename {
+		font-family: var(--font-body);
+		font-size: 0.75rem;
+		letter-spacing: 0;
+		text-transform: none;
 	}
 
 	.top-actions {

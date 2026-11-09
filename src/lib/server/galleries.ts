@@ -2,7 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import type { Gallery, Photo, Section } from './db/schema';
 import { naturalCompare } from '$lib/slug';
-import { normalizeDesign, normalizeDownload, type PhotoView, type SectionView } from '$lib/types';
+import { normalizeDesign, normalizeDownload, normalizeOptions, type PhotoView, type SectionView } from '$lib/types';
 
 export function getGalleryById(id: string): Gallery | undefined {
 	return getDb().select().from(schema.galleries).where(eq(schema.galleries.id, id)).get();
@@ -52,7 +52,8 @@ export function getPhotosBySection(galleryId: string): Map<string, Photo[]> {
 	return bySection;
 }
 
-export function toPhotoView(p: Photo): PhotoView {
+/** Photo as sent to the browser. `wmKey` is the gallery's watermark key for client views. */
+export function toPhotoView(p: Photo, wmKey: string | null = null): PhotoView {
 	return {
 		id: p.id,
 		sectionId: p.sectionId,
@@ -60,7 +61,7 @@ export function toPhotoView(p: Photo): PhotoView {
 		width: p.width || 3,
 		height: p.height || 2,
 		color: p.color,
-		version: p.version,
+		key: wmKey ? `${p.version}-${wmKey}` : String(p.version),
 		ready: p.status === 'ready'
 	};
 }
@@ -99,8 +100,9 @@ export function processingStats(galleryId?: string): Map<string, ProcessingStats
 	return out;
 }
 
-/** Public (client-safe) subset of a gallery. */
+/** Public (client-safe) subset of a gallery. Never includes passwords or the download PIN. */
 export function publicGallery(g: Gallery) {
+	const download = normalizeDownload(g.download);
 	return {
 		id: g.id,
 		name: g.name,
@@ -111,9 +113,12 @@ export function publicGallery(g: Gallery) {
 		coverFocalX: g.coverFocalX,
 		coverFocalY: g.coverFocalY,
 		design: normalizeDesign(g.design),
-		download: normalizeDownload(g.download),
+		download: { ...download, pin: null },
+		downloadPinRequired: Boolean(download.pin),
+		options: normalizeOptions(g.options),
 		favoritesEnabled: g.favoritesEnabled,
 		language: g.language,
+		expiresOn: g.expiresOn,
 		hasPassword: Boolean(g.password)
 	};
 }

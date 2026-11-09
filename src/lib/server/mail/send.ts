@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import nodemailer from 'nodemailer';
 import type { Attachment } from 'nodemailer/lib/mailer';
-import { and, asc, eq, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, lte } from 'drizzle-orm';
 import { config } from '../config';
 import { getDb, schema } from '../db';
 import type { Gallery, GalleryEmailPayload } from '../db/schema';
@@ -13,6 +13,7 @@ import { ensureEmailCover } from '../images/render';
 import { getSmtp, getStudio, isSmtpConfigured, type SmtpSettings } from '../settings';
 import { createI18n } from '$lib/i18n';
 import { mergeFields, renderGalleryEmail, type MergeValues } from './render';
+import { builtInTemplate, pickTemplate } from './templates';
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000];
 
@@ -55,7 +56,8 @@ export function mergeValuesFor(gallery: Gallery, baseUrl: string): MergeValues {
 		gallery_link: galleryLink(baseUrl, gallery),
 		password: gallery.password ?? '',
 		studio_name: getStudio().name,
-		event_date: gallery.eventDate ? formatDate(gallery.eventDate) : ''
+		event_date: gallery.eventDate ? formatDate(gallery.eventDate) : '',
+		expiry_date: gallery.expiresOn ? formatDate(gallery.expiresOn) : ''
 	};
 }
 
@@ -94,7 +96,7 @@ export async function composeGalleryEmail(gallery: Gallery, payload: GalleryEmai
 	let coverSrc: string | null = null;
 	const cover = emailCoverPhoto(gallery);
 	if (cover) {
-		if (preview) coverSrc = `/img/${cover.id}/${cover.version}/w960.webp`;
+		if (preview) coverSrc = `/img/${cover.id}/${cover.version}/w960.webp`; // admin preview: no watermark
 		else {
 			const section = getSections(gallery.id).find((s) => s.id === cover.sectionId);
 			if (section) {
@@ -133,21 +135,96 @@ export async function composeGalleryEmail(gallery: Gallery, payload: GalleryEmai
 	return { subject: mergeFields(payload.subject, values), html, text, attachments };
 }
 
-/** Queue a gallery email to each recipient. */
+/** Queue a gallery email to each recipient, now or at `scheduledFor` (ms). */
 export function queueGalleryEmail(
 	gallery: Gallery,
 	recipients: string[],
 	payload: GalleryEmailPayload,
-	templateId: string | null
+	templateId: string | null,
+	options: { kind?: 'gallery' | 'reminder'; scheduledFor?: number | null } = {}
 ): void {
 	const db = getDb();
 	const subject = mergeFields(payload.subject, mergeValuesFor(gallery, payload.baseUrl));
+	const scheduledFor = options.scheduledFor && options.scheduledFor > Date.now() ? options.scheduledFor : null;
 	for (const recipient of recipients) {
 		db.insert(schema.emailLog)
-			.values({ id: crypto.randomUUID(), kind: 'gallery', galleryId: gallery.id, templateId, recipient, subject, payload })
+			.values({
+				id: crypto.randomUUID(),
+				kind: options.kind ?? 'gallery',
+				galleryId: gallery.id,
+				templateId,
+				recipient,
+				subject,
+				payload,
+				scheduledFor,
+				...(scheduledFor ? { nextAttemptAt: scheduledFor } : {})
+			})
 			.run();
 	}
 	void processQueue();
+}
+
+/** Cancel a scheduled email that has not been sent yet. */
+export function cancelScheduledEmail(logId: string): boolean {
+	const db = getDb();
+	const entry = db.select().from(schema.emailLog).where(eq(schema.emailLog.id, logId)).get();
+	if (!entry || entry.status !== 'queued' || !entry.scheduledFor) return false;
+	db.delete(schema.emailLog).where(eq(schema.emailLog.id, logId)).run();
+	return true;
+}
+
+/**
+ * Send expiry reminders: once per gallery, `reminderDays` before it expires,
+ * to the client or to everyone who used the gallery.
+ */
+export function sendDueReminders(): void {
+	const db = getDb();
+	const date = new Date().toLocaleDateString('sv-SE');
+	const candidates = db
+		.select()
+		.from(schema.galleries)
+		.where(and(eq(schema.galleries.status, 'published'), isNull(schema.galleries.reminderSentAt)))
+		.all()
+		.filter((g) => g.expiresOn && g.reminderDays !== null && g.expiresOn >= date);
+	for (const gallery of candidates) {
+		const due = new Date(`${gallery.expiresOn}T12:00:00`);
+		due.setDate(due.getDate() - (gallery.reminderDays ?? 0));
+		if (due.toLocaleDateString('sv-SE') > date) continue;
+
+		const recipients = new Set<string>();
+		if (gallery.clientEmail) recipients.add(gallery.clientEmail.toLowerCase());
+		if (gallery.reminderTo === 'all') {
+			for (const v of db.select({ email: schema.visitors.email }).from(schema.visitors).where(eq(schema.visitors.galleryId, gallery.id)).all()) {
+				recipients.add(v.email.toLowerCase());
+			}
+		}
+		const baseUrl = config.baseUrl || lastBaseUrl(gallery.id);
+		if (recipients.size === 0 || !baseUrl) {
+			if (!baseUrl) console.warn(`[folio] no BASE_URL known for reminder of "${gallery.name}"; set BASE_URL`);
+			db.update(schema.galleries).set({ reminderSentAt: Date.now() }).where(eq(schema.galleries.id, gallery.id)).run();
+			continue;
+		}
+		const template = pickTemplate('reminder', gallery.language) ?? { id: null, ...builtInTemplate('reminder', gallery.language) };
+		queueGalleryEmail(
+			gallery,
+			[...recipients],
+			{ subject: template.subject, body: template.body, includePassword: Boolean(gallery.password), baseUrl },
+			template.id,
+			{ kind: 'reminder' }
+		);
+		db.update(schema.galleries).set({ reminderSentAt: Date.now() }).where(eq(schema.galleries.id, gallery.id)).run();
+	}
+}
+
+/** The address used the last time this gallery was emailed (fallback when BASE_URL is not set). */
+function lastBaseUrl(galleryId: string): string | null {
+	const entry = getDb()
+		.select({ payload: schema.emailLog.payload })
+		.from(schema.emailLog)
+		.where(eq(schema.emailLog.galleryId, galleryId))
+		.orderBy(desc(schema.emailLog.createdAt))
+		.get();
+	return entry?.payload?.baseUrl ?? null;
 }
 
 /** Re-send a previous email (same content, current gallery data). */
@@ -229,6 +306,15 @@ export async function processQueue(): Promise<void> {
 export function startMailQueue(): void {
 	setInterval(() => void processQueue(), 30_000).unref();
 	void processQueue();
+	const reminders = () => {
+		try {
+			sendDueReminders();
+		} catch (err) {
+			console.warn('[folio] reminder check failed:', (err as Error).message);
+		}
+	};
+	setInterval(reminders, 60 * 60 * 1000).unref();
+	setTimeout(reminders, 10_000).unref();
 }
 
 /** Send a test email right away and report the error if it fails. */

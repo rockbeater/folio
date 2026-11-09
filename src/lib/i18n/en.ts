@@ -52,6 +52,34 @@ const en = {
 	'client.favoritesTitle': 'Your favorites',
 	'client.backToGallery': 'Back to gallery',
 
+	'client.slideshow.play': 'Play slideshow',
+	'client.slideshow.pause': 'Pause slideshow',
+	'client.banner.code': 'Use code: {code}',
+	'client.banner.copied': 'Code copied',
+
+	// Expired gallery
+	'client.expired.title': 'This gallery has expired',
+	'client.expired.text': 'The gallery is no longer available. Please contact {studio} if you need access again.',
+	'client.expired.photographer': 'your photographer',
+
+	// Email registration
+	'client.register.prompt': 'Enter your email to view the gallery.',
+	'client.register.submit': 'View gallery',
+
+	// Gallery assist (intro cards)
+	'client.assist.title': 'Welcome to your gallery',
+	'client.assist.browseTitle': 'Browse your photos',
+	'client.assist.browseText': 'Tap a photo to see it in full screen. Swipe or use the arrow keys to move between photos.',
+	'client.assist.favoritesTitle': 'Mark your favorites',
+	'client.assist.favoritesText': 'Tap the heart on a photo to save it to your favorites. You find them all under the heart at the top.',
+	'client.assist.downloadTitle': 'Download photos',
+	'client.assist.downloadText': 'Use the download button at the top to save all photos, a section or a single photo.',
+	'client.assist.shareTitle': 'Share the gallery',
+	'client.assist.shareText': 'Use the share button to send the gallery to family and friends.',
+	'client.assist.next': 'Next',
+	'client.assist.skip': 'Skip',
+	'client.assist.done': 'Get started',
+
 	// Password page
 	'client.password.title': 'This gallery is private',
 	'client.password.prompt': 'Enter the password you received to view the photos.',
@@ -84,6 +112,13 @@ const en = {
 	'client.dl.started': 'Your download has started.',
 	'client.dl.disabled': 'Downloads are not available for this gallery.',
 	'client.dl.noFavorites': 'You have no favorites yet.',
+	'client.dl.pinPrompt': 'Enter the 4-digit download PIN you received from your photographer.',
+	'client.dl.pinLabel': 'Download PIN',
+	'client.dl.pinWrong': 'That PIN is not correct.',
+	'client.dl.pinTooMany': 'Too many attempts. Please wait a few minutes and try again.',
+	'client.dl.emailPrompt': 'Enter your email to download photos from this gallery.',
+	'client.dl.parts': 'This download is large, so it is split into {count} files. Download each part.',
+	'client.dl.part': 'Download part {part} of {total}',
 
 	// Errors / misc pages
 	'client.notFound.title': 'Gallery not found',
@@ -335,7 +370,10 @@ const en = {
 	'email.testBody': 'Your email settings work. Emails to your clients will be sent from this address.',
 	'email.defaultTemplate.name': 'Gallery delivery',
 	'email.defaultTemplate.subject': 'Your gallery is ready: {gallery_name}',
-	'email.defaultTemplate.body': 'Hi {client_name},\n\nYour photos are ready. I hope you enjoy them as much as I enjoyed taking them.\n\nOpen your gallery with the button below.\n\nBest wishes,\n{studio_name}'
+	'email.defaultTemplate.body': 'Hi {client_name},\n\nYour photos are ready. I hope you enjoy them as much as I enjoyed taking them.\n\nOpen your gallery with the button below.\n\nBest wishes,\n{studio_name}',
+	'email.reminderTemplate.name': 'Expiry reminder',
+	'email.reminderTemplate.subject': 'Your gallery expires on {expiry_date}',
+	'email.reminderTemplate.body': 'Hi {client_name},\n\nA friendly reminder that your gallery {gallery_name} is available until {expiry_date}. Remember to download your photos and save your favorites before then.\n\nBest wishes,\n{studio_name}'
 } as const;
 
 export type Messages = { [K in keyof typeof en]: string };

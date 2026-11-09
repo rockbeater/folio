@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { config } from '../config';
 import { scanLibrary } from './scanner';
 import { purgeTrash } from './files';
+import { cleanupStaleUploads } from './ops';
 
 let started = false;
 
@@ -38,6 +39,10 @@ export function startLibraryWatcher(): void {
 	}
 
 	setInterval(() => void scanLibrary(), config.scanIntervalSeconds * 1000).unref();
-	setInterval(() => void purgeTrash().catch(() => undefined), 6 * 60 * 60 * 1000).unref();
-	void purgeTrash().catch(() => undefined);
+	const housekeeping = () => {
+		void purgeTrash().catch(() => undefined);
+		void cleanupStaleUploads().catch(() => undefined);
+	};
+	setInterval(housekeeping, 6 * 60 * 60 * 1000).unref();
+	housekeeping();
 }

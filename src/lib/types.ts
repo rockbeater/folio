@@ -63,6 +63,16 @@ export interface DownloadSettings {
 	highResSize: HighResSize;
 	web: boolean;
 	webSize: WebSize;
+	/** 4-digit PIN visitors must enter before downloading, or null. */
+	pin: string | null;
+	/** Ask for the visitor's email before downloading. */
+	requireEmail: boolean;
+	/** Allow downloading single photos (in addition to "download all"). */
+	single: boolean;
+	/** Only these sections can be downloaded; null means all sections. */
+	sections: string[] | null;
+	/** Apply the gallery watermark to web-size downloads. */
+	watermarkWeb: boolean;
 }
 
 export const DEFAULT_DOWNLOAD: DownloadSettings = {
@@ -70,21 +80,95 @@ export const DEFAULT_DOWNLOAD: DownloadSettings = {
 	highRes: true,
 	highResSize: 'original',
 	web: true,
-	webSize: '2048'
+	webSize: '2048',
+	pin: null,
+	requireEmail: false,
+	single: true,
+	sections: null,
+	watermarkWeb: false
 };
+
+const bool = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
 
 export function normalizeDownload(input: unknown): DownloadSettings {
 	const d = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
 	return {
-		enabled: typeof d.enabled === 'boolean' ? d.enabled : DEFAULT_DOWNLOAD.enabled,
-		highRes: typeof d.highRes === 'boolean' ? d.highRes : DEFAULT_DOWNLOAD.highRes,
+		enabled: bool(d.enabled, DEFAULT_DOWNLOAD.enabled),
+		highRes: bool(d.highRes, DEFAULT_DOWNLOAD.highRes),
 		highResSize: HIGH_RES_SIZES.includes(d.highResSize as HighResSize)
 			? (d.highResSize as HighResSize)
 			: DEFAULT_DOWNLOAD.highResSize,
-		web: typeof d.web === 'boolean' ? d.web : DEFAULT_DOWNLOAD.web,
-		webSize: WEB_SIZES.includes(d.webSize as WebSize) ? (d.webSize as WebSize) : DEFAULT_DOWNLOAD.webSize
+		web: bool(d.web, DEFAULT_DOWNLOAD.web),
+		webSize: WEB_SIZES.includes(d.webSize as WebSize) ? (d.webSize as WebSize) : DEFAULT_DOWNLOAD.webSize,
+		pin: typeof d.pin === 'string' && /^\d{4}$/.test(d.pin) ? d.pin : null,
+		requireEmail: bool(d.requireEmail, DEFAULT_DOWNLOAD.requireEmail),
+		single: bool(d.single, DEFAULT_DOWNLOAD.single),
+		sections: Array.isArray(d.sections) ? d.sections.filter((x): x is string => typeof x === 'string') : null,
+		watermarkWeb: bool(d.watermarkWeb, DEFAULT_DOWNLOAD.watermarkWeb)
 	};
 }
+
+/** Whether single photos may be downloaded (from the grid or lightbox) in a section. */
+export function canDownloadPhoto(d: DownloadSettings, sectionId: string | null): boolean {
+	if (!d.enabled || !d.single || !(d.highRes || d.web)) return false;
+	return !d.sections || (sectionId !== null && d.sections.includes(sectionId));
+}
+
+/** Client-facing gallery options (Settings → General). */
+export interface GalleryOptions {
+	/** Visitors enter their email before they can see the gallery. */
+	emailRegistration: boolean;
+	/** Short intro cards for first-time visitors. */
+	galleryAssist: boolean;
+	slideshow: boolean;
+	showFilenames: boolean;
+	/** Show the studio's announcement banner (if one is set up). */
+	banner: boolean;
+}
+
+export const DEFAULT_OPTIONS: GalleryOptions = {
+	emailRegistration: false,
+	galleryAssist: false,
+	slideshow: true,
+	showFilenames: false,
+	banner: true
+};
+
+export function normalizeOptions(input: unknown): GalleryOptions {
+	const d = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+	return {
+		emailRegistration: bool(d.emailRegistration, DEFAULT_OPTIONS.emailRegistration),
+		galleryAssist: bool(d.galleryAssist, DEFAULT_OPTIONS.galleryAssist),
+		slideshow: bool(d.slideshow, DEFAULT_OPTIONS.slideshow),
+		showFilenames: bool(d.showFilenames, DEFAULT_OPTIONS.showFilenames),
+		banner: bool(d.banner, DEFAULT_OPTIONS.banner)
+	};
+}
+
+export type WatermarkPosition =
+	| 'center'
+	| 'top-left'
+	| 'top'
+	| 'top-right'
+	| 'left'
+	| 'right'
+	| 'bottom-left'
+	| 'bottom'
+	| 'bottom-right'
+	| 'tile';
+
+export const WATERMARK_POSITIONS: WatermarkPosition[] = [
+	'top-left',
+	'top',
+	'top-right',
+	'left',
+	'center',
+	'right',
+	'bottom-left',
+	'bottom',
+	'bottom-right',
+	'tile'
+];
 
 /** Size choices a visitor may pick when downloading. */
 export type DownloadChoice = 'highres' | 'web';
@@ -100,7 +184,8 @@ export interface PhotoView {
 	width: number;
 	height: number;
 	color: string;
-	version: number;
+	/** Cache key used in image URLs: the photo version, plus the watermark key if one applies. */
+	key: string;
 	ready: boolean;
 }
 
@@ -111,14 +196,20 @@ export interface SectionView {
 	count: number;
 }
 
-export function displayUrl(photo: { id: string; version: number }, width: DisplayWidth): string {
-	return `/img/${photo.id}/${photo.version}/w${width}.webp`;
+export function displayUrl(photo: { id: string; key: string }, width: DisplayWidth): string {
+	return `/img/${photo.id}/${photo.key}/w${width}.webp`;
 }
 
-export function displaySrcset(photo: { id: string; version: number; width: number }): string {
+export function displaySrcset(photo: { id: string; key: string; width: number }): string {
 	const widths = DISPLAY_WIDTHS.filter((w, i) => i === 0 || w <= photo.width * 1.2);
 	return widths.map((w) => `${displayUrl(photo, w)} ${Math.min(w, photo.width)}w`).join(', ');
 }
 
-export const SUPPORTED_LANGUAGES = ['en'] as const;
+export const SUPPORTED_LANGUAGES = ['en', 'da'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
+
+/** Language names shown in language pickers, always in their own language. */
+export const LANGUAGE_NAMES: Record<Language, string> = {
+	en: 'English',
+	da: 'Dansk'
+};

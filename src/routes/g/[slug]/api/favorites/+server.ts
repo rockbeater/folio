@@ -1,13 +1,13 @@
 import { error, json } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { getVisitorId } from '$lib/server/access';
-import { loadClientGallery } from '$lib/server/client';
+import { requireOpenGallery } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, request, cookies, locals }) => {
-	const { gallery, locked } = loadClientGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
-	if (locked || !gallery.favoritesEnabled) error(403);
+	const gallery = requireOpenGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
+	if (!gallery.favoritesEnabled) error(403);
 	const visitorId = getVisitorId(cookies, gallery.id);
 	if (!visitorId) error(401, 'email-required');
 
@@ -16,11 +16,11 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals })
 
 	const db = getDb();
 	const photo = db
-		.select({ id: schema.photos.id })
+		.select({ id: schema.photos.id, hidden: schema.photos.hidden })
 		.from(schema.photos)
 		.where(and(eq(schema.photos.id, body.photoId), eq(schema.photos.galleryId, gallery.id)))
 		.get();
-	if (!photo) error(404);
+	if (!photo || photo.hidden) error(404);
 
 	if (body.favorite) {
 		db.insert(schema.favorites).values({ visitorId, photoId: photo.id }).onConflictDoNothing().run();

@@ -6,6 +6,8 @@
 		name: string;
 		eventDate: string | null;
 		studioName: string;
+		/** Light logo shown on top of full-screen covers instead of the studio name. */
+		coverLogo?: string | null;
 		layout: CoverLayout;
 		cover: (PhotoView & { placeholder: string | null }) | null;
 		focalX: number;
@@ -13,7 +15,7 @@
 		onview: () => void;
 	}
 
-	let { name, eventDate, studioName, layout, cover, focalX, focalY, onview }: Props = $props();
+	let { name, eventDate, studioName, coverLogo = null, layout, cover, focalX, focalY, onview }: Props = $props();
 	const { t, formatDate } = useI18n();
 
 	const overlay = $derived(layout === 'center' || layout === 'bottom');
@@ -46,7 +48,9 @@
 				<p class="label studio-inline">{studioName}</p>
 			{/if}
 		</div>
-		{#if overlay && studioName}
+		{#if overlay && coverLogo}
+			<img class="cover-logo" src={coverLogo} alt={studioName} />
+		{:else if overlay && studioName}
 			<p class="label studio">{studioName}</p>
 		{/if}
 	</section>
@@ -147,6 +151,24 @@
 		z-index: 1;
 		margin: 0;
 		text-align: center;
+	}
+
+	.cover-logo {
+		position: absolute;
+		left: 50%;
+		bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+		z-index: 1;
+		transform: translateX(-50%);
+		max-width: min(220px, 50vw);
+		max-height: 56px;
+		width: auto;
+		height: auto;
+		object-fit: contain;
+	}
+
+	.cover--bottom .cover-logo {
+		left: clamp(var(--space-5), 6vw, var(--space-9));
+		transform: none;
 	}
 
 	.cover--bottom .media::after {

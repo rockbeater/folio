@@ -5,7 +5,7 @@ import { purgeExpiredSessions } from './auth';
 import { resumePending } from './images/queue';
 import { scanLibrary } from './library/scanner';
 import { startLibraryWatcher } from './library/watcher';
-import { ensureDefaultTemplate } from './mail/templates';
+import { ensureDefaultTemplates } from './mail/templates';
 import { startMailQueue } from './mail/send';
 import { getStudio } from './settings';
 
@@ -21,7 +21,7 @@ export function startServices(): void {
 	}
 	getDb(); // opens and migrates the database
 	purgeExpiredSessions();
-	ensureDefaultTemplate(getStudio().language);
+	ensureDefaultTemplates(getStudio().language);
 
 	console.log(`[folio] photo library: ${config.photosDir}`);
 	console.log(`[folio] data: ${config.dataDir}, cache: ${config.cacheDir}`);

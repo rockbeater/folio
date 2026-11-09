@@ -1,60 +1,93 @@
 import { error, json } from '@sveltejs/kit';
-import { getVisitorId } from '$lib/server/access';
-import { loadClientGallery, visitorInfo } from '$lib/server/client';
-import { estimateBytes, resolveVariant, singleDownload, zipDownload, type DownloadItem } from '$lib/server/download';
+import { isPinUnlocked } from '$lib/server/access';
+import { isVisibleToClients, recordActivity, requireOpenGallery, visitorInfo } from '$lib/server/client';
+import {
+	estimateBytes,
+	resolveVariant,
+	singleDownload,
+	splitIntoParts,
+	zipDownload,
+	type DownloadItem
+} from '$lib/server/download';
 import { getPhotosBySection, getSections } from '$lib/server/galleries';
+import { getWatermark } from '$lib/server/watermarks';
 import { normalizeDownload, type DownloadChoice } from '$lib/types';
 import type { RequestHandler } from './$types';
 
+/**
+ * GET /g/<slug>/download?scope=all|section|favorites|photo&size=highres|web[&section=][&photo=][&part=]
+ * With `info=1` it returns counts, estimated sizes and what the visitor still needs (PIN, email).
+ */
 export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 	const isAdmin = Boolean(locals.admin);
-	const { gallery, locked } = loadClientGallery(params.slug, { cookies, isAdmin });
-	if (locked) error(403);
+	const gallery = requireOpenGallery(params.slug, { cookies, isAdmin });
 	const settings = normalizeDownload(gallery.download);
 	if (!settings.enabled) error(403, 'downloads-disabled');
 
 	const scope = url.searchParams.get('scope') ?? 'all';
 	const size = (url.searchParams.get('size') === 'web' ? 'web' : 'highres') as DownloadChoice;
+	const visitor = visitorInfo(cookies, gallery.id);
 
-	const sections = getSections(gallery.id);
+	const allowedSections = settings.sections ? new Set(settings.sections) : null;
+	const sections = getSections(gallery.id).filter((s) => !allowedSections || allowedSections.has(s.id));
 	const bySection = getPhotosBySection(gallery.id);
-	const ready: DownloadItem[] = sections.flatMap((section) =>
-		(bySection.get(section.id) ?? []).filter((p) => p.status === 'ready').map((photo) => ({ photo, section }))
+	const available: DownloadItem[] = sections.flatMap((section) =>
+		(bySection.get(section.id) ?? []).filter(isVisibleToClients).map((photo) => ({ photo, section }))
 	);
 
 	let items: DownloadItem[];
 	let suffix = '';
 	if (scope === 'section') {
-		const id = url.searchParams.get('section');
-		const section = sections.find((s) => s.id === id);
+		const section = sections.find((s) => s.id === url.searchParams.get('section'));
 		if (!section) error(404);
-		items = ready.filter((i) => i.section.id === section.id);
+		items = available.filter((i) => i.section.id === section.id);
 		suffix = `-${section.slug}`;
 	} else if (scope === 'favorites') {
-		if (!getVisitorId(cookies, gallery.id)) error(403);
-		const favorites = new Set(visitorInfo(cookies, gallery.id).favorites);
-		items = ready.filter((i) => favorites.has(i.photo.id));
+		const favorites = new Set(visitor.favorites);
+		items = available.filter((i) => favorites.has(i.photo.id));
 		suffix = '-favorites';
 	} else if (scope === 'photo') {
-		const id = url.searchParams.get('photo');
-		items = ready.filter((i) => i.photo.id === id);
+		if (!settings.single) error(403, 'single-disabled');
+		items = available.filter((i) => i.photo.id === url.searchParams.get('photo'));
 	} else {
-		items = ready;
+		items = available;
 	}
+
+	const needsPin = !isAdmin && !isPinUnlocked(cookies, gallery.id, settings.pin);
+	const needsEmail = !isAdmin && settings.requireEmail && !visitor.email;
 
 	if (url.searchParams.has('info')) {
-		const high = resolveVariant(settings, 'highres');
-		const web = resolveVariant(settings, 'web');
-		return json({
-			count: items.length,
-			highres: high ? Math.round(estimateBytes(items, high)) : 0,
-			web: web ? Math.round(estimateBytes(items, web)) : 0
-		});
+		const sizes: Record<string, { bytes: number; parts: number }> = {};
+		for (const choice of ['highres', 'web'] as const) {
+			const variant = resolveVariant(settings, choice);
+			if (variant) sizes[choice] = { bytes: Math.round(estimateBytes(items, variant)), parts: splitIntoParts(items, variant).length };
+		}
+		return json({ count: items.length, sizes, needsPin, needsEmail });
 	}
 
+	if (needsPin) error(403, 'pin-required');
+	if (needsEmail) error(403, 'email-required');
 	const variant = resolveVariant(settings, size);
 	if (!variant) error(403, 'size-not-allowed');
 	if (items.length === 0) error(404);
-	if (scope === 'photo') return singleDownload(gallery, items[0], variant);
-	return zipDownload(gallery, items, variant, `${gallery.slug}${suffix}.zip`);
+
+	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
+
+	if (!isAdmin) {
+		recordActivity(gallery.id, 'download', visitor.email, {
+			scope,
+			size,
+			count: items.length,
+			sectionId: scope === 'section' ? (items[0]?.section.id ?? undefined) : undefined,
+			photoId: scope === 'photo' ? items[0]?.photo.id : undefined
+		});
+	}
+
+	if (scope === 'photo') return singleDownload(gallery, items[0], variant, watermark);
+
+	const parts = splitIntoParts(items, variant);
+	const part = Math.min(parts.length, Math.max(1, Number(url.searchParams.get('part')) || 1));
+	const withFolders = new Set(items.map((i) => i.section.id)).size > 1;
+	const name = parts.length > 1 ? `${gallery.slug}${suffix}-part-${part}-of-${parts.length}.zip` : `${gallery.slug}${suffix}.zip`;
+	return zipDownload(gallery, parts[part - 1], variant, name, watermark, withFolders);
 };

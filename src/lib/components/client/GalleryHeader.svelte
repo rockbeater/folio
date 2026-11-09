@@ -2,6 +2,7 @@
 	import Heart from '@lucide/svelte/icons/heart';
 	import Download from '@lucide/svelte/icons/download';
 	import Share from '@lucide/svelte/icons/share';
+	import Play from '@lucide/svelte/icons/play';
 	import { useI18n } from '$lib/i18n';
 	import type { NavStyle, SectionView } from '$lib/types';
 
@@ -15,9 +16,11 @@
 		favoritesCount: number;
 		showFavorites: boolean;
 		showDownload: boolean;
+		showSlideshow: boolean;
 		navStyle: NavStyle;
 		ondownload: () => void;
 		onshare: () => void;
+		onslideshow: () => void;
 	}
 
 	let {
@@ -30,9 +33,11 @@
 		favoritesCount,
 		showFavorites,
 		showDownload,
+		showSlideshow,
 		navStyle,
 		ondownload,
-		onshare
+		onshare,
+		onslideshow
 	}: Props = $props();
 	const { t } = useI18n();
 	const withText = $derived(navStyle === 'icon-text');
@@ -82,6 +87,12 @@
 				<Share size={22} strokeWidth={1.5} />
 				{#if withText}<span class="label">{t('client.share')}</span>{/if}
 			</button>
+			{#if showSlideshow}
+				<button type="button" class="icon" class:text={withText} onclick={onslideshow} aria-label={t('client.slideshow')}>
+					<Play size={22} strokeWidth={1.5} />
+					{#if withText}<span class="label">{t('client.slideshow')}</span>{/if}
+				</button>
+			{/if}
 		</div>
 	</div>
 

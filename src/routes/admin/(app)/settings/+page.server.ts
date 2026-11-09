@@ -90,8 +90,11 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
 		if (!name) return fail(400, { tab: 'templates', error: 'admin.templates.errName' });
+		const kind = form.get('kind') === 'reminder' ? 'reminder' : 'delivery';
 		saveTemplate({
 			id: String(form.get('id') ?? '') || undefined,
+			kind,
+			language: String(form.get('language') ?? '') || getStudio().language,
 			name,
 			subject: String(form.get('subject') ?? '').trim(),
 			body: String(form.get('body') ?? '')

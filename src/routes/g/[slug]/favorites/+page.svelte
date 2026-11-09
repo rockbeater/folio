@@ -2,6 +2,7 @@
 	import GalleryView from '$lib/components/client/GalleryView.svelte';
 	import { getGalleryState } from '$lib/components/client/gallery-state.svelte';
 	import { useI18n } from '$lib/i18n';
+	import { canDownloadPhoto } from '$lib/types';
 
 	let { data } = $props();
 	const { t } = useI18n();
@@ -12,7 +13,7 @@
 	const photos = $derived(data.photos);
 </script>
 
-{#if !data.locked}
+{#if data.state === 'open'}
 	<h1 class="title label">{t('client.favoritesTitle')}</h1>
 	{#if gallery.favorites.size === 0 && photos.length === 0}
 		<p class="empty">{t('client.favoritesEmpty')}</p>
@@ -20,8 +21,9 @@
 		<GalleryView
 			{photos}
 			design={data.gallery.design}
+			options={data.gallery.options}
 			canFavorite={data.gallery.favoritesEnabled}
-			canDownload={data.gallery.download.enabled}
+			canDownload={canDownloadPhoto(data.gallery.download, null)}
 			sectionId={null}
 		/>
 	{/if}

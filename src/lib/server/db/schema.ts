@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { DownloadSettings, GalleryDesign, GalleryStatus } from '$lib/types';
+import type { DownloadSettings, GalleryDesign, GalleryOptions, GalleryStatus, WatermarkPosition } from '$lib/types';
 
 const now = sql`(unixepoch() * 1000)`;
 
@@ -55,6 +55,15 @@ export const galleries = sqliteTable(
 		language: text('language').notNull().default('en'),
 		clientName: text('client_name'),
 		clientEmail: text('client_email'),
+		options: text('options', { mode: 'json' }).$type<GalleryOptions>(),
+		tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+		watermarkId: text('watermark_id'),
+		/** Last day the gallery is visible (YYYY-MM-DD); it is hidden after that day. */
+		expiresOn: text('expires_on'),
+		/** Send a reminder this many days before expiry (null: no reminder). */
+		reminderDays: integer('reminder_days'),
+		reminderTo: text('reminder_to').$type<'client' | 'all'>().notNull().default('client'),
+		reminderSentAt: integer('reminder_sent_at'),
 		warnings: text('warnings', { mode: 'json' }).$type<ScanWarning[]>().notNull().default(sql`'[]'`),
 		createdAt: integer('created_at').notNull().default(now),
 		updatedAt: integer('updated_at').notNull().default(now),
@@ -105,6 +114,8 @@ export const photos = sqliteTable(
 		version: integer('version').notNull().default(1),
 		color: text('color').notNull().default('#d9d9d6'),
 		placeholder: text('placeholder'),
+		/** Hidden from clients without deleting the file. */
+		hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
 		createdAt: integer('created_at').notNull().default(now)
 	},
 	(t) => [
@@ -142,8 +153,12 @@ export const favorites = sqliteTable(
 	(t) => [primaryKey({ columns: [t.visitorId, t.photoId] })]
 );
 
+export type TemplateKind = 'delivery' | 'reminder';
+
 export const emailTemplates = sqliteTable('email_templates', {
 	id: text('id').primaryKey(),
+	kind: text('kind').$type<TemplateKind>().notNull().default('delivery'),
+	language: text('language').notNull().default('en'),
 	name: text('name').notNull(),
 	subject: text('subject').notNull(),
 	body: text('body').notNull(),
@@ -153,7 +168,7 @@ export const emailTemplates = sqliteTable('email_templates', {
 });
 
 export type EmailStatus = 'queued' | 'sent' | 'failed';
-export type EmailKind = 'gallery' | 'test';
+export type EmailKind = 'gallery' | 'reminder' | 'test';
 
 export interface GalleryEmailPayload {
 	subject: string;
@@ -176,14 +191,86 @@ export const emailLog = sqliteTable(
 		attempts: integer('attempts').notNull().default(0),
 		nextAttemptAt: integer('next_attempt_at').notNull().default(now),
 		error: text('error'),
+		/** Set when the photographer scheduled the email for later. */
+		scheduledFor: integer('scheduled_for'),
 		createdAt: integer('created_at').notNull().default(now),
 		sentAt: integer('sent_at')
 	},
 	(t) => [index('email_log_gallery_idx').on(t.galleryId), index('email_log_status_idx').on(t.status)]
 );
 
+export type ActivityKind = 'visit' | 'download' | 'registration';
+
+export interface ActivityDetail {
+	scope?: string;
+	size?: string;
+	count?: number;
+	sectionId?: string;
+	photoId?: string;
+}
+
+/** What visitors do in a gallery (visits, downloads, registrations). Favorites live in their own table. */
+export const activity = sqliteTable(
+	'activity',
+	{
+		id: text('id').primaryKey(),
+		galleryId: text('gallery_id')
+			.notNull()
+			.references(() => galleries.id, { onDelete: 'cascade' }),
+		kind: text('kind').$type<ActivityKind>().notNull(),
+		email: text('email'),
+		detail: text('detail', { mode: 'json' }).$type<ActivityDetail>(),
+		createdAt: integer('created_at').notNull().default(now)
+	},
+	(t) => [index('activity_gallery_kind_idx').on(t.galleryId, t.kind)]
+);
+
+export interface TextWatermark {
+	text: string;
+	font: string;
+	color: string;
+}
+
+export const watermarks = sqliteTable('watermarks', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	kind: text('kind').$type<'image' | 'text'>().notNull(),
+	/** PNG file inside DATA_DIR/watermarks (text watermarks are rendered to PNG in the browser). */
+	file: text('file').notNull(),
+	text: text('text', { mode: 'json' }).$type<TextWatermark>(),
+	position: text('position').$type<WatermarkPosition>().notNull().default('center'),
+	/** Width of the watermark as a fraction of the photo width. */
+	scale: real('scale').notNull().default(0.3),
+	opacity: real('opacity').notNull().default(0.5),
+	version: integer('version').notNull().default(1),
+	createdAt: integer('created_at').notNull().default(now)
+});
+
+export interface PresetSettings {
+	design?: GalleryDesign;
+	download?: DownloadSettings;
+	options?: GalleryOptions;
+	favoritesEnabled?: boolean;
+	language?: string;
+	watermarkId?: string | null;
+	/** Days after creation before the gallery expires (null: never). */
+	expiryDays?: number | null;
+	reminderDays?: number | null;
+}
+
+/** Saved gallery settings that can be applied to galleries; the default is used for new galleries. */
+export const presets = sqliteTable('presets', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	settings: text('settings', { mode: 'json' }).$type<PresetSettings>().notNull(),
+	isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+	createdAt: integer('created_at').notNull().default(now)
+});
+
 export type Gallery = typeof galleries.$inferSelect;
 export type Section = typeof sections.$inferSelect;
 export type Photo = typeof photos.$inferSelect;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type EmailLogEntry = typeof emailLog.$inferSelect;
+export type Watermark = typeof watermarks.$inferSelect;
+export type Preset = typeof presets.$inferSelect;

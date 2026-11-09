@@ -36,17 +36,41 @@ export function unlockGallery(cookies: Cookies, url: URL, gallery: Pick<Gallery,
 	cookies.set(passwordCookie(gallery.id), passwordToken(gallery), cookieOptions(url));
 }
 
-/** Clients see published galleries whose folder exists; the owner sees everything. */
-export function isPubliclyVisible(gallery: Pick<Gallery, 'status' | 'missing'>): boolean {
-	return gallery.status === 'published' && !gallery.missing;
+/** Today's date (YYYY-MM-DD) in the server's time zone (TZ). */
+export function today(): string {
+	return new Date().toLocaleDateString('sv-SE');
+}
+
+/** A gallery is visible until the end of its expiry day. */
+export function isExpired(gallery: Pick<Gallery, 'expiresOn'>, date = today()): boolean {
+	return Boolean(gallery.expiresOn && gallery.expiresOn < date);
+}
+
+/** Clients see published, unexpired galleries whose folder exists; the owner sees everything. */
+export function isPubliclyVisible(gallery: Pick<Gallery, 'status' | 'missing' | 'expiresOn'>): boolean {
+	return gallery.status === 'published' && !gallery.missing && !isExpired(gallery);
 }
 
 export function canViewGallery(
-	gallery: Pick<Gallery, 'id' | 'password' | 'status' | 'missing'>,
+	gallery: Pick<Gallery, 'id' | 'password' | 'status' | 'missing' | 'expiresOn'>,
 	cookies: Cookies,
 	isAdmin: boolean
 ): boolean {
 	return isAdmin || (isPubliclyVisible(gallery) && isUnlocked(cookies, gallery));
+}
+
+function pinCookie(galleryId: string): string {
+	return `fp_${galleryId}`;
+}
+
+/** True when no PIN is set, or the visitor has entered the current PIN. */
+export function isPinUnlocked(cookies: Cookies, galleryId: string, pin: string | null): boolean {
+	if (!pin) return true;
+	return cookies.get(pinCookie(galleryId)) === sign(`pin:${galleryId}:${pin}`);
+}
+
+export function unlockPin(cookies: Cookies, url: URL, galleryId: string, pin: string): void {
+	cookies.set(pinCookie(galleryId), sign(`pin:${galleryId}:${pin}`), cookieOptions(url));
 }
 
 export function getVisitorId(cookies: Cookies, galleryId: string): string | null {

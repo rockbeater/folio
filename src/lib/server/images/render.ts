@@ -4,6 +4,8 @@ import sharp from 'sharp';
 import exifr from 'exifr';
 import { DISPLAY_WIDTHS, type DisplayWidth } from '$lib/types';
 import { displayFile, downloadFile, emailCoverFile, photoCacheDir, type DownloadVariant } from './paths';
+import type { Watermark } from '../db/schema';
+import { watermarkKey, withWatermark } from '../watermarks';
 
 sharp.cache(false);
 
@@ -119,9 +121,15 @@ function once(target: string, render: (tmp: string) => Promise<unknown>): Promis
 	return job;
 }
 
-/** Display copy, regenerated from the original if the cache was cleared. */
-export function ensureDisplay(original: string, photoId: string, version: number, width: DisplayWidth): Promise<string> {
-	return once(displayFile(photoId, version, width), (tmp) =>
+/** Display copy, regenerated from the original if the cache was cleared. Optionally watermarked. */
+export async function ensureDisplay(
+	original: string,
+	photoId: string,
+	version: number,
+	width: DisplayWidth,
+	watermark: Watermark | null = null
+): Promise<string> {
+	const plain = await once(displayFile(photoId, version, width), (tmp) =>
 		sharp(original, { failOn: 'none' })
 			.rotate()
 			.resize({ width, withoutEnlargement: true })
@@ -129,12 +137,24 @@ export function ensureDisplay(original: string, photoId: string, version: number
 			.webp({ quality: width <= 480 ? 74 : 80, effort: 4 })
 			.toFile(tmp)
 	);
+	if (!watermark) return plain;
+	return once(displayFile(photoId, version, width, watermarkKey(watermark)), async (tmp) => {
+		const base = await sharp(plain).toBuffer();
+		const marked = await withWatermark(base, watermark);
+		await marked.webp({ quality: width <= 480 ? 74 : 80, effort: 4 }).toFile(tmp);
+	});
 }
 
-/** Resized JPEG for downloads; the long edge is at most `variant` pixels. */
-export function ensureDownload(original: string, photoId: string, version: number, variant: DownloadVariant): Promise<string> {
+/** Resized JPEG for downloads; the long edge is at most `variant` pixels. Optionally watermarked. */
+export async function ensureDownload(
+	original: string,
+	photoId: string,
+	version: number,
+	variant: DownloadVariant,
+	watermark: Watermark | null = null
+): Promise<string> {
 	const size = Number(variant);
-	return once(downloadFile(photoId, version, variant), (tmp) =>
+	const plain = await once(downloadFile(photoId, version, variant), (tmp) =>
 		sharp(original, { failOn: 'none' })
 			.rotate()
 			.resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
@@ -142,6 +162,11 @@ export function ensureDownload(original: string, photoId: string, version: numbe
 			.jpeg({ quality: 90, mozjpeg: true })
 			.toFile(tmp)
 	);
+	if (!watermark) return plain;
+	return once(downloadFile(photoId, version, variant, watermarkKey(watermark)), async (tmp) => {
+		const marked = await withWatermark(await sharp(plain).toBuffer(), watermark);
+		await marked.jpeg({ quality: 90, mozjpeg: true }).toFile(tmp);
+	});
 }
 
 /** Cover image embedded in emails. */

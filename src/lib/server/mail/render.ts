@@ -7,6 +7,7 @@ export interface MergeValues {
 	password: string;
 	studio_name: string;
 	event_date: string;
+	expiry_date: string;
 }
 
 /** Replace {field} placeholders and tidy up what an empty field leaves behind ("Hi ," -> "Hi,"). */

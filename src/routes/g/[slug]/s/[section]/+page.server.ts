@@ -4,10 +4,9 @@ import { getSections } from '$lib/server/galleries';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, cookies, locals }) => {
-	const isAdmin = Boolean(locals.admin);
-	const { gallery, locked } = loadClientGallery(params.slug, { cookies, isAdmin });
-	if (locked) return { photos: [], sectionId: null };
+	const { gallery, state } = loadClientGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
+	if (state !== 'open') return { photos: [], sectionId: null };
 	const section = getSections(gallery.id).find((s) => s.slug === params.section);
 	if (!section) error(404, 'not-found');
-	return { photos: sectionPhotos(gallery, section.id, isAdmin), sectionId: section.id };
+	return { photos: sectionPhotos(gallery, section.id), sectionId: section.id };
 };

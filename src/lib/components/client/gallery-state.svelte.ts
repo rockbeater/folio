@@ -16,6 +16,8 @@ export class GalleryState {
 	favorites = new SvelteSet<string>();
 	emailPrompt = $state<{ resolve: (ok: boolean) => void } | null>(null);
 	download = $state<DownloadRequest | null>(null);
+	/** Incremented when the visitor starts the slideshow from the header. */
+	slideshowRequests = $state(0);
 
 	constructor(slug: string, email: string | null, favorites: string[]) {
 		this.slug = slug;

@@ -26,7 +26,7 @@ export const load: PageServerLoad = () => {
 				status: g.status,
 				missing: g.missing,
 				warnings: g.warnings.length + s.failed,
-				cover: cover && cover.status === 'ready' ? { id: cover.id, version: cover.version, color: cover.color } : null,
+				cover: cover && cover.status === 'ready' ? { id: cover.id, key: String(cover.version), color: cover.color } : null,
 				stats: s
 			};
 		});

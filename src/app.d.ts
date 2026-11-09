@@ -10,6 +10,8 @@ declare global {
 		interface PageState {
 			/** Photo open in the lightbox (shallow routing). */
 			photo?: string;
+			/** The lightbox was opened as a slideshow. */
+			slideshow?: boolean;
 		}
 	}
 }

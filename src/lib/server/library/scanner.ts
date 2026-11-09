@@ -8,9 +8,8 @@ import { getDb, schema } from '../db';
 import type { Gallery, ScanWarning, Section } from '../db/schema';
 import { enqueuePhotos } from '../images/queue';
 import { removePhotoCache } from '../images/render';
-import { getStudio } from '../settings';
+import { newGalleryValues } from '../presets';
 import { slugify, uniqueSlug } from '$lib/slug';
-import { DEFAULT_DESIGN, DEFAULT_DOWNLOAD } from '$lib/types';
 import { isIgnored, isImageFile, readIdFile, writeIdFile } from './files';
 
 export interface LibraryState {
@@ -111,9 +110,7 @@ export function insertGallery(id: string, folder: string, name: string, eventDat
 		slug: uniqueSlug(slugify(name), slugTaken),
 		eventDate,
 		status: 'draft' as const,
-		design: DEFAULT_DESIGN,
-		download: DEFAULT_DOWNLOAD,
-		language: getStudio().language || 'en'
+		...newGalleryValues()
 	};
 	db.insert(schema.galleries).values(values).run();
 	return db.select().from(schema.galleries).where(eq(schema.galleries.id, id)).get()!;

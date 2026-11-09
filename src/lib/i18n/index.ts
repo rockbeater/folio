@@ -6,7 +6,7 @@ export type MessageKey = keyof Messages;
 export type Params = Record<string, string | number>;
 export type Translate = (key: MessageKey, params?: Params) => string;
 
-const catalogs: Record<Language, Messages> = { en };
+const catalogs: Record<Language, Messages> = { en, da: en }; // da replaced below
 
 export function isLanguage(value: unknown): value is Language {
 	return typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value);

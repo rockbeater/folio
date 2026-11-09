@@ -10,6 +10,7 @@
 		size: GridSize;
 		spacing: GridSize;
 		favorites: Set<string>;
+		showFilenames?: boolean;
 		canFavorite: boolean;
 		canDownload: boolean;
 		onopen: (index: number) => void;
@@ -17,8 +18,19 @@
 		ondownload: (id: string) => void;
 	}
 
-	let { photos, gridStyle, size, spacing, favorites, canFavorite, canDownload, onopen, onfavorite, ondownload }: Props =
-		$props();
+	let {
+		photos,
+		gridStyle,
+		size,
+		spacing,
+		favorites,
+		showFilenames = false,
+		canFavorite,
+		canDownload,
+		onopen,
+		onfavorite,
+		ondownload
+	}: Props = $props();
 	const { t } = useI18n();
 
 	let width = $state(0);
@@ -74,6 +86,7 @@
 </script>
 
 {#snippet tile(photo: PhotoView, index: number, sizes: string)}
+	<div class="cell">
 	<figure class="tile" style:aspect-ratio="{photo.width} / {photo.height}" style:background-color={photo.color}>
 		<button type="button" class="open" onclick={() => onopen(index)} aria-label={photo.filename}>
 			<img
@@ -109,6 +122,8 @@
 			<span class="mark" aria-hidden="true"><Heart size={16} strokeWidth={1.5} fill="currentColor" /></span>
 		{/if}
 	</figure>
+	{#if showFilenames}<p class="caption">{photo.filename}</p>{/if}
+	</div>
 {/snippet}
 
 <div class="grid" bind:clientWidth={width} style:--gap="{gap}px">
@@ -270,6 +285,15 @@
 		.tile:focus-within .actions {
 			display: flex;
 		}
+	}
+
+	.caption {
+		margin: 4px 0 0;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.mark {
