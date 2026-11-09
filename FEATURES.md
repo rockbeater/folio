@@ -66,7 +66,7 @@ Vi bygger kun **galleri** og **butik**. Pixiesets Website, Studio Manager, Mobil
 - [ ] `MVP` **Cover:** flere cover-layouts med titel, dato, fotografens navn og en "Se galleri"-knap.
 - [ ] `MVP` **Grid-stil:** Vertikal (masonry i kolonner) og Horisontal (rækker med ens højde).
 - [ ] `v1` **Typografi:** kuraterede skrifttype-par til overskrift og brødtekst.
-- [ ] `v1` **Farve:** farvetemaer (fx lys, mørk og varm neutral) og accentfarve.
+- [ ] `v1` **Farve:** farvetemaerne Lys, Sand, Mørk og Sort samt en valgfri accentfarve.
 - [ ] `v1` **Thumbnail-størrelse:** Normal / Stor.
 - [ ] `v1` **Grid-afstand:** Normal / Stor.
 - [ ] `v1` **Navigationsstil:** Kun ikon / Ikon og tekst.
