@@ -6,3 +6,4 @@ dev-data
 .github
 *.md
 !README.md
+docker-compose.yml

@@ -1,0 +1,24 @@
+# Example Docker Compose setup for Folio.
+# Adjust the paths on the left of each volume to folders on your server.
+services:
+  folio:
+    image: ghcr.io/rockbeater/folio:latest
+    container_name: folio
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Public address of your galleries. Required behind a reverse proxy (HTTPS);
+      # used for links in emails.
+      - BASE_URL=https://gallery.example.com
+      # User and group that own your photo folder (run `id` on the host to find them).
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Copenhagen
+    volumes:
+      # Your photo library: one folder per gallery, one subfolder per section.
+      - /path/to/photos:/photos
+      # Database and settings. Back this up.
+      - ./folio-data:/data
+      # Generated thumbnails. Can be deleted at any time.
+      - ./folio-cache:/cache
