@@ -17,6 +17,21 @@ Folio består kun af **galleri** og **butik**. Pixiesets Website, Studio Manager
 | Price Sheet | Prisliste |
 | Homepage | Forside |
 
+### Plan for v1
+
+v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image. Næste fase startes først, når den forrige er godkendt.
+
+1. **Galleriet færdigt:** dansk sprog, aktivitet, download-PIN og e-mailkrav, skjulte billeder, massehandlinger, vandmærker, auto-udløb med påmindelse, slideshow, kampagnebanner, presets og de øvrige `v1`-punkter i afsnit 1–9, 19–21 der ikke hører til en senere fase.
+2. **Deling og adgang:** gæst- og kundeadgang, hurtige delingslinks, flere favoritlister med deling, favoritnoter og udvælgelsesgrænser samt forsiden.
+3. **Butikken:** produkter, prislister, kurv, Stripe Checkout, ordrer, kunder, moms, fragt, rabatkoder og butiksmails.
+4. **Resten:** tofaktorgodkendelse, GDPR, backup fra admin, søgemaskine-synlighed og skarphed.
+
+**Beslutninger:**
+
+- Digitale produkter, som kunden har købt, kan downloades, når fotografen har slået det til.
+- Stripe testes i fotografens egen installation. Under udviklingen simuleres Stripe (signerede test-hændelser) så langt som muligt.
+- Private billeder kommer aldrig med på delte favoritlister, og delte lister viser altid listens aktuelle indhold.
+
 ---
 
 ## 1. Admin: overblik
