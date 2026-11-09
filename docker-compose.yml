@@ -6,8 +6,10 @@ services:
     container_name: folio
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:${PORT:-8080}"
     environment:
+      # Port Folio listens on. Set PORT in a .env file next to this file to change it.
+      - PORT=${PORT:-8080}
       # Public address of your galleries. Uncomment when Folio runs behind a
       # reverse proxy with HTTPS; it is also used for links in emails.
       # - BASE_URL=https://gallery.example.com

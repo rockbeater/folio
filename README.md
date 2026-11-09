@@ -18,8 +18,10 @@ services:
     container_name: folio
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:${PORT:-8080}"
     environment:
+      # Port Folio listens on. Set PORT in a .env file next to this file to change it.
+      - PORT=${PORT:-8080}
       # Public address of your galleries. Uncomment when Folio runs behind a
       # reverse proxy with HTTPS; it is also used for links in emails.
       # - BASE_URL=https://gallery.example.com
@@ -46,6 +48,16 @@ docker compose up -d
 
 4. Open `http://<your-server>:8080` (or your `BASE_URL`) and create your admin account.
 
+### Changing the port
+
+Folio listens on port 8080 by default. To use another port, create a file called `.env` next to `docker-compose.yml`:
+
+```
+PORT=3000
+```
+
+Then run `docker compose up -d` again. The port is used both inside the container and on your server.
+
 The same file is in the repository as [docker-compose.yml](docker-compose.yml).
 
 ### Updating
@@ -64,7 +76,7 @@ Database changes are applied automatically when the new version starts.
 
 ```bash
 docker run -d --name folio -p 8080:8080 \
-  -e PUID=1000 -e PGID=1000 \
+  -e PORT=8080 -e PUID=1000 -e PGID=1000 \
   -v /path/to/photos:/photos \
   -v folio-data:/data \
   -v folio-cache:/cache \
@@ -99,6 +111,7 @@ New folders show up in the admin as drafts within a minute. Folio writes a small
 
 | Variable | Default | Description |
 |---|---|---|
+| `PORT` | `8080` | Port Folio listens on. |
 | `BASE_URL` | – | Public address, e.g. `https://gallery.example.com`. Required behind an HTTPS reverse proxy; used in email links. |
 | `PUID` / `PGID` | `1000` | User and group Folio runs as. Set them to the owner of your photo folder. |
 | `TZ` | `UTC` | Time zone. |

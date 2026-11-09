@@ -367,8 +367,8 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 
 ## 23. Drift: Docker, backup og opdateringer
 
-- [ ] `MVP` Officielt multi-arch Docker-image (`amd64` og `arm64`), der publiceres automatisk.
-- [x] `MVP` Volumes til `/photos`, `/data` og `/cache` samt `PUID`, `PGID` og `TZ`.
+- [x] `MVP` Officielt multi-arch Docker-image (`amd64` og `arm64`), der publiceres automatisk.
+- [x] `MVP` Volumes til `/photos`, `/data` og `/cache` samt `PUID`, `PGID`, `TZ` og `PORT`.
 - [x] `MVP` Konfiguration via miljøvariabler, fx `BASE_URL`.
 - [x] `MVP` Opsætningsguide første gang: opret admin, angiv studienavn og vælg sprog.
 - [x] `MVP` Healthcheck og logs til stdout.
