@@ -97,9 +97,10 @@ export function estimateBytes(items: DownloadItem[], variant: 'original' | Downl
 	if (variant === 'original') return items.reduce((sum, i) => sum + i.photo.size, 0);
 	const edge = Number(variant);
 	return items.reduce((sum, i) => {
+		// Scale the original file size by the reduction in pixels; re-encoding at
+		// quality 90 lands close to that for typical photos.
 		const long = Math.max(i.photo.width, i.photo.height) || edge;
 		const scale = Math.min(1, edge / long);
-		const pixels = i.photo.width * i.photo.height * scale * scale || edge * edge * 0.66;
-		return sum + pixels * 0.28; // ~0.28 bytes per pixel at JPEG q90
+		return sum + i.photo.size * scale * scale;
 	}, 0);
 }

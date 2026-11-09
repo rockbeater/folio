@@ -160,6 +160,7 @@ const en = {
 	'admin.editor.upload': 'Add photos',
 	'admin.editor.dropHere': 'Drop photos or folders here',
 	'admin.editor.dropHint': 'JPEG, PNG or WebP. A dropped folder becomes a new section.',
+	'admin.editor.defaultSection': 'Photos',
 	'admin.editor.uploading': 'Uploading {done} of {total}',
 	'admin.editor.uploadFailed': '{count} files could not be uploaded',
 	'admin.editor.sort': 'Sort',
@@ -248,6 +249,8 @@ const en = {
 	'admin.settings.favoritePhotosHint': 'Allow visitors to favorite photos. They are asked for their email the first time.',
 	'admin.settings.favoritesBy': 'Favorites',
 	'admin.settings.favoritesNone': 'No favorites yet.',
+	'admin.settings.copyFilenames': 'Copy filenames',
+	'admin.settings.filenamesCopied': 'Filenames copied. Paste them into the search of your photo editor.',
 
 	// Admin: email (share) tab
 	'admin.email.title': 'Send gallery by email',

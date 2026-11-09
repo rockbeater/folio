@@ -1,0 +1,383 @@
+/* Admin interface: calm tool UI with one accent color and soft corners (DESIGN.md §9). */
+.admin {
+	--accent: #2b4c7e;
+	--accent-hover: #23406b;
+	--accent-soft: #e8eef7;
+	--radius: 6px;
+	--admin-bg: #f7f7f5;
+	--panel: #ffffff;
+	--line: #e4e4e1;
+	--text: #1e1e1e;
+	--muted: #666666;
+	--danger: #a33a2c;
+	--danger-soft: #fbeeec;
+	--success: #2f6f4f;
+	--success-soft: #e9f4ee;
+	--warning: #8a5a00;
+	--warning-soft: #fdf4e3;
+
+	min-height: 100vh;
+	background: var(--admin-bg);
+	color: var(--text);
+	font-family: var(--sans);
+	font-size: 0.9375rem;
+}
+
+@media (prefers-color-scheme: dark) {
+	.admin {
+		--accent: #8fb0e3;
+		--accent-hover: #a9c3ec;
+		--accent-soft: #1d2735;
+		--admin-bg: #121212;
+		--panel: #1b1b1b;
+		--line: #2e2e2e;
+		--text: #f0f0f0;
+		--muted: #a3a3a3;
+		--danger: #e59587;
+		--danger-soft: #2e1c19;
+		--success: #8fc9a9;
+		--success-soft: #17271f;
+		--warning: #e6c07a;
+		--warning-soft: #2c2415;
+		color-scheme: dark;
+	}
+}
+
+.admin :focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.admin h1,
+.admin h2,
+.admin h3 {
+	margin: 0;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.admin .btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 40px;
+	padding: 0 16px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--panel);
+	color: var(--text);
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background-color var(--dur-micro) var(--ease-out),
+		border-color var(--dur-micro) var(--ease-out);
+}
+
+.admin .btn:hover {
+	border-color: var(--muted);
+}
+
+.admin .btn.primary {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+	.admin .btn.primary {
+		color: #121212;
+	}
+}
+
+.admin .btn.primary:hover {
+	background: var(--accent-hover);
+	border-color: var(--accent-hover);
+}
+
+.admin .btn.danger {
+	color: var(--danger);
+}
+
+.admin .btn.ghost {
+	border-color: transparent;
+	background: transparent;
+}
+
+.admin .btn.ghost:hover {
+	background: var(--line);
+}
+
+.admin .btn.small {
+	height: 32px;
+	padding: 0 10px;
+	font-size: 0.8125rem;
+}
+
+.admin .btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.admin .icon-btn {
+	display: inline-grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: inherit;
+}
+
+.admin .icon-btn:hover {
+	background: var(--line);
+}
+
+.admin .field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.admin .field > span:first-child,
+.admin .field-label {
+	font-weight: 600;
+	font-size: 0.875rem;
+}
+
+.admin .hint {
+	color: var(--muted);
+	font-size: 0.8125rem;
+	line-height: 1.45;
+	margin: 0;
+}
+
+.admin input[type='text'],
+.admin input[type='email'],
+.admin input[type='password'],
+.admin input[type='date'],
+.admin input[type='number'],
+.admin input[type='url'],
+.admin input[type='tel'],
+.admin select,
+.admin textarea {
+	width: 100%;
+	min-height: 40px;
+	padding: 8px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--panel);
+	color: var(--text);
+	font-size: 0.9375rem;
+}
+
+.admin textarea {
+	min-height: 160px;
+	resize: vertical;
+	line-height: 1.5;
+}
+
+.admin input:focus,
+.admin select:focus,
+.admin textarea:focus {
+	border-color: var(--accent);
+	outline: none;
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.admin .card {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+}
+
+.admin .badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 11px;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	background: var(--line);
+	color: var(--muted);
+}
+
+.admin .badge.published,
+.admin .badge.on,
+.admin .badge.sent {
+	background: var(--success-soft);
+	color: var(--success);
+}
+
+.admin .badge.draft,
+.admin .badge.queued {
+	background: var(--warning-soft);
+	color: var(--warning);
+}
+
+.admin .badge.failed,
+.admin .badge.missing {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.admin .alert {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 12px 14px;
+	border-radius: var(--radius);
+	background: var(--warning-soft);
+	color: var(--warning);
+	font-size: 0.875rem;
+	line-height: 1.45;
+}
+
+.admin .alert.error {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.admin .alert.info {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+.admin .alert p {
+	margin: 0;
+}
+
+.admin .error-text {
+	color: var(--danger);
+	font-size: 0.8125rem;
+	margin: 0;
+}
+
+/* Toggle switch built on a checkbox */
+.admin .switch {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+	font-size: 0.875rem;
+}
+
+.admin .switch input {
+	appearance: none;
+	position: relative;
+	width: 40px;
+	height: 24px;
+	margin: 0;
+	border-radius: 12px;
+	background: var(--line);
+	cursor: pointer;
+	transition: background-color var(--dur-ui) var(--ease-out);
+	flex-shrink: 0;
+}
+
+.admin .switch input::after {
+	content: '';
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #ffffff;
+	transition: transform var(--dur-ui) var(--ease-out);
+}
+
+.admin .switch input:checked {
+	background: var(--accent);
+}
+
+.admin .switch input:checked::after {
+	transform: translateX(16px);
+}
+
+.admin .segmented {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 8px;
+}
+
+.admin .choice {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 44px;
+	padding: 10px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--panel);
+	font-size: 0.8125rem;
+	text-align: center;
+	cursor: pointer;
+}
+
+.admin .choice:has(input:checked) {
+	border-color: var(--accent);
+	box-shadow: inset 0 0 0 1px var(--accent);
+	color: var(--accent);
+}
+
+.admin .choice:has(input:focus-visible) {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.admin .choice input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.admin .stack {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.admin .row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.admin .muted {
+	color: var(--muted);
+}
+
+/* Dialogs (Modal component) inside the admin use admin colors. */
+.admin dialog.modal {
+	background: var(--panel);
+	color: var(--text);
+	border-radius: 12px;
+	font-family: var(--sans);
+}
+
+.admin dialog.modal h2 {
+	font-family: var(--sans);
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+@media (max-width: 599px) {
+	.admin dialog.modal {
+		border-radius: 12px 12px 0 0;
+	}
+}

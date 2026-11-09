@@ -7,6 +7,10 @@ declare global {
 			/** Language of the page being rendered (sets <html lang>). */
 			lang: string;
 		}
+		interface PageState {
+			/** Photo open in the lightbox (shallow routing). */
+			photo?: string;
+		}
 	}
 }
 

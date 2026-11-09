@@ -1,0 +1,44 @@
+import crypto from 'node:crypto';
+import { error, json } from '@sveltejs/kit';
+import { and, eq } from 'drizzle-orm';
+import { setVisitorId } from '$lib/server/access';
+import { loadClientGallery } from '$lib/server/client';
+import { getDb, schema } from '$lib/server/db';
+import { rateLimit } from '$lib/server/ratelimit';
+import type { RequestHandler } from './$types';
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Identify a visitor by email so their favorites can be saved. */
+export const POST: RequestHandler = async ({ params, request, cookies, locals, url, getClientAddress }) => {
+	const { gallery, locked } = loadClientGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
+	if (locked) error(403);
+	if (!rateLimit(`visitor:${getClientAddress()}`, 30, 15 * 60 * 1000)) error(429);
+
+	const body = (await request.json().catch(() => ({}))) as { email?: unknown };
+	const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+	if (!EMAIL.test(email) || email.length > 254) error(400, 'invalid-email');
+
+	const db = getDb();
+	let visitor = db
+		.select()
+		.from(schema.visitors)
+		.where(and(eq(schema.visitors.galleryId, gallery.id), eq(schema.visitors.email, email)))
+		.get();
+	if (!visitor) {
+		const id = crypto.randomUUID();
+		db.insert(schema.visitors).values({ id, galleryId: gallery.id, email }).run();
+		visitor = db.select().from(schema.visitors).where(eq(schema.visitors.id, id)).get()!;
+	}
+	setVisitorId(cookies, url, gallery.id, visitor.id);
+	return json({ email, favorites: favoritesOf(visitor.id) });
+};
+
+function favoritesOf(visitorId: string): string[] {
+	return getDb()
+		.select({ photoId: schema.favorites.photoId })
+		.from(schema.favorites)
+		.where(eq(schema.favorites.visitorId, visitorId))
+		.all()
+		.map((f) => f.photoId);
+}
