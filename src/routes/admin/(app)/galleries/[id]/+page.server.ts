@@ -121,16 +121,16 @@ function activityFor(gallery: Gallery, sectionNames: Map<string, string>, photoN
 		.where(eq(schema.favoriteLists.galleryId, gallery.id))
 		.orderBy(asc(schema.favoriteLists.createdAt))
 		.all();
-	const items = new Map<string, { filename: string; note: string | null }[]>();
+	const items = new Map<string, { filename: string; note: string | null; photo: ReturnType<typeof toPhotoView> }[]>();
 	for (const row of db
-		.select({ listId: schema.favorites.listId, filename: schema.photos.filename, note: schema.favorites.note })
+		.select({ listId: schema.favorites.listId, photo: schema.photos, note: schema.favorites.note })
 		.from(schema.favorites)
 		.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
 		.innerJoin(schema.favoriteLists, eq(schema.favoriteLists.id, schema.favorites.listId))
 		.where(eq(schema.favoriteLists.galleryId, gallery.id))
 		.orderBy(asc(schema.favorites.createdAt))
 		.all()) {
-		items.set(row.listId, [...(items.get(row.listId) ?? []), { filename: row.filename, note: row.note }]);
+		items.set(row.listId, [...(items.get(row.listId) ?? []), { filename: row.photo.filename, note: row.note, photo: toPhotoView(row.photo) }]);
 	}
 	const presetNames = new Map(normalizeAccess(gallery.access).lists.map((p) => [p.id, p.name]));
 	const favoriteLists = lists

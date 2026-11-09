@@ -11,6 +11,7 @@
 	import Eye from '@lucide/svelte/icons/eye';
 	import X from '@lucide/svelte/icons/x';
 	import { SvelteSet } from 'svelte/reactivity';
+	import Download from '@lucide/svelte/icons/download';
 	import { callAction } from '$lib/admin-actions';
 	import ShareLinkDialog from './ShareLinkDialog.svelte';
 	import { uploadFile, type DuplicatePolicy } from '$lib/admin-upload';
@@ -411,6 +412,9 @@
 								title={photo.hidden ? t('admin.bulk.show') : t('admin.bulk.hide')}
 								aria-label={photo.hidden ? t('admin.bulk.show') : t('admin.bulk.hide')}
 								>{#if photo.hidden}<Eye size={16} />{:else}<EyeOff size={16} />{/if}</button
+							>
+							<a class="icon-btn" href="/admin/api/galleries/{gallery.id}/download?ids={photo.id}" download title={t('admin.lists.downloadOriginal')} aria-label={t('admin.lists.downloadOriginal')}
+								><Download size={16} /></a
 							>
 							<button type="button" class="icon-btn" onclick={() => remove(photo.id)} title={t('admin.editor.deletePhoto')} aria-label={t('admin.editor.deletePhoto')}
 								><Trash size={16} /></button

@@ -115,6 +115,7 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og familie) bruger det almindelige galleri-link og eventuelt galleri-adgangskoden. **Kunden** (fx brudeparret) logger ind med en separat kundeadgangskode og ser mere end gæsterne.
 
 - [x] `v1` Kundeadgang til/fra per galleri.
+- [x] `v1` Indgangsskærm over coverbilledet, når kundeadgang er slået til: "Fortsæt som gæst" eller "Fortsæt som kunde". Kunden kan logge ind direkte fra galleri-linket.
 - [x] `v1` Kundeadgangskode med en "Generer"-knap, adskilt fra galleri-adgangskoden. Er der også en galleri-adgangskode, skal gæster stadig bruge den.
 - [x] `v1` Sektioner kun for kunden: fotografen vælger sektioner, som kun kunden kan se, fx "Forberedelser".
 - [x] `v1` Kunden kan markere enkelte billeder som private. De skjules for gæster, men er stadig synlige for kunden med et låse-ikon. Kunden kan fjerne markeringen igen.
@@ -142,6 +143,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` Eksport af en favoritliste som filnavne, klar til at indsætte i en søgning i Lightroom, eller som CSV.
 - [x] `v1` Flere favoritlister: kunden kan oprette flere lister med eget navn, fx "Til væggen" eller "Til farmor". Listerne gemmes under kundens e-mail, så de er der igen ved næste besøg.
 - [x] `v1` "Send til fotografen": kunden markerer en liste som færdig, og fotografen får besked.
+- [x] `v1` Favoritter hører til e-mailen, så de findes igen ved næste besøg. Med én liste tilføjer hjertet direkte; med flere lister spørger hjertet, hvilken liste billedet skal på.
 
 **Deling af favoritlister:**
 

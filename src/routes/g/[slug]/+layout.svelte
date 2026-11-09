@@ -9,11 +9,13 @@
 	import EmailDialog from '$lib/components/client/EmailDialog.svelte';
 	import ClientLoginDialog from '$lib/components/client/ClientLoginDialog.svelte';
 	import BuyDialog from '$lib/components/client/BuyDialog.svelte';
+	import ListPicker from '$lib/components/client/ListPicker.svelte';
 	import ExpiredPage from '$lib/components/client/ExpiredPage.svelte';
 	import GalleryAssist from '$lib/components/client/GalleryAssist.svelte';
 	import GalleryHeader from '$lib/components/client/GalleryHeader.svelte';
 	import OwnerBar from '$lib/components/client/OwnerBar.svelte';
 	import PasswordGate from '$lib/components/client/PasswordGate.svelte';
+	import AccessGate from '$lib/components/client/AccessGate.svelte';
 	import RegisterGate from '$lib/components/client/RegisterGate.svelte';
 	import { GalleryState, setGalleryState } from '$lib/components/client/gallery-state.svelte';
 
@@ -36,6 +38,11 @@
 		gallery.cartCount = data.store?.cartCount ?? 0;
 	});
 	let clientDialog = $state(false);
+
+	async function backToSelection() {
+		await fetch(`/g/${data.gallery.slug}/api/access`, { method: 'DELETE' }).catch(() => null);
+		await invalidateAll();
+	}
 
 	async function clientLogout() {
 		await fetch(`/g/${data.gallery.slug}/api/client`, { method: 'DELETE' }).catch(() => null);
@@ -91,14 +98,17 @@
 			placeholder={data.lockedCover?.placeholder ?? null}
 			color={data.lockedCover?.color ?? null}
 		/>
+	{:else if data.state === 'choose'}
+		<AccessGate slug={data.gallery.slug} name={data.gallery.name} subtitle={data.studio.name || null} cover={data.gateCover} />
 	{:else if data.state === 'locked'}
 		<PasswordGate
 			slug={data.gallery.slug}
 			name={data.gallery.name}
-			placeholder={data.lockedCover?.placeholder ?? null}
-			color={data.lockedCover?.color ?? null}
+			subtitle={data.studio.name || null}
+			cover={data.gateCover}
 			error={page.url.searchParams.get('error') === 'tooMany' ? 'tooMany' : page.url.searchParams.get('error') ? 'wrong' : null}
 			redirectTo={page.url.pathname}
+			onback={data.gallery.clientLogin ? backToSelection : null}
 		/>
 	{:else if data.state === 'register'}
 		<RegisterGate
@@ -168,6 +178,9 @@
 		{/if}
 		{#if gallery.emailPrompt}
 			<EmailDialog />
+		{/if}
+		{#if gallery.picking}
+			<ListPicker />
 		{/if}
 		{#if gallery.buy && data.store}
 			<BuyDialog products={data.store.products} currency={data.store.currency} />

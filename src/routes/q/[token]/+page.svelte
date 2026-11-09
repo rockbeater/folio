@@ -14,7 +14,7 @@
 	provideI18n(i18n);
 	// svelte-ignore state_referenced_locally
 	const gs = setGalleryState(
-		new GalleryState({ slug: data.gallery.slug, visitor: { email: null, favorites: [], lists: [], activeListId: null }, t: i18n.t })
+		new GalleryState({ slug: data.gallery.slug, visitor: { email: null, favorites: [], memberships: {}, lists: [], activeListId: null }, t: i18n.t })
 	);
 	const download = $derived(data.download);
 </script>
@@ -31,8 +31,7 @@
 		<PasswordGate
 			slug={data.gallery.slug}
 			name={data.name}
-			placeholder={null}
-			color={null}
+			subtitle={data.studio.name || null}
 			error={form?.error ?? null}
 			redirectTo={page.url.pathname}
 			action={page.url.pathname}

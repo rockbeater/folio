@@ -1,6 +1,4 @@
-import { eq } from 'drizzle-orm';
-import { bannerFor, galleryShell, loadClientGallery, recordActivity, studioForClients, type VisitorInfo } from '$lib/server/client';
-import { getDb, schema } from '$lib/server/db';
+import { bannerFor, galleryShell, gateCover, loadClientGallery, recordActivity, studioForClients, type VisitorInfo } from '$lib/server/client';
 import { publicGallery } from '$lib/server/galleries';
 import { getCart, priceCart, storeContext } from '$lib/server/store/cart';
 import type { LayoutServerLoad } from './$types';
@@ -12,27 +10,22 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 	const studio = studioForClients();
 
 	if (state !== 'open') {
-		// Before the gallery opens, only a tiny blurred placeholder of the cover is shown.
-		const cover = gallery.coverPhotoId
-			? getDb()
-					.select({ placeholder: schema.photos.placeholder, color: schema.photos.color })
-					.from(schema.photos)
-					.where(eq(schema.photos.id, gallery.coverPhotoId))
-					.get()
-			: undefined;
+		// The entry screens show the cover photo; nothing else of the gallery is sent.
+		const cover = state === 'expired' ? null : gateCover(gallery);
 		return {
 			state,
 			gallery: publicGallery(gallery),
 			studio,
 			sections: [],
 			cover: null,
-			visitor: { id: null, email: null, favorites: [], lists: [], activeListId: null } as VisitorInfo,
+			visitor: { id: null, email: null, favorites: [], memberships: {}, lists: [], activeListId: null } as VisitorInfo,
 			isAdmin: false,
 			isPreview: false,
 			pending: 0,
 			totalPhotos: 0,
 			banner: null,
 			store: null,
+			gateCover: cover,
 			lockedCover: { placeholder: cover?.placeholder ?? null, color: cover?.color ?? null }
 		};
 	}
@@ -56,5 +49,5 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 			}
 		: null;
 
-	return { state, ...shell, studio, banner: bannerFor(gallery, Boolean(ctx)), store, lockedCover: null };
+	return { state, ...shell, studio, banner: bannerFor(gallery, Boolean(ctx)), store, gateCover: null, lockedCover: null };
 };

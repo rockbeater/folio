@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import GalleryView from '$lib/components/client/GalleryView.svelte';
 	import ListBar from '$lib/components/client/ListBar.svelte';
 	import { getGalleryState } from '$lib/components/client/gallery-state.svelte';
@@ -19,6 +20,11 @@
 		notes = { ...data.notes };
 	});
 
+	/** Visitors who saved favorites before (e.g. on another device) get them back with their email. */
+	async function findFavorites() {
+		if (await gallery.ensureVisitor()) await invalidateAll();
+	}
+
 	async function saveNote(photoId: string) {
 		const ok = await gallery.listAction({ action: 'note', listId: gallery.activeListId, photoId, note: notes[photoId] ?? '' });
 		if (ok) toast(t('client.notes.saved'));
@@ -27,6 +33,12 @@
 
 {#if data.state === 'open'}
 	<h1 class="title label">{t('client.favoritesTitle')}</h1>
+	{#if !gallery.email && data.gallery.favoritesEnabled}
+		<div class="returning">
+			<p>{t('client.lists.returning')}</p>
+			<button class="c-btn" type="button" onclick={findFavorites}>{t('client.lists.findMine')}</button>
+		</div>
+	{/if}
 	{#if gallery.email}
 		<ListBar
 			canShare={data.gallery.listSharing}
@@ -77,6 +89,21 @@
 <style>
 	.title {
 		margin: var(--space-3) 0 0;
+		color: var(--color-text-muted);
+	}
+
+	.returning {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3) var(--space-4);
+		margin: var(--space-4) 0;
+		padding: var(--space-4);
+		background: var(--color-surface);
+	}
+
+	.returning p {
+		margin: 0;
 		color: var(--color-text-muted);
 	}
 

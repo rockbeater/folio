@@ -10,13 +10,13 @@ import {
 	type DownloadItem
 } from '$lib/server/download';
 import { getPhotosBySection, getSections } from '$lib/server/galleries';
-import { countShare, listPhotoIds } from '$lib/server/lists';
+import { countShare, getList, listPhotoIds } from '$lib/server/lists';
 import { getWatermark } from '$lib/server/watermarks';
 import { effectiveDownload, normalizeAccess, normalizeDownload, type DownloadChoice } from '$lib/types';
 import type { RequestHandler } from './$types';
 
 /**
- * GET /g/<slug>/download?scope=all|section|favorites|photo&size=highres|web[&section=][&photo=][&part=][&share=]
+ * GET /g/<slug>/download?scope=all|section|favorites|list|photo&size=highres|web[&section=][&photo=][&part=][&share=]
  * With `info=1` it returns counts, estimated sizes and what the visitor still needs (PIN, email).
  * With `share=<token>` (a shared favorite list) only that list's photos can be downloaded, as a guest.
  */
@@ -56,6 +56,12 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 	} else if (scope === 'favorites') {
 		const favorites = new Set(visitor.favorites);
 		items = available.filter((i) => favorites.has(i.photo.id));
+		suffix = '-favorites';
+	} else if (scope === 'list') {
+		const own = visitor.id ? getList(visitor.id, url.searchParams.get('list') ?? '') : undefined;
+		if (!own) error(404);
+		const ids = new Set(listPhotoIds(own.id));
+		items = available.filter((i) => ids.has(i.photo.id));
 		suffix = '-favorites';
 	} else {
 		items = available;

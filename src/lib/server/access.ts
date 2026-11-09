@@ -146,3 +146,20 @@ export function isLinkUnlocked(cookies: Cookies, link: Pick<ShareLink, 'id' | 'p
 export function unlockLink(cookies: Cookies, url: URL, link: Pick<ShareLink, 'id' | 'password'>): void {
 	cookies.set(linkCookie(link.id), sign(`link:${link.id}:${link.password ?? ''}`), cookieOptions(url));
 }
+
+function guestChoiceCookie(galleryId: string): string {
+	return `fa_${galleryId}`;
+}
+
+/** With client access on, visitors first choose "guest" or "client"; this remembers "guest". */
+export function hasChosenGuest(cookies: Cookies, galleryId: string): boolean {
+	return cookies.get(guestChoiceCookie(galleryId)) === '1';
+}
+
+export function chooseGuest(cookies: Cookies, url: URL, galleryId: string): void {
+	cookies.set(guestChoiceCookie(galleryId), '1', cookieOptions(url));
+}
+
+export function clearGuestChoice(cookies: Cookies, galleryId: string): void {
+	cookies.delete(guestChoiceCookie(galleryId), { path: '/' });
+}

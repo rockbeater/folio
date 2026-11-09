@@ -476,6 +476,28 @@ export function printZip(order: Order): Response | null {
 	});
 }
 
+/** One order line's photo for the lab: the original, or a JPEG with the buyer's crop applied. */
+export async function printFile(order: Order, itemId: string): Promise<Response | null> {
+	const item = orderItems(order.id).find((i) => i.id === itemId);
+	const gallery = order.galleryId ? getGalleryById(order.galleryId) : undefined;
+	if (!item?.photoId || !gallery) return null;
+	const photo = [...getPhotosBySection(gallery.id).values()].flat().find((p) => p.id === item.photoId);
+	const section = photo ? getSections(gallery.id).find((s) => s.id === photo.sectionId) : undefined;
+	if (!photo || !section) return null;
+	const file = originalFile(gallery.folder, section.folder, photo.filename);
+	const ext = path.extname(photo.filename) || '.jpg';
+	const base = safe([`order-${order.number}`, item.productName, item.variantLabel, `${item.quantity}x`, photo.filename.slice(0, photo.filename.length - ext.length)].filter(Boolean).join('-'));
+	const data = item.crop ? await cropped(file, item.crop) : await fs.promises.readFile(file);
+	const name = `${base}${item.crop ? '.jpg' : ext}`;
+	return new Response(new Uint8Array(data), {
+		headers: {
+			'content-type': item.crop || /\.jpe?g$/i.test(ext) ? 'image/jpeg' : 'application/octet-stream',
+			'content-disposition': `attachment; filename="${name.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '')}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+			'cache-control': 'private, no-store'
+		}
+	});
+}
+
 async function cropped(file: string, crop: Crop): Promise<Buffer> {
 	const image = sharp(file).rotate();
 	const { data, info } = await image.toBuffer({ resolveWithObject: true });

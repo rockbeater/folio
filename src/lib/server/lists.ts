@@ -176,3 +176,24 @@ export function countShare(listId: string, field: 'shareViews' | 'shareDownloads
 		.where(eq(schema.favoriteLists.id, listId))
 		.run();
 }
+
+/** For every photo in any of the visitor's lists: the lists it is in. */
+export function memberships(visitorId: string): Record<string, string[]> {
+	const out: Record<string, string[]> = {};
+	for (const f of getDb()
+		.select({ listId: schema.favorites.listId, photoId: schema.favorites.photoId })
+		.from(schema.favorites)
+		.where(eq(schema.favorites.visitorId, visitorId))
+		.all()) {
+		(out[f.photoId] ??= []).push(f.listId);
+	}
+	return out;
+}
+
+/** Remove a photo from all of the visitor's lists. */
+export function removeEverywhere(visitorId: string, photoId: string): void {
+	getDb()
+		.delete(schema.favorites)
+		.where(and(eq(schema.favorites.visitorId, visitorId), eq(schema.favorites.photoId, photoId)))
+		.run();
+}

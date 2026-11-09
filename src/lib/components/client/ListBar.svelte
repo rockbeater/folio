@@ -94,7 +94,7 @@
 				</button>
 			{/if}
 			{#if canDownload && active.count > 0}
-				<button class="c-btn small" type="button" onclick={() => (gs.download = { scope: 'favorites' })}>{t('client.download')}</button>
+				<button class="c-btn small" type="button" onclick={() => (gs.download = { scope: 'list', listId: active.id })}>{t('client.download')}</button>
 			{/if}
 			{#if own}
 				<button class="c-btn small ghost" type="button" onclick={() => (naming = { mode: 'rename', value: active.name })}>{t('common.rename')}</button>

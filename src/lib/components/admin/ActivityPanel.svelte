@@ -5,6 +5,8 @@
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import ShareLinkDialog from './ShareLinkDialog.svelte';
 	import { formatMoney } from '$lib/store';
+	import { displayUrl, type PhotoView } from '$lib/types';
+	import Download from '@lucide/svelte/icons/download';
 	import { toast } from '$lib/toast.svelte';
 
 	interface Activity {
@@ -18,7 +20,7 @@
 			email: string;
 			name: string;
 			submittedAt: number | null;
-			items: { filename: string; note: string | null }[];
+			items: { filename: string; note: string | null; photo: PhotoView }[];
 			share: { token: string; private: boolean; views: number; downloads: number } | null;
 		}[];
 		privatePhotos: { id: string; filename: string; section: string }[];
@@ -41,7 +43,9 @@
 		orders: { id: string; number: number; status: string; name: string; total: number; currency: string; createdAt: number }[];
 	}
 
-	let { activity, galleryName, baseUrl, store }: { activity: Activity; galleryName: string; baseUrl: string; store: StoreOrders } = $props();
+	let { activity, galleryName, galleryId, baseUrl, store }: { activity: Activity; galleryName: string; galleryId: string; baseUrl: string; store: StoreOrders } = $props();
+	let openList = $state<string | null>(null);
+	const originals = (ids: string[], name = '') => `/admin/api/galleries/${galleryId}/download?ids=${ids.join(',')}${name ? `&name=${encodeURIComponent(name)}` : ''}`;
 	let editing = $state<Activity['shareLinks'][number] | null>(null);
 	const today = new Date().toLocaleDateString('sv-SE');
 
@@ -130,15 +134,25 @@
 								>
 							</div>
 						</div>
-						{#if list.items.some((i) => i.note)}
-							<details>
-								<summary class="hint">{t('admin.lists.notes', { count: list.items.filter((i) => i.note).length })}</summary>
-								<ul class="notes">
-									{#each list.items.filter((i) => i.note) as item (item.filename)}
-										<li><strong>{item.filename}</strong> {item.note}</li>
-									{/each}
-								</ul>
-							</details>
+						{#if list.items.length > 0}
+							<div class="row">
+								<button class="btn small ghost" type="button" onclick={() => (openList = openList === list.id ? null : list.id)} aria-expanded={openList === list.id}>
+									{openList === list.id ? t('admin.lists.hidePhotos') : t('admin.lists.showPhotos')}
+								</button>
+								<a class="btn small ghost" href={originals(list.items.map((i) => i.photo.id), `${listName}-${list.email}`)}><Download size={14} />{t('admin.more.downloadOriginals')}</a>
+							</div>
+						{/if}
+						{#if openList === list.id}
+							<ul class="liked">
+								{#each list.items as item (item.photo.id)}
+									<li>
+										<img src={displayUrl(item.photo, 480)} alt={item.filename} loading="lazy" style:background-color={item.photo.color} />
+										<a class="dl" href={originals([item.photo.id])} title={t('admin.lists.downloadOriginal')} aria-label={t('admin.lists.downloadOriginal')}><Download size={14} /></a>
+										<span class="file">{item.filename}</span>
+										{#if item.note}<span class="note">{item.note}</span>{/if}
+									</li>
+								{/each}
+							</ul>
 						{/if}
 					</li>
 				{/each}
@@ -397,13 +411,51 @@
 		flex-wrap: wrap;
 	}
 
-	.notes {
-		margin: 8px 0 0;
-		padding-left: 18px;
-		font-size: 0.875rem;
+
+
+	.liked {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+		gap: 12px;
+		margin: 6px 0 0;
+		padding: 0;
+		list-style: none;
 	}
 
-	summary {
-		cursor: pointer;
+	.liked li {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.liked img {
+		width: 100%;
+		aspect-ratio: 1;
+		object-fit: cover;
+		border-radius: 4px;
+	}
+
+	.liked .dl {
+		position: absolute;
+		top: 6px;
+		right: 6px;
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: rgba(255, 255, 255, 0.92);
+		color: #1e1e1e;
+	}
+
+	.liked .file {
+		font-size: 0.8125rem;
+		word-break: break-all;
+	}
+
+	.liked .note {
+		font-size: 0.8125rem;
+		color: var(--muted);
 	}
 </style>

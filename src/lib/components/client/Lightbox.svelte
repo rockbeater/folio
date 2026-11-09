@@ -7,9 +7,8 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
-	import Lock from '@lucide/svelte/icons/lock';
-	import LockOpen from '@lucide/svelte/icons/lock-open';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, DISPLAY_WIDTHS, type PhotoView } from '$lib/types';
 
@@ -255,16 +254,6 @@
 				{#if showFilenames}<span class="filename">{photo.filename}</span>{/if}
 			</span>
 			<div class="top-actions">
-				{#if canSlideshow}
-					<button
-						type="button"
-						class="icon"
-						onclick={() => (playing = !playing)}
-						aria-label={playing ? t('client.slideshow.pause') : t('client.slideshow.play')}
-					>
-						{#if playing}<Pause size={22} strokeWidth={1.5} />{:else}<Play size={22} strokeWidth={1.5} />{/if}
-					</button>
-				{/if}
 				{#if canFavorite}
 					<button
 						type="button"
@@ -272,13 +261,14 @@
 						onclick={() => onfavorite(photo.id)}
 						aria-label={favorites.has(photo.id) ? t('client.removeFavorite') : t('client.addFavorite')}
 						aria-pressed={favorites.has(photo.id)}
+						data-tip={favorites.has(photo.id) ? t('client.removeFavorite') : t('client.addFavorite')}
 					>
 						<Heart size={22} strokeWidth={1.5} fill={favorites.has(photo.id) ? 'currentColor' : 'none'} />
 					</button>
 				{/if}
-				{#if canBuy}
-					<button type="button" class="icon" onclick={() => onbuy(photo.id)} aria-label={t('store.buy')} title={t('store.buy')}>
-						<ShoppingBag size={22} strokeWidth={1.5} />
+				{#if canDownload}
+					<button type="button" class="icon" onclick={() => ondownload(photo.id)} aria-label={t('client.downloadPhoto')} data-tip={t('client.downloadPhoto')}>
+						<Download size={22} strokeWidth={1.5} />
 					</button>
 				{/if}
 				{#if canMarkPrivate}
@@ -286,17 +276,29 @@
 					<button
 						type="button"
 						class="icon"
+						class:on={priv}
 						onclick={() => onprivate(photo.id, !priv)}
 						aria-label={priv ? t('client.private.unmark') : t('client.private.mark')}
 						aria-pressed={priv}
-						title={priv ? t('client.private.unmark') : t('client.private.mark')}
+						data-tip={priv ? t('client.private.unmark') : t('client.private.mark')}
 					>
-						{#if priv}<Lock size={22} strokeWidth={1.5} />{:else}<LockOpen size={22} strokeWidth={1.5} />{/if}
+						<EyeOff size={22} strokeWidth={priv ? 2.25 : 1.5} />
 					</button>
 				{/if}
-				{#if canDownload}
-					<button type="button" class="icon" onclick={() => ondownload(photo.id)} aria-label={t('client.downloadPhoto')}>
-						<Download size={22} strokeWidth={1.5} />
+				{#if canSlideshow}
+					<button
+						type="button"
+						class="icon"
+						onclick={() => (playing = !playing)}
+						aria-label={playing ? t('client.slideshow.pause') : t('client.slideshow.play')}
+						data-tip={playing ? t('client.slideshow.pause') : t('client.slideshow.play')}
+					>
+						{#if playing}<Pause size={22} strokeWidth={1.5} />{:else}<Play size={22} strokeWidth={1.5} />{/if}
+					</button>
+				{/if}
+				{#if canBuy}
+					<button type="button" class="buy label" onclick={() => onbuy(photo.id)}>
+						<ShoppingCart size={20} strokeWidth={1.5} />{t('store.buyPhoto')}
 					</button>
 				{/if}
 			</div>
@@ -397,12 +399,48 @@
 	}
 
 	.icon {
+		position: relative;
 		display: grid;
 		place-items: center;
 		width: 44px;
 		height: 44px;
 		border: 0;
 		background: none;
+	}
+
+	.icon.on {
+		color: var(--color-danger);
+	}
+
+	/* Small tooltip under the toolbar icons (pointer devices only). */
+	@media (hover: hover) {
+		.icon[data-tip]:hover::after {
+			content: attr(data-tip);
+			position: absolute;
+			top: calc(100% + 8px);
+			left: 50%;
+			z-index: 2;
+			transform: translateX(-50%);
+			padding: 6px 10px;
+			border-radius: 4px;
+			background: #2e2e30;
+			color: #fff;
+			font-size: 0.8125rem;
+			white-space: nowrap;
+			pointer-events: none;
+		}
+	}
+
+	.buy {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		height: 44px;
+		margin-left: var(--space-3);
+		padding: 0 var(--space-4);
+		border: 0;
+		background: var(--color-text);
+		color: var(--color-bg);
 	}
 
 	.stage {

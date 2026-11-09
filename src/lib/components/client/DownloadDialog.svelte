@@ -27,6 +27,7 @@
 	const sectionAllowed = $derived(!settings.sections || (request.sectionId ? settings.sections.includes(request.sectionId) : false));
 	const scopes = $derived.by(() => {
 		const list: DownloadScope[] = [];
+		if (request.scope === 'list') return ['list'] as DownloadScope[];
 		if (request.photoId && settings.single) list.push('photo');
 		list.push('all');
 		if (request.sectionId && sectionCount > 1 && sectionAllowed) list.push('section');
@@ -58,6 +59,7 @@
 		if (gs.share) params.set('share', gs.share);
 		if (scope === 'section' && request.sectionId) params.set('section', request.sectionId);
 		if (scope === 'photo' && request.photoId) params.set('photo', request.photoId);
+		if (scope === 'list' && request.listId) params.set('list', request.listId);
 		return params.toString();
 	}
 
@@ -152,6 +154,7 @@
 		all: t('client.dl.all'),
 		section: t('client.dl.section'),
 		favorites: t('client.dl.favorites'),
+		list: t('client.dl.list'),
 		photo: t('client.dl.photo')
 	};
 </script>

@@ -19,7 +19,7 @@
 		new GalleryState({
 			slug: data.gallery.slug,
 			share: data.token,
-			visitor: { email: null, favorites: [], lists: [], activeListId: null },
+			visitor: { email: null, favorites: [], memberships: {}, lists: [], activeListId: null },
 			t
 		})
 	);
@@ -37,8 +37,7 @@
 		<PasswordGate
 			slug={data.gallery.slug}
 			name={data.gallery.name}
-			placeholder={null}
-			color={null}
+			subtitle={data.studio.name || null}
 			error={page.url.searchParams.get('error') === 'tooMany' ? 'tooMany' : page.url.searchParams.get('error') ? 'wrong' : null}
 			redirectTo={page.url.pathname}
 		/>

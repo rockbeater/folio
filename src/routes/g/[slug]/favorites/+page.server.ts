@@ -1,5 +1,5 @@
 import { loadClientGallery, photosInOrder, visitorInfo } from '$lib/server/client';
-import { listNotes } from '$lib/server/lists';
+import { listNotes, listPhotoIds } from '$lib/server/lists';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, cookies, locals }) => {
@@ -7,7 +7,7 @@ export const load: PageServerLoad = ({ params, cookies, locals }) => {
 	if (state !== 'open') return { photos: [], notes: {} as Record<string, string> };
 	const visitor = visitorInfo(cookies, gallery);
 	return {
-		photos: photosInOrder(gallery, visitor.favorites, role),
+		photos: visitor.activeListId ? photosInOrder(gallery, listPhotoIds(visitor.activeListId), role) : [],
 		notes: visitor.activeListId ? listNotes(visitor.activeListId) : {}
 	};
 };

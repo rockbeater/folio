@@ -2,8 +2,8 @@
 	import Heart from '@lucide/svelte/icons/heart';
 	import Download from '@lucide/svelte/icons/download';
 	import Check from '@lucide/svelte/icons/check';
-	import Lock from '@lucide/svelte/icons/lock';
-	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, type GridSize, type GridStyle, type PhotoView } from '$lib/types';
 
@@ -26,6 +26,9 @@
 		onselect?: (id: string) => void;
 		canBuy?: boolean;
 		onbuy?: (id: string) => void;
+		/** The client may hide photos from guests. */
+		canMarkPrivate?: boolean;
+		onprivate?: (id: string, value: boolean) => void;
 	}
 
 	let {
@@ -44,7 +47,9 @@
 		selection = null,
 		onselect = () => undefined,
 		canBuy = false,
-		onbuy = () => undefined
+		onbuy = () => undefined,
+		canMarkPrivate = false,
+		onprivate = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -127,11 +132,12 @@
 		</button>
 		{#if selection}
 			<span class="check" aria-hidden="true">{#if selection.has(photo.id)}<Check size={16} strokeWidth={2.5} />{/if}</span>
-		{:else if canFavorite || canDownload || canBuy}
+		{:else if canFavorite || canDownload || canBuy || canMarkPrivate}
+			{@const priv = isPrivate(photo)}
 			<div class="actions">
 				{#if canBuy}
-					<button type="button" onclick={() => onbuy(photo.id)} aria-label={t('store.buy')}>
-						<ShoppingBag size={20} strokeWidth={1.5} />
+					<button type="button" onclick={() => onbuy(photo.id)} aria-label={t('store.buy')} title={t('store.buy')}>
+						<ShoppingCart size={20} strokeWidth={1.5} />
 					</button>
 				{/if}
 				{#if canFavorite}
@@ -145,14 +151,25 @@
 					</button>
 				{/if}
 				{#if canDownload}
-					<button type="button" onclick={() => ondownload(photo.id)} aria-label={t('client.downloadPhoto')}>
+					<button type="button" onclick={() => ondownload(photo.id)} aria-label={t('client.downloadPhoto')} title={t('client.downloadPhoto')}>
 						<Download size={20} strokeWidth={1.5} />
+					</button>
+				{/if}
+				{#if canMarkPrivate}
+					<button
+						type="button"
+						onclick={() => onprivate(photo.id, !priv)}
+						aria-label={priv ? t('client.private.unmark') : t('client.private.mark')}
+						aria-pressed={priv}
+						title={priv ? t('client.private.unmark') : t('client.private.mark')}
+					>
+						<EyeOff size={20} strokeWidth={priv ? 2.25 : 1.5} />
 					</button>
 				{/if}
 			</div>
 		{/if}
 		{#if isPrivate(photo)}
-			<span class="lock" title={t('client.private.badge')}><Lock size={14} strokeWidth={2} /><span class="visually-hidden">{t('client.private.badge')}</span></span>
+			<span class="lock" title={t('client.private.badge')}><EyeOff size={14} strokeWidth={2} /><span class="visually-hidden">{t('client.private.badge')}</span></span>
 		{/if}
 		{#if favorites.has(photo.id)}
 			<span class="mark" aria-hidden="true"><Heart size={16} strokeWidth={1.5} fill="currentColor" /></span>

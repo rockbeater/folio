@@ -91,7 +91,7 @@
 				store={data.store}
 			/>
 		{:else if tab === 'activity'}
-			<ActivityPanel baseUrl={data.baseUrl} store={data.store} activity={data.activity} galleryName={data.gallery.slug} />
+			<ActivityPanel baseUrl={data.baseUrl} store={data.store} galleryId={data.gallery.id} activity={data.activity} galleryName={data.gallery.slug} />
 		{:else}
 			<EmailPanel
 				gallery={data.gallery}

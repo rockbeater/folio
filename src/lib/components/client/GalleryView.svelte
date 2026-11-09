@@ -83,6 +83,8 @@
 	onselect={toggleSelect}
 	canBuy={gs.canBuy}
 	onbuy={buy}
+	canMarkPrivate={gs.canMarkPrivate}
+	onprivate={(id, value) => gs.setPrivate([id], value)}
 />
 
 {#if gs.selecting}

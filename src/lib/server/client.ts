@@ -2,11 +2,22 @@ import crypto from 'node:crypto';
 import type { Cookies } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
-import { getShareGrants, getVisitorId, isClient, isExpired, isLinkUnlocked, isPubliclyVisible, isUnlocked, today } from './access';
+import {
+	clientPasswordOf,
+	getShareGrants,
+	getVisitorId,
+	hasChosenGuest,
+	isClient,
+	isExpired,
+	isLinkUnlocked,
+	isPubliclyVisible,
+	isUnlocked,
+	today
+} from './access';
 import { getDb, schema } from './db';
 import type { ActivityDetail, ActivityKind, FavoriteList, Gallery, Photo } from './db/schema';
 import { getGalleryBySlug, getPhotosBySection, getSections, publicGallery, toPhotoView, toSectionView } from './galleries';
-import { activeListId, getListByToken, listPhotoIds, listViews } from './lists';
+import { activeListId, getListByToken, listViews, memberships } from './lists';
 import { getPreferences, getStudio } from './settings';
 import { isLinkOpen } from './shares';
 import { bannerCoupon } from './store/catalog';
@@ -23,11 +34,12 @@ export { isExpired, today };
 /**
  * What a visitor gets to see:
  * - `expired`: the gallery passed its expiry date
+ * - `choose`: client access is on, and the visitor picks "guest" or "client" first
  * - `locked`: the gallery password is needed
  * - `register`: the visitor must enter an email first
  * - `open`: the gallery itself
  */
-export type ClientState = 'expired' | 'locked' | 'register' | 'open';
+export type ClientState = 'expired' | 'choose' | 'locked' | 'register' | 'open';
 
 export function roleFor(gallery: Gallery, cookies: Cookies, isAdmin: boolean): Role {
 	if (isAdmin) return 'owner';
@@ -42,6 +54,7 @@ export function loadClientGallery(slug: string, { cookies, isAdmin }: ViewerCont
 	if (isAdmin) return { gallery, state: 'open', role };
 	if (gallery.status !== 'published' || gallery.missing) error(404, 'not-found');
 	if (isExpired(gallery)) return { gallery, state: 'expired', role };
+	if (role !== 'client' && clientPasswordOf(gallery) && !hasChosenGuest(cookies, gallery.id)) return { gallery, state: 'choose', role };
 	// A logged-in client has entered the client password, which also opens the gallery.
 	if (role !== 'client' && !isUnlocked(cookies, gallery)) return { gallery, state: 'locked', role };
 	if (normalizeOptions(gallery.options).emailRegistration && !getVisitorId(cookies, gallery.id)) {
@@ -96,13 +109,16 @@ export function photoFilter(gallery: Pick<Gallery, 'access'>, role: Role): (p: P
 export interface VisitorInfo {
 	id: string | null;
 	email: string | null;
-	/** Photos in the active list (the hearts). */
+	/** Photos in any of the visitor's lists (the filled hearts). */
 	favorites: string[];
+	/** Photo id -> the lists it is in. */
+	memberships: Record<string, string[]>;
 	lists: ListView[];
+	/** The list shown on the favorites page. */
 	activeListId: string | null;
 }
 
-const NO_VISITOR: VisitorInfo = { id: null, email: null, favorites: [], lists: [], activeListId: null };
+const NO_VISITOR: VisitorInfo = { id: null, email: null, favorites: [], memberships: {}, lists: [], activeListId: null };
 
 export function visitorInfo(cookies: Cookies, gallery: Gallery): VisitorInfo {
 	const visitorId = getVisitorId(cookies, gallery.id);
@@ -114,10 +130,12 @@ export function visitorInfo(cookies: Cookies, gallery: Gallery): VisitorInfo {
 		.get();
 	if (!visitor) return NO_VISITOR;
 	const listId = activeListId(cookies, gallery, visitor.id);
+	const byPhoto = memberships(visitor.id);
 	return {
 		id: visitor.id,
 		email: visitor.email,
-		favorites: listPhotoIds(listId),
+		favorites: Object.keys(byPhoto),
+		memberships: byPhoto,
 		lists: listViews(gallery, visitor.id),
 		activeListId: listId
 	};
@@ -130,6 +148,27 @@ export function recordActivity(galleryId: string, kind: ActivityKind, email: str
 /** The watermark key clients see for this gallery (null: no watermark). */
 export function galleryWatermarkKey(gallery: Pick<Gallery, 'watermarkId'>): string | null {
 	return watermarkKey(getWatermark(gallery.watermarkId));
+}
+
+/**
+ * The photo shown behind the entry screens (choose, password, register). Like the gallery's
+ * cover, it may be seen before the gallery is opened, so it is always a photo guests may see.
+ */
+export function gateCoverPhoto(gallery: Gallery): Photo | undefined {
+	const guest = photoFilter(gallery, 'guest');
+	const all = [...getPhotosBySection(gallery.id).values()].flat();
+	return all.find((p) => p.id === gallery.coverPhotoId && guest(p)) ?? all.find(guest);
+}
+
+export function gateCover(gallery: Gallery) {
+	const photo = gateCoverPhoto(gallery);
+	return {
+		photo: photo ? toPhotoView(photo, galleryWatermarkKey(gallery)) : null,
+		placeholder: photo?.placeholder ?? null,
+		color: photo?.color ?? null,
+		focalX: gallery.coverFocalX,
+		focalY: gallery.coverFocalY
+	};
 }
 
 /** Everything the client layout needs: gallery, sections, cover and visitor state. */

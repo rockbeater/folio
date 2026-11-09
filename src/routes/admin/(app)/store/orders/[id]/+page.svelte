@@ -58,6 +58,11 @@
 								{#if item.variantLabel}<span>{item.variantLabel}</span>{/if}
 								{#if item.filename}<span class="hint">{item.filename}</span>{/if}
 								<span class="hint">{t(`admin.products.kind.${item.kind}` as MessageKey)}{#if item.digital} · {t(`admin.products.scope.${item.digital.scope}` as MessageKey)}{/if} · {t('store.quantity')}: {item.quantity}</span>
+								{#if item.photo}
+									<a class="btn small item-dl" href="/admin/store/orders/{o.id}/item/{item.id}" download>
+										<FileDown size={14} />{item.crop ? t('admin.orders.downloadCropped') : t('admin.lists.downloadOriginal')}
+									</a>
+								{/if}
 							</div>
 							<span class="tabular right">{money(item.unitPrice * item.quantity - item.discount)}{#if item.taxRate}<br /><span class="hint">{t('admin.orders.vatRate', { rate: (item.taxRate / 100).toLocaleString(lang) })}</span>{/if}</span>
 						</li>
@@ -195,6 +200,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+	}
+
+	.item-dl {
+		align-self: flex-start;
+		margin-top: 6px;
 	}
 
 	.totals {

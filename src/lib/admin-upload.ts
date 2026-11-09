@@ -39,8 +39,10 @@ export async function uploadFile(
 		else if (target.newSection) params.set('newSection', target.newSection);
 
 		try {
+			// The content type matters: without one, the server treats the request as having no body.
 			const res = await fetch(`/admin/api/galleries/${galleryId}/upload?${params}`, {
 				method: 'PUT',
+				headers: { 'content-type': 'application/octet-stream' },
 				body: file.slice(offset, end)
 			});
 			if (res.status === 409) {

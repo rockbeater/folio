@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { canViewGallery, isPubliclyVisible } from '$lib/server/access';
-import { canSeeSharedPhoto, photoFilter, roleFor } from '$lib/server/client';
+import { canSeeSharedPhoto, gateCoverPhoto, photoFilter, roleFor } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import { originalFile } from '$lib/server/images/paths';
 import { ensureDisplay, sharpenKey } from '$lib/server/images/render';
@@ -35,7 +35,9 @@ export const GET: RequestHandler = async ({ params, cookies, locals, request }) 
 	// outside it, a shared favorite list or quick share link this browser opened may allow it.
 	const role = roleFor(row.gallery, cookies, isAdmin);
 	const inGallery = ((role === 'client' && isPubliclyVisible(row.gallery)) || canViewGallery(row.gallery, cookies, false)) && photoFilter(row.gallery, role)(row.photo);
-	if (!isAdmin && !inGallery && !canSeeSharedPhoto(cookies, row.gallery, row.photo)) error(404);
+	// The entry screens show the cover photo before the gallery is opened.
+	const isGateCover = () => isPubliclyVisible(row.gallery) && gateCoverPhoto(row.gallery)?.id === row.photo.id;
+	if (!isAdmin && !inGallery && !isGateCover() && !canSeeSharedPhoto(cookies, row.gallery, row.photo)) error(404);
 
 	const { photo, gallery } = row;
 	const galleryWatermark = getWatermark(gallery.watermarkId) ?? null;

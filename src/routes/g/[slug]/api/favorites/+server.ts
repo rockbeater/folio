@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { getVisitorId } from '$lib/server/access';
 import { photoFilter, requireOpenGallery, visitorInfo } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
-import { activeListId, getList, setFavorite } from '$lib/server/lists';
+import { ensureLists, getList, removeEverywhere, setFavorite } from '$lib/server/lists';
 import type { RequestHandler } from './$types';
 
 /** Add a photo to, or remove it from, one of the visitor's lists (the active list by default). */
@@ -23,8 +23,17 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals })
 		.get();
 	if (!photo || !photoFilter(gallery, role)(photo)) error(404);
 
-	const listId = typeof body.listId === 'string' ? body.listId : activeListId(cookies, gallery, visitorId);
-	const list = getList(visitorId, listId);
+	// Without a list: add to the only list, or remove from all lists. With several lists the visitor picks one.
+	if (typeof body.listId !== 'string') {
+		if (!body.favorite) removeEverywhere(visitorId, photo.id);
+		else {
+			const lists = ensureLists(gallery, visitorId);
+			if (lists.length > 1) error(400, 'choose-list');
+			if (!setFavorite(gallery, lists[0], photo.id, true)) error(409, 'limit');
+		}
+		return json(visitorInfo(cookies, gallery));
+	}
+	const list = getList(visitorId, body.listId);
 	if (!list) error(404);
 	if (!setFavorite(gallery, list, photo.id, body.favorite)) error(409, 'limit');
 	return json(visitorInfo(cookies, gallery));

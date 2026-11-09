@@ -4,18 +4,20 @@ import type { MessageKey } from '$lib/i18n';
 import { toast } from '$lib/toast.svelte';
 import type { ListView, PhotoView } from '$lib/types';
 
-export type DownloadScope = 'all' | 'section' | 'favorites' | 'photo';
+export type DownloadScope = 'all' | 'section' | 'favorites' | 'list' | 'photo';
 
 export interface DownloadRequest {
 	scope: DownloadScope;
 	sectionId?: string;
 	photoId?: string;
+	listId?: string;
 }
 
 /** What the server returns about the visitor after each favorite or list change. */
 export interface VisitorData {
 	email: string | null;
 	favorites: string[];
+	memberships: Record<string, string[]>;
 	lists: ListView[];
 	activeListId: string | null;
 }
@@ -35,7 +37,12 @@ export class GalleryState {
 	share: string | null;
 	canMarkPrivate = $state(false);
 	email = $state<string | null>(null);
+	/** Photos in any of the visitor's lists. */
 	favorites = new SvelteSet<string>();
+	/** Photo id -> the lists it is in. */
+	memberships = $state<Record<string, string[]>>({});
+	/** The photo the "add to which list?" dialog is open for. */
+	picking = $state<string | null>(null);
 	lists = $state<ListView[]>([]);
 	activeListId = $state<string | null>(null);
 	emailPrompt = $state<{ resolve: (ok: boolean) => void } | null>(null);
@@ -69,6 +76,7 @@ export class GalleryState {
 		this.email = data.email;
 		this.favorites.clear();
 		for (const id of data.favorites) this.favorites.add(id);
+		this.memberships = data.memberships ?? {};
 		this.lists = data.lists;
 		this.activeListId = data.activeListId;
 	}
@@ -106,8 +114,16 @@ export class GalleryState {
 		return true;
 	}
 
+	/**
+	 * The heart: with one list it adds or removes the photo directly; with several lists
+	 * it asks which list (a photo can be in more than one).
+	 */
 	async toggleFavorite(photoId: string): Promise<boolean> {
 		if (!(await this.ensureVisitor())) return false;
+		if (this.lists.length > 1) {
+			this.picking = photoId;
+			return true;
+		}
 		const favorite = !this.favorites.has(photoId);
 		if (favorite) this.favorites.add(photoId);
 		else this.favorites.delete(photoId);
@@ -116,8 +132,29 @@ export class GalleryState {
 			this.apply(data);
 			return true;
 		}
+		if (status === 400 && favorite) {
+			// The visitor has several lists after all (e.g. predefined lists): ask.
+			this.favorites.delete(photoId);
+			this.picking = photoId;
+			return true;
+		}
 		if (favorite) this.favorites.delete(photoId);
 		else this.favorites.add(photoId);
+		toast(this.t(status === 409 ? 'client.lists.limitReached' : 'common.error'), status === 409 ? 'info' : 'error');
+		return false;
+	}
+
+	inList(photoId: string, listId: string): boolean {
+		return this.memberships[photoId]?.includes(listId) ?? false;
+	}
+
+	/** Add a photo to, or remove it from, one list. */
+	async setInList(photoId: string, listId: string, favorite: boolean): Promise<boolean> {
+		const { ok, status, data } = await this.post('favorites', { photoId, favorite, listId });
+		if (ok && data) {
+			this.apply(data);
+			return true;
+		}
 		toast(this.t(status === 409 ? 'client.lists.limitReached' : 'common.error'), status === 409 ? 'info' : 'error');
 		return false;
 	}
