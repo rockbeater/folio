@@ -1,10 +1,8 @@
 # Mission
 
-> Arbejdstitel: **pixieset_replace**. Endeligt navn vælges senere.
-
 ## Kort fortalt
 
-Vi bygger et **selvhostet alternativ til Pixieset**. Fotografer bruger det til at levere smukke gallerier til deres kunder og til at sælge prints og digitale filer. Det hele kører i **én Docker-container** på fotografens egen server eller NAS, og billederne ligger i en **almindelig mappe**, som fotografen selv har adgang til.
+**Folio** er et **selvhostet alternativ til Pixieset**. Fotografer bruger det til at levere smukke gallerier til deres kunder og til at sælge prints og digitale filer. Det hele kører i **én Docker-container** på fotografens egen server eller NAS, og billederne ligger i en **almindelig mappe**, som fotografen selv har adgang til.
 
 ## Hvorfor
 
@@ -35,7 +33,7 @@ Vi bygger et **selvhostet alternativ til Pixieset**. Fotografer bruger det til a
 
 ### Docker
 
-Programmet leveres som et **rigtigt Docker-image**, der bygges og publiceres automatisk (fx på GitHub Container Registry). Imaget skal være multi-arch (`amd64` og `arm64`), så det også kører på NAS'er og små servere.
+Folio leveres som et **rigtigt Docker-image**, der bygges og publiceres automatisk (fx på GitHub Container Registry). Imaget skal være multi-arch (`amd64` og `arm64`), så det også kører på NAS'er og små servere.
 
 Selve mappeforbindelsen laves som et **volume mount**. Dockerfilen deklarerer de mapper, containeren forventer, og i `docker-compose.yml` (eller `docker run -v`) peger man dem på de rigtige mapper på værten.
 
@@ -49,8 +47,8 @@ Eksempel (illustrativt, den endelige konfiguration fastlægges under udviklingen
 
 ```yaml
 services:
-  gallery:
-    image: ghcr.io/rockbeater/pixieset_replace:latest
+  folio:
+    image: ghcr.io/rockbeater/folio:latest
     ports:
       - "8080:8080"
     environment:
@@ -106,7 +104,7 @@ Indstillinger som "downloads tilladt", adgangskode, udløbsdato, prisliste og de
 
 **Beslutning (foreløbig): Databasen (SQLite i `/data`) er sandheden for alle indstillinger.** Filsystemet er kun sandheden for billeder og struktur.
 
-Et problem skal dog løses: Hvis man omdøber en galleri-mappe via SMB, må indstillingerne ikke gå tabt. Derfor lægger programmet en **lille skjult id-fil** (fx `.gallery-id`) i hver galleri-mappe. Den indeholder kun galleriets id og ingen indstillinger. På den måde genkendes galleriet, selv om mappen omdøbes eller flyttes.
+Et problem skal dog løses: Hvis man omdøber en galleri-mappe via SMB, må indstillingerne ikke gå tabt. Derfor lægger Folio en **lille skjult id-fil** (fx `.folio-id`) i hver galleri-mappe. Den indeholder kun galleriets id og ingen indstillinger. På den måde genkendes galleriet, selv om mappen omdøbes eller flyttes.
 
 Mulig udvidelse senere: en valgfri `galleri.yml`, der læses **én gang** som skabelon, når et galleri oprettes fra filsystemet, og eksport/import af galleri-indstillinger.
 
@@ -130,16 +128,16 @@ Webshoppen er forberedt i arkitekturen fra start og implementeres efter galleri-
 - **Digitale produkter:** Salg af højopløselige enkeltbilleder eller hele gallerier.
 - **Shipping:** Forsendelsesmetoder, lande og zoner, fast pris, fri fragt over et beløb og afhentning.
 - **Moms:** Priser vises inklusive moms (standard 25 % i Danmark) med korrekt specifikation på kvitteringen.
-- **En god ordre-backend:** Ordrestatus (betalt, i produktion, afsendt, leveret), beskeder til kunden og eksport af ordrens filer til print/lab (fx en ZIP med filer navngivet efter størrelse og antal).
-- **Fulfillment:** Fotografen håndterer selv ordrerne til at starte med. Integration med printlab er forberedt, men kommer senere.
+- **En god ordre-backend:** Ordrestatus (betalt, i produktion, afsendt, leveret), beskeder til kunden og eksport af ordrens filer til print (fx en ZIP med filer navngivet efter størrelse og antal).
+- **Fulfillment:** Fotografen håndterer selv alle fysiske ordrer. Automatisk fulfillment via printlab er bevidst udeladt indtil videre.
 
 ### Betaling med Stripe
 
 - **Stripe Checkout** (Stripes egen betalingsside) bruges, så ingen kortdata rører vores server, og PCI-byrden er minimal. Kort, Apple Pay, Google Pay og MobilePay kan slås til i Stripe uden ekstra kode.
 - **Nem opsætning til en almindelig Stripe-konto:**
   1. Admin → Betaling → indsæt API-nøgle.
-  2. Programmet validerer nøglen og viser kontoens navn, så man kan se, at det er den rigtige konto.
-  3. Programmet **opretter selv webhook-endpointet** i Stripe og gemmer signing secret. Man skal ikke ind i Stripes udviklerindstillinger.
+  2. Folio validerer nøglen og viser kontoens navn, så man kan se, at det er den rigtige konto.
+  3. Folio **opretter selv webhook-endpointet** i Stripe og gemmer signing secret. Man skal ikke ind i Stripes udviklerindstillinger.
   4. Lav et testkøb i test mode, og skift derefter til live med ét klik.
 - Ordrer markeres først som betalt, når Stripe har bekræftet betalingen via webhook. Det er ikke nok, at kunden er sendt tilbage til siden.
 - Pengene går direkte til fotografens egen Stripe-konto.
@@ -154,6 +152,7 @@ Webshoppen er forberedt i arkitekturen fra start og implementeres efter galleri-
 - CRM, kontrakter, fakturering og bookingkalender (svarende til Pixieset Studio Manager).
 - Website-builder.
 - Mobil-app og foto-editor (svarende til Pixieset Mobile Gallery App og Photo Editor).
+- Automatisk fulfillment via printlab.
 - Video i gallerier.
 - RAW-filer.
 
@@ -172,7 +171,6 @@ Webshoppen er forberedt i arkitekturen fra start og implementeres efter galleri-
 - Teknologivalg: sprog, framework og om SQLite skal suppleres med Postgres som mulighed.
 - Får kunder rigtige konti, eller er adgang via link, e-mail og PIN nok?
 - Hvad skal der ske med ordrer, når et billede slettes fra disken?
-- Endeligt produktnavn.
 
 ## Relaterede dokumenter
 

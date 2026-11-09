@@ -4,7 +4,7 @@
 
 Denne fil er den samlede liste over alle funktioner, der skal implementeres. Formålet og rammerne er beskrevet i [MISSION.md](MISSION.md).
 
-Vi bygger kun **galleri** og **butik**. Pixiesets Website, Studio Manager, Mobile Gallery App og Photo Editor er bevidst udeladt. Vi bygger tilsvarende funktionalitet, men med vores eget design (se [DESIGN.md](DESIGN.md)).
+Folio består kun af **galleri** og **butik**. Pixiesets Website, Studio Manager, Mobile Gallery App og Photo Editor er bevidst udeladt. Vi bygger tilsvarende funktionalitet, men med vores eget design (se [DESIGN.md](DESIGN.md)).
 
 **Prioritet:** `MVP` = første brugbare version · `v1` = første fulde version · `Senere` = på listen, men ikke planlagt
 
@@ -16,7 +16,6 @@ Vi bygger kun **galleri** og **butik**. Pixiesets Website, Studio Manager, Mobil
 | Set | Sektion |
 | Price Sheet | Prisliste |
 | Homepage | Forside |
-| Self Fulfillment / Automatic | Selvlevering / Automatisk levering |
 
 ---
 
@@ -35,7 +34,7 @@ Vi bygger kun **galleri** og **butik**. Pixiesets Website, Studio Manager, Mobil
 - [ ] `MVP` Ændringer opdages automatisk med en filwatcher og periodisk scanning.
 - [ ] `MVP` "Scan nu"-knap per galleri og globalt.
 - [ ] `MVP` Nye gallerier fra filsystemet oprettes som kladde.
-- [ ] `MVP` En skjult `.gallery-id`-fil sørger for, at omdøbte eller flyttede mapper genkendes.
+- [ ] `MVP` En skjult `.folio-id`-fil sørger for, at omdøbte eller flyttede mapper genkendes.
 - [ ] `MVP` Advarsler i admin om ugyldigt indhold: dybere mapper, filer der ikke er billeder, og ulæselige filer.
 - [ ] `MVP` Thumbnails og webstørrelser genereres i `/cache` i flere bredder og moderne formater (WebP/AVIF). Det sker i en baggrundskø med fremdriftsvisning.
 - [ ] `MVP` Korrekt EXIF-rotation og konvertering til sRGB ved visning. Originalerne røres aldrig.
@@ -171,7 +170,7 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 ### Prislister
 
 - [ ] `v1` Flere prislister, fx "Nordic Digital self fulfill". Én prisliste er markeret som standard og bruges til nye gallerier. Prislisten vælges per galleri.
-- [ ] `v1` Detaljer for en prisliste: navn, hvor mange gallerier den er tildelt (med link til dem), leveringstype, minimumsordre og antal produkter.
+- [ ] `v1` Detaljer for en prisliste: navn, hvor mange gallerier den er tildelt (med link til dem), minimumsordre og antal produkter.
 - [ ] `v1` Minimumsbeløb per prisliste: kunden kan ikke gå til betaling, før kurven når beløbet.
 - [ ] `v1` Dupliker, omdøb og slet prislister, og vælg standard.
 
@@ -182,14 +181,13 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [ ] `v1` Produktoptioner, fx Størrelse (10x15, 13x18, 18x24, 20x30, A4, A3, 30x40, 30x45, 40x60, 50x70) og Papir (Glossy, Semi glossy). Optionerne kan sorteres med træk og slip, redigeres og slettes.
 - [ ] `v1` Variationsmatrix: alle kombinationer af optionerne oprettes automatisk. Hver kombination har sin egen pris, ekstra fragt og synlighed, så enkelte kombinationer kan skjules uden at blive slettet. Matrixen kan filtreres på alle, synlige og skjulte.
 - [ ] `v1` Produkter uden optioner har én pris og én ekstra fragt.
-- [ ] `v1` Leveringstype: fysiske produkter er **Selvlevering** (fotografen håndterer dem), og digitale produkter leveres **automatisk** straks efter betaling.
+- [ ] `v1` Fysiske produkter håndteres altid af fotografen selv. Digitale produkter kan kunden downloade straks efter betaling.
 - [ ] `v1` Digitale produkter: enkeltbillede (høj opløsning eller web), hel sektion eller helt galleri.
 - [ ] `v1` "Kræver intet billede": produktet kan lægges direkte i kurven uden et valgt billede, fx en USB-nøgle eller en ekstra ydelse.
 - [ ] `v1` "Momsfritaget" per produkt.
 - [ ] `v1` "Maks. én per køb" per produkt.
 - [ ] `v1` "Køb til flere billeder": kunden kan vælge flere billeder til samme produkt i ét trin.
 - [ ] `v1` Beskæringsværktøj: kunden vælger et udsnit, når billedets format ikke passer til printformatet.
-- [ ] `Senere` Integration med printlab, så fysiske produkter leveres automatisk. Det omfatter automatisk tilpasning af priser, så avancen bevares, når laboratoriet ændrer sine priser, og afrunding af priserne.
 
 ## 12. Butik: kurv og checkout
 
@@ -205,8 +203,8 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 
 ## 13. Butik: ordrer
 
-- [ ] `v1` Ordreoversigt med kolonnerne ordrenummer, status, kunde, galleri, leveringstype, dato og beløb.
-- [ ] `v1` Filtrering per kolonne (nummer, status, kunde, galleri og leveringstype) og paginering.
+- [ ] `v1` Ordreoversigt med kolonnerne ordrenummer, status, kunde, galleri, type (fysisk/digital), dato og beløb.
+- [ ] `v1` Filtrering per kolonne (nummer, status, kunde, galleri og type) og paginering.
 - [ ] `v1` Ordrestatus: Afventer betaling, Behandles, Afsendt, Fuldført, Annulleret og Refunderet.
 - [ ] `v1` Ordredetalje: produkter med billede og filnavn, adresse, fragt, rabat, moms og betalingsstatus fra Stripe.
 - [ ] `v1` Download ordrens filer samlet til print som en ZIP, hvor filerne er navngivet efter produkt, størrelse og antal.
@@ -238,7 +236,6 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [ ] `v1` Afhentning hos fotografen som en fragtmetode til 0 kr.
 - [ ] `v1` Rene digitale ordrer kræver ingen fragt.
 - [ ] `Senere` Fragtpris efter antal eller vægt.
-- [ ] `Senere` Separate fragtmetoder for ordrer til printlab.
 
 ## 17. Butik: rabatkoder, kampagner og gavekort
 
@@ -316,3 +313,4 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - Website-builder, Studio Manager (CRM, kontrakter, fakturaer og booking), Mobile Gallery App og Photo Editor.
 - Video i gallerier og dermed også videodownload.
 - PayPal og andre betalingsudbydere end Stripe.
+- Automatisk fulfillment via printlab. Fotografen håndterer selv alle fysiske ordrer.

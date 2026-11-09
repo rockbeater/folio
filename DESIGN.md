@@ -2,7 +2,7 @@
 
 > **Status:** Første udkast, afledt af Pixieset-skærmbilleder af cover, galleri, køb af billede og kurv.
 
-Denne fil samler designreglerne for kundeinterfacet og admin. Formålet og rammerne er beskrevet i [MISSION.md](MISSION.md), og funktionerne i [FEATURES.md](FEATURES.md).
+Denne fil samler designreglerne for Folios kundeinterface og admin. Formålet og rammerne er beskrevet i [MISSION.md](MISSION.md), og funktionerne i [FEATURES.md](FEATURES.md).
 
 **Flot frontend er et krav, ikke en bonus.** Kunden møder fotografens arbejde gennem vores interface. Hvis interfacet er grimt eller langsomt, ser billederne dårligere ud.
 
