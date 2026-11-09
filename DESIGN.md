@@ -283,9 +283,25 @@ Deaktiverede knapper har lav opacitet og en forklaring, fx "Minimumsordre 200 kr
 - **Trin 3** (kun hvis fotografen kræver det): e-mail og/eller PIN i samme dialog.
 - På mobil kan et enkelt billede gemmes direkte i fotoappen via den indbyggede delingsfunktion.
 
+### Del favoritliste
+
+- Dialogen viser listens navn og antal billeder, og nedenunder en kontakt **Privat deling** (standard: til).
+- Under kontakten står én linje, der skifter med valget, så kunden ikke er i tvivl om konsekvensen:
+  - Til: "Modtageren kan kun se de 24 billeder på listen."
+  - Fra: "Modtageren kan også se resten af galleriet."
+- Hvis billeder er udeladt, vises det tydeligt: "2 private billeder er ikke med."
+- Primærknappen er `KOPIÉR LINK`. På mobil er der desuden en knap til den indbyggede delingsfunktion. Under knapperne står tekstlinket `STOP DELING`, hvis listen allerede er delt.
+
+### Kundeadgang og private billeder
+
+- Kunden logger ind via "Log ind som kunde" i menuen. Bagefter viser headeren en diskret label, `KUNDE`, med mulighed for at logge ud.
+- Private billeder har et lille låse-ikon i hjørnet i grid'et og i lightboxen, og de vises kun for kunden.
+- Sektioner kun for kunden har også et låse-ikon i sektionsnavigationen.
+
 ### Adgangskodeside
 
 - Coverbilledet ligger kraftigt sløret som baggrund. I midten står et panel med galleri-titlen, et felt til adgangskoden og knappen `ÅBN GALLERI`.
+- Den samme side bruges til kundeadgangskoden med knappen `LOG IND SOM KUNDE`.
 
 ### Feedback og tilstande
 

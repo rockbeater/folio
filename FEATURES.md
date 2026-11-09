@@ -55,7 +55,7 @@ Folio består kun af **galleri** og **butik**. Pixiesets Website, Studio Manager
 - [ ] `MVP` Vælg cover-billede fra galleriet.
 - [ ] `v1` Robust upload af store mængder: chunked upload, der kan genoptages, og håndtering af dubletter (spring over / erstat / omdøb).
 - [ ] `v1` Fokuspunkt på coveret, så beskæringen rammer rigtigt på både mobil og desktop.
-- [ ] `v1` Massehandlinger: vælg flere billeder og flyt, kopier, skjul, slet eller download dem.
+- [ ] `v1` Massehandlinger: vælg flere billeder og flyt, kopier, skjul, slet, download dem eller opret et hurtigt delingslink (se afsnit 7).
 - [ ] `v1` Skjul enkelte billeder for kunden uden at slette filen.
 - [ ] `v1` "Mere"-menu: anvend preset, kopier indstillinger fra et andet galleri, download originaler og slet galleri.
 
@@ -94,7 +94,18 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 
 - [ ] `MVP` Galleri-adgangskode med en "Generer"-knap.
 - [ ] `v1` Vis på forsiden til/fra (standard: fra).
-- [ ] `Senere` Eksklusiv kundeadgang: en separat kundeadgangskode giver adgang til private sektioner og mulighed for at markere billeder som private, så de skjules for andre gæster.
+
+**Gæsteadgang og kundeadgang:**
+
+Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og familie) bruger det almindelige galleri-link og eventuelt galleri-adgangskoden. **Kunden** (fx brudeparret) logger ind med en separat kundeadgangskode og ser mere end gæsterne.
+
+- [ ] `v1` Kundeadgang til/fra per galleri.
+- [ ] `v1` Kundeadgangskode med en "Generer"-knap, adskilt fra galleri-adgangskoden. Er der også en galleri-adgangskode, skal gæster stadig bruge den.
+- [ ] `v1` Sektioner kun for kunden: fotografen vælger sektioner, som kun kunden kan se, fx "Forberedelser".
+- [ ] `v1` Kunden kan markere enkelte billeder som private. De skjules for gæster, men er stadig synlige for kunden med et låse-ikon. Kunden kan fjerne markeringen igen.
+- [ ] `v1` Fotografen kan slå kundens mulighed for at markere private billeder til og fra.
+- [ ] `v1` Download kan indstilles forskelligt for gæster og kunden, fx kan kun kunden downloade i høj opløsning.
+- [ ] `v1` Gæster kan aldrig se, finde, downloade eller købe private billeder og sektioner kun for kunden. Det gælder også via direkte billed-URL'er, søgning, slideshow, delte favoritlister og ZIP-downloads. Adgangen kontrolleres på serveren.
 
 ### 5.3 Download
 
@@ -114,6 +125,18 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [ ] `v1` Favoritnoter: kunden kan skrive en note til et favoritmarkeret billede.
 - [ ] `v1` Foruddefinerede favoritlister med en grænse for antal valg, fx "Album: vælg 30", "Retouchering: vælg 5" og "Gratis downloads: vælg 10".
 - [ ] `v1` Eksport af en favoritliste som filnavne, klar til at indsætte i en søgning i Lightroom, eller som CSV.
+- [ ] `v1` Flere favoritlister: kunden kan oprette flere lister med eget navn, fx "Til væggen" eller "Til farmor". Listerne gemmes under kundens e-mail, så de er der igen ved næste besøg.
+- [ ] `v1` "Send til fotografen": kunden markerer en liste som færdig, og fotografen får besked.
+
+**Deling af favoritlister:**
+
+- [ ] `v1` Kunden kan dele en favoritliste via et link. I delingsdialogen vælger kunden, om delingen skal være privat:
+  - **Privat deling (standard: til):** modtageren ser **kun** billederne på listen og hverken resten af galleriet, sektionerne eller andre billeder. Linket virker uden galleriets adgangskode, men giver kun adgang til listens billeder.
+  - **Åben deling:** linket åbner listen, men modtageren kan også gå videre til resten af galleriet med de samme rettigheder som en gæst. Galleri-adgangskoden kræves stadig, hvis galleriet har en.
+- [ ] `v1` Linket viser altid listens aktuelle indhold, og kunden kan stoppe delingen når som helst. Så holder linket op med at virke.
+- [ ] `v1` En delt liste viser kun billeder, som en gæst må se. Private billeder og sektioner kun for kunden kommer aldrig med, og kunden får at vide, hvor mange billeder der er udeladt.
+- [ ] `v1` Download og køb fra en delt liste følger galleriets indstillinger for gæster. Download-PIN gælder stadig.
+- [ ] `v1` Fotografen kan slå deling af favoritlister til og fra per galleri og vælge, om privat deling er standard.
 
 ### 5.5 Butik
 
@@ -126,6 +149,8 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [ ] `v1` Download-aktivitet: hvem (e-mail), hvad (galleri, sektion eller billede), hvilken størrelse og hvornår.
 - [ ] `v1` Favorit-aktivitet: lister per e-mail med noter og mulighed for eksport.
 - [ ] `v1` E-mailregistreringer.
+- [ ] `v1` Private billeder: de billeder, kunden har markeret som private, med mulighed for at fjerne markeringen.
+- [ ] `v1` Delingslinks: hurtige delingslinks og delte favoritlister med antal visninger og downloads. Hvert link kan kopieres igen, redigeres eller deaktiveres.
 - [ ] `v1` Ordrer fra dette galleri.
 - [ ] `v1` Simpel optælling af besøg uden tredjeparts-tracking.
 
@@ -133,8 +158,11 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 
 - [ ] `MVP` Kopier galleri-link (og eventuelt adgangskode).
 - [ ] `MVP` Preview: se galleriet som kunden. Det tæller ikke med i aktiviteten.
-- [ ] `v1` Send galleriet til kunden via e-mail fra admin med en redigerbar skabelon.
-- [ ] `Senere` QR-kode til galleriet.
+- [ ] `v1` Send galleriet til kunden via e-mail fra admin med en redigerbar skabelon. Ved kundeadgang kan gæstelinket og kundeadgangskoden sendes hver for sig.
+- [ ] `v1` **Hurtige delingslinks:** vælg billeder i admin og opret et link, der kun viser de valgte billeder. Det er nyttigt til leverandører, samarbejdspartnere og presse.
+- [ ] `v1` Hvert hurtige delingslink har et navn, download til/fra (med valg af størrelse) og eventuelt en udløbsdato og en adgangskode.
+- [ ] `v1` Hurtige delingslinks er uafhængige af galleriets adgangskode og status. Modtageren ser kun de valgte billeder og kan ikke komme videre til resten af galleriet.
+- [ ] `Senere` QR-kode til galleriet og til hurtige delingslinks.
 
 ## 8. Kundeoplevelse
 
@@ -148,6 +176,9 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [ ] `v1` Kampagnebanner øverst i galleriet, fx "Gratis fragt på ordrer over 499 kr. Brug koden FRAGT". Det kan lukkes.
 - [ ] `v1` Side for udløbne gallerier med kontaktinfo til fotografen.
 - [ ] `v1` Del-knap: kopier link, eller brug den indbyggede delingsfunktion på mobil.
+- [ ] `v1` "Log ind som kunde" i menuen. Når kunden er logget ind, vises det diskret i headeren, og "Markér som privat" findes i lightboxen og i massevalg.
+- [ ] `v1` Favoritlister: opret, omdøb, skift mellem og del lister direkte fra favoritvisningen.
+- [ ] `v1` Visning af en privat delt liste: en enkel side med listens navn, fotografens navn og listens billeder. Der er ingen navigation til resten af galleriet.
 
 ## 9. Download-flow for kunden
 
@@ -289,6 +320,7 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [ ] `MVP` Admin-login med sikker hashing af adgangskoder og rate limiting.
 - [ ] `MVP` Billeder serveres kun gennem appen med adgangskontrol. Originaler kan ikke hentes direkte uden tilladelse.
 - [ ] `MVP` Rate limiting på galleri-adgangskoder og download-PIN.
+- [ ] `v1` Delingslinks (hurtige delingslinks og delte favoritlister) bruger lange, tilfældige nøgler, som ikke kan gættes, og de kan tilbagekaldes. Serveren kontrollerer adgangen til hvert billede ud fra linkets rettigheder. Rate limiting gælder også kundeadgangskoden.
 - [ ] `MVP` Gallerier og billeder bliver ikke indekseret af søgemaskiner (`noindex`).
 - [ ] `MVP` CSRF-beskyttelse, sikre cookies og sikkerhedsheaders.
 - [ ] `v1` Tofaktorgodkendelse (TOTP) til admin.
