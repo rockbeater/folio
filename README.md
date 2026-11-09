@@ -7,23 +7,73 @@ Self-hosted client galleries for photographers. A replacement for Pixieset that 
 - Deliver galleries by email straight from Folio, using your own email provider.
 - Print store with Stripe is planned (see [FEATURES.md](FEATURES.md)).
 
-## Quick start
+## Installation with Docker Compose
+
+1. Create a folder for Folio on your server, e.g. `/opt/folio`, and save this as `docker-compose.yml` in it:
+
+```yaml
+services:
+  folio:
+    image: ghcr.io/rockbeater/folio:latest
+    container_name: folio
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Public address of your galleries. Uncomment when Folio runs behind a
+      # reverse proxy with HTTPS; it is also used for links in emails.
+      # - BASE_URL=https://gallery.example.com
+      # User and group that own your photo folder (run `id` on the host to find them).
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Copenhagen
+    volumes:
+      # Your photo library: one folder per gallery, one subfolder per section.
+      - /path/to/photos:/photos
+      # Database and settings. Back this up.
+      - ./data:/data
+      # Generated thumbnails. Can be deleted at any time.
+      - ./cache:/cache
+```
+
+2. Change `/path/to/photos` to your photo folder (for example a NAS share), and `PUID`, `PGID` and `TZ` to match your setup. If your galleries will be reached through a domain with HTTPS, uncomment `BASE_URL` and set it to that address.
+
+3. Start Folio:
+
+```bash
+docker compose up -d
+```
+
+4. Open `http://<your-server>:8080` (or your `BASE_URL`) and create your admin account.
+
+The same file is in the repository as [docker-compose.yml](docker-compose.yml).
+
+### Updating
+
+```bash
+docker compose pull
+```
+
+```bash
+docker compose up -d
+```
+
+Database changes are applied automatically when the new version starts.
+
+### Without Compose
 
 ```bash
 docker run -d --name folio -p 8080:8080 \
+  -e PUID=1000 -e PGID=1000 \
   -v /path/to/photos:/photos \
   -v folio-data:/data \
   -v folio-cache:/cache \
   ghcr.io/rockbeater/folio:latest
 ```
 
-Open `http://<your-server>:8080` and create your admin account.
+### Image visibility
 
-Or use the example [docker-compose.yml](docker-compose.yml):
-
-```bash
-docker compose up -d
-```
+The image is published to the GitHub Container Registry. While the repository is private, the image is private too: either make the package public on GitHub (Packages → folio → Package settings → Change visibility), or log in on the server first with `docker login ghcr.io` using a token with the `read:packages` scope.
 
 ## Folders
 

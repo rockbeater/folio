@@ -164,6 +164,8 @@ const en = {
 	'admin.editor.uploading': 'Uploading {done} of {total}',
 	'admin.editor.uploadFailed': '{count} files could not be uploaded',
 	'admin.editor.sort': 'Sort',
+	'admin.editor.search': 'Search filenames',
+	'admin.editor.noMatches': 'No photos match your search.',
 	'admin.editor.sortFilename': 'Filename',
 	'admin.editor.sortDate': 'Date taken',
 	'admin.editor.sortManual': 'Custom (drag to reorder)',

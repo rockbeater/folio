@@ -74,7 +74,7 @@
 
 	<section class="main">
 		{#if tab === 'photos'}
-			<PhotosPanel gallery={data.gallery} section={activeSection} stats={data.stats} />
+			<PhotosPanel gallery={data.gallery} section={activeSection} sections={data.sections} stats={data.stats} />
 		{:else if tab === 'design'}
 			<DesignPanel gallery={data.gallery} {cover} />
 		{:else if tab === 'settings'}

@@ -16,10 +16,12 @@
 	interface Props {
 		gallery: EditorGallery;
 		section: AdminSection | null;
+		sections: AdminSection[];
 		stats: { total: number; ready: number; pending: number; failed: number };
 	}
 
-	let { gallery, section, stats }: Props = $props();
+	let { gallery, section, sections, stats }: Props = $props();
+	let query = $state('');
 	const { t } = useI18n();
 
 	let large = $state(false);
@@ -32,8 +34,11 @@
 	$effect(() => {
 		order = section?.photos.map((p) => p.id) ?? [];
 	});
+	const searching = $derived(query.trim().length > 0);
 	const photos = $derived(
-		order.map((id) => section?.photos.find((p) => p.id === id)).filter((p) => p !== undefined)
+		searching
+			? sections.flatMap((s) => s.photos).filter((p) => p.filename.toLowerCase().includes(query.trim().toLowerCase()))
+			: order.map((id) => section?.photos.find((p) => p.id === id)).filter((p) => p !== undefined)
 	);
 
 	const IMAGE = /\.(jpe?g|png|webp)$/i;
@@ -189,7 +194,11 @@
 			{/if}
 		</div>
 		<div class="row">
-			{#if section}
+			<label class="search">
+				<span class="visually-hidden">{t('admin.editor.search')}</span>
+				<input type="search" bind:value={query} placeholder={t('admin.editor.search')} />
+			</label>
+			{#if section && !searching}
 				<label class="sort">
 					<span class="visually-hidden">{t('admin.editor.sort')}</span>
 					<select value={section.sortMode} onchange={setSort}>
@@ -220,7 +229,9 @@
 		</div>
 	{/if}
 
-	{#if photos.length === 0}
+	{#if searching && photos.length === 0}
+		<p class="hint">{t('admin.editor.noMatches')}</p>
+	{:else if photos.length === 0}
 		<button class="dropzone" class:active={dropping} type="button" onclick={() => fileInput.click()}>
 			<Upload size={28} strokeWidth={1.5} />
 			<strong>{t('admin.editor.dropHere')}</strong>
@@ -231,7 +242,7 @@
 			{#each photos as photo (photo.id)}
 				<li
 					class:dragging={dragId === photo.id}
-					draggable="true"
+					draggable={!searching}
 					ondragstart={(e) => {
 						dragId = photo.id;
 						e.dataTransfer?.setData('text/plain', photo.id);
@@ -308,6 +319,10 @@
 
 	.sort select {
 		width: auto;
+	}
+
+	.search input {
+		width: 200px;
 	}
 
 	.upload-progress {

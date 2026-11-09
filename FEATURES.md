@@ -1,6 +1,6 @@
 # Features
 
-> **Status:** Første udkast, afledt af Pixieset-skærmbilleder af galleri og butik.
+> **Status:** MVP er bygget. Afkrydsede punkter er implementeret.
 
 Denne fil er den samlede liste over alle funktioner, der skal implementeres. Formålet og rammerne er beskrevet i [MISSION.md](MISSION.md).
 
@@ -21,54 +21,54 @@ Folio består kun af **galleri** og **butik**. Pixiesets Website, Studio Manager
 
 ## 1. Admin: overblik
 
-- [ ] `MVP` Dashboard med to områder: **Gallerier** og **Butik**.
-- [ ] `MVP` Galleri-oversigt: alle gallerier som kort med cover, navn, dato, status og antal billeder.
-- [ ] `MVP` Opret galleri med navn og valgfri event-dato. Det opretter mappen i `/photos`.
+- [x] `MVP` Dashboard med to områder: **Gallerier** og **Butik**.
+- [x] `MVP` Galleri-oversigt: alle gallerier som kort med cover, navn, dato, status og antal billeder.
+- [x] `MVP` Opret galleri med navn og valgfri event-dato. Det opretter mappen i `/photos`.
 - [ ] `v1` Filtrér gallerier på status og kategori-tags, søg på navn, og sortér efter dato, navn eller oprettelse.
 - [ ] `v1` Søg i hele billedbiblioteket på tværs af gallerier (filnavn).
 - [ ] `v1` Nøgletal på dashboardet: nye ordrer, seneste aktivitet og gallerier, der snart udløber.
 
 ## 2. Galleri og filsystem
 
-- [ ] `MVP` Hver mappe i `/photos` er et galleri, og hver undermappe er en sektion.
-- [ ] `MVP` Ændringer opdages automatisk med en filwatcher og periodisk scanning.
-- [ ] `MVP` "Scan nu"-knap per galleri og globalt.
-- [ ] `MVP` Nye gallerier fra filsystemet oprettes som kladde.
-- [ ] `MVP` En skjult `.folio-id`-fil sørger for, at omdøbte eller flyttede mapper genkendes.
-- [ ] `MVP` Advarsler i admin om ugyldigt indhold: dybere mapper, filer der ikke er billeder, og ulæselige filer.
-- [ ] `MVP` Thumbnails og webstørrelser genereres i `/cache` i flere bredder og moderne formater (WebP/AVIF). Det sker i en baggrundskø med fremdriftsvisning.
-- [ ] `MVP` Korrekt EXIF-rotation og konvertering til sRGB ved visning. Originalerne røres aldrig.
-- [ ] `MVP` Ændrede filer genbehandles automatisk, og slettede filer forsvinder fra galleriet.
-- [ ] `v1` Papirkurv: billeder og sektioner, der slettes via admin, flyttes til `/photos/.trash` og tømmes efter 30 dage.
+- [x] `MVP` Hver mappe i `/photos` er et galleri, og hver undermappe er en sektion.
+- [x] `MVP` Ændringer opdages automatisk med en filwatcher og periodisk scanning.
+- [x] `MVP` "Scan nu"-knap per galleri og globalt.
+- [x] `MVP` Nye gallerier fra filsystemet oprettes som kladde.
+- [x] `MVP` En skjult `.folio-id`-fil sørger for, at omdøbte eller flyttede mapper genkendes.
+- [x] `MVP` Advarsler i admin om ugyldigt indhold: dybere mapper, filer der ikke er billeder, og ulæselige filer.
+- [x] `MVP` Thumbnails og webstørrelser genereres i `/cache` i flere bredder og moderne formater (WebP/AVIF). Det sker i en baggrundskø med fremdriftsvisning.
+- [x] `MVP` Korrekt EXIF-rotation og konvertering til sRGB ved visning. Originalerne røres aldrig.
+- [x] `MVP` Ændrede filer genbehandles automatisk, og slettede filer forsvinder fra galleriet.
+- [x] `v1` Papirkurv: billeder og sektioner, der slettes via admin, flyttes til `/photos/.trash` og tømmes efter 30 dage.
 - [ ] `v1` Advarsel, hvis man sletter et billede, der indgår i en ubehandlet ordre.
 - [ ] `Senere` Valgfri `galleri.yml`, der bruges som skabelon, når et galleri oprettes fra filsystemet.
 
 ## 3. Galleri-editor: billeder og sektioner
 
-- [ ] `MVP` Topbar med redigerbart galleri-navn, event-dato, statusvælger (Kladde / Publiceret / Skjult), søgning i galleriet, Preview og Del.
-- [ ] `MVP` Venstre panel med cover-billede og fanerne **Billeder**, **Design**, **Indstillinger** og **Aktivitet**.
-- [ ] `MVP` Sektionsliste med antal billeder. Tilføj sektion (opretter en undermappe), omdøb (omdøber mappen) og slet.
-- [ ] `MVP` Træk og slip for at ændre sektionernes rækkefølge.
-- [ ] `MVP` Upload ved at trække filer eller hele mapper ind, med fremdriftsvisning. En mappe bliver til en ny sektion.
-- [ ] `MVP` Sortering per sektion: filnavn (naturlig sortering, så `IMG_2` kommer før `IMG_10`), optagelsesdato (EXIF) eller manuelt med træk og slip.
-- [ ] `MVP` Valg af thumbnail-størrelse i admin-visningen.
-- [ ] `MVP` Vælg cover-billede fra galleriet.
+- [x] `MVP` Topbar med redigerbart galleri-navn, event-dato, statusvælger (Kladde / Publiceret / Skjult), søgning i galleriet, Preview og Del.
+- [x] `MVP` Venstre panel med cover-billede og fanerne **Billeder**, **Design**, **Indstillinger** og **E-mail**. Fanen **Aktivitet** kommer med afsnit 6.
+- [x] `MVP` Sektionsliste med antal billeder. Tilføj sektion (opretter en undermappe), omdøb (omdøber mappen) og slet.
+- [x] `MVP` Træk og slip for at ændre sektionernes rækkefølge.
+- [x] `MVP` Upload ved at trække filer eller hele mapper ind, med fremdriftsvisning. En mappe bliver til en ny sektion.
+- [x] `MVP` Sortering per sektion: filnavn (naturlig sortering, så `IMG_2` kommer før `IMG_10`), optagelsesdato (EXIF) eller manuelt med træk og slip.
+- [x] `MVP` Valg af thumbnail-størrelse i admin-visningen.
+- [x] `MVP` Vælg cover-billede fra galleriet.
 - [ ] `v1` Robust upload af store mængder: chunked upload, der kan genoptages, og håndtering af dubletter (spring over / erstat / omdøb).
-- [ ] `v1` Fokuspunkt på coveret, så beskæringen rammer rigtigt på både mobil og desktop.
+- [x] `v1` Fokuspunkt på coveret, så beskæringen rammer rigtigt på både mobil og desktop.
 - [ ] `v1` Massehandlinger: vælg flere billeder og flyt, kopier, skjul, slet, download dem eller opret et hurtigt delingslink (se afsnit 7).
 - [ ] `v1` Skjul enkelte billeder for kunden uden at slette filen.
 - [ ] `v1` "Mere"-menu: anvend preset, kopier indstillinger fra et andet galleri, download originaler og slet galleri.
 
 ## 4. Galleri-editor: design
 
-- [ ] `MVP` Live preview i editoren med skift mellem desktop og mobil.
-- [ ] `MVP` **Cover:** flere cover-layouts med titel, dato, fotografens navn og en "Se galleri"-knap.
-- [ ] `MVP` **Grid-stil:** Vertikal (masonry i kolonner) og Horisontal (rækker med ens højde).
-- [ ] `v1` **Typografi:** kuraterede skrifttype-par til overskrift og brødtekst.
-- [ ] `v1` **Farve:** farvetemaerne Lys, Sand, Mørk og Sort samt en valgfri accentfarve.
-- [ ] `v1` **Thumbnail-størrelse:** Normal / Stor.
-- [ ] `v1` **Grid-afstand:** Normal / Stor.
-- [ ] `v1` **Navigationsstil:** Kun ikon / Ikon og tekst.
+- [x] `MVP` Live preview i editoren med skift mellem desktop og mobil.
+- [x] `MVP` **Cover:** flere cover-layouts med titel, dato, fotografens navn og en "Se galleri"-knap.
+- [x] `MVP` **Grid-stil:** Vertikal (masonry i kolonner) og Horisontal (rækker med ens højde).
+- [x] `v1` **Typografi:** kuraterede skrifttype-par til overskrift og brødtekst.
+- [x] `v1` **Farve:** farvetemaerne Lys, Sand, Mørk og Sort samt en valgfri accentfarve.
+- [x] `v1` **Thumbnail-størrelse:** Normal / Stor.
+- [x] `v1` **Grid-afstand:** Normal / Stor.
+- [x] `v1` **Navigationsstil:** Kun ikon / Ikon og tekst.
 - [ ] `v1` Design-presets: gem et design og brug det som standard for nye gallerier.
 
 De konkrete layouts, skrifttyper og farver beskrives i [DESIGN.md](DESIGN.md).
@@ -79,8 +79,8 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 
 ### 5.1 Generelt
 
-- [ ] `MVP` Galleri-URL (slug): unik og autogenereret ud fra navnet med korrekt translitterering af æ, ø og å, så "Rørvig" bliver til `roervig` og ikke `rrvig`.
-- [ ] `v1` Kunde tilknyttet galleriet (navn og e-mail). Bruges til deling og notifikationer, ikke som CRM.
+- [x] `MVP` Galleri-URL (slug): unik og autogenereret ud fra navnet med korrekt translitterering af æ, ø og å, så "Rørvig" bliver til `roervig` og ikke `rrvig`.
+- [x] `v1` Kunde tilknyttet galleriet (navn og e-mail). Bruges til deling og notifikationer, ikke som CRM.
 - [ ] `v1` Kategori-tags, fx bryllup, familie eller udendørs.
 - [ ] `v1` Standard-vandmærke: vælg blandt vandmærkerne fra de globale indstillinger, eller intet.
 - [ ] `v1` Auto-udløb: galleriet skjules automatisk på en bestemt dato, og kunden kan få en påmindelsesmail et antal dage før.
@@ -92,7 +92,7 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 
 ### 5.2 Privatliv
 
-- [ ] `MVP` Galleri-adgangskode med en "Generer"-knap.
+- [x] `MVP` Galleri-adgangskode med en "Generer"-knap.
 - [ ] `v1` Vis på forsiden til/fra (standard: fra).
 
 **Gæsteadgang og kundeadgang:**
@@ -109,8 +109,8 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ### 5.3 Download
 
-- [ ] `MVP` Fotodownload til/fra.
-- [ ] `MVP` Downloadstørrelser: Høj opløsning (Original eller 3600px) og/eller Webstørrelse (2048, 1024 eller 640px). Fotografen bestemmer, hvilke kunden kan vælge imellem.
+- [x] `MVP` Fotodownload til/fra.
+- [x] `MVP` Downloadstørrelser: Høj opløsning (Original eller 3600px) og/eller Webstørrelse (2048, 1024 eller 640px). Fotografen bestemmer, hvilke kunden kan vælge imellem.
 - [ ] `v1` Download-PIN: kunden skal indtaste en 4-cifret PIN for at downloade.
 - [ ] `v1` Avancerede indstillinger: begræns download til udvalgte sektioner.
 - [ ] `v1` Download af enkeltbilleder til/fra, adskilt fra "download alle".
@@ -120,11 +120,11 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ### 5.4 Favoritter
 
-- [ ] `MVP` Favoritter til/fra.
-- [ ] `MVP` Favoritter knyttes til en e-mail (kunden bliver spurgt første gang), så fotografen kan se, hvem der har valgt hvad.
+- [x] `MVP` Favoritter til/fra.
+- [x] `MVP` Favoritter knyttes til en e-mail (kunden bliver spurgt første gang), så fotografen kan se, hvem der har valgt hvad.
 - [ ] `v1` Favoritnoter: kunden kan skrive en note til et favoritmarkeret billede.
 - [ ] `v1` Foruddefinerede favoritlister med en grænse for antal valg, fx "Album: vælg 30", "Retouchering: vælg 5" og "Gratis downloads: vælg 10".
-- [ ] `v1` Eksport af en favoritliste som filnavne, klar til at indsætte i en søgning i Lightroom, eller som CSV.
+- [x] `v1` Eksport af en favoritliste som filnavne, klar til at indsætte i en søgning i Lightroom, eller som CSV.
 - [ ] `v1` Flere favoritlister: kunden kan oprette flere lister med eget navn, fx "Til væggen" eller "Til farmor". Listerne gemmes under kundens e-mail, så de er der igen ved næste besøg.
 - [ ] `v1` "Send til fotografen": kunden markerer en liste som færdig, og fotografen får besked.
 
@@ -156,9 +156,9 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ## 7. Deling og preview
 
-- [ ] `MVP` Kopier galleri-link (og eventuelt adgangskode).
-- [ ] `MVP` Preview: se galleriet som kunden. Det tæller ikke med i aktiviteten.
-- [ ] `MVP` Send galleriet til kunden via e-mail direkte fra admin (se afsnit 19). Ved kundeadgang kan gæstelinket og kundeadgangskoden sendes hver for sig.
+- [x] `MVP` Kopier galleri-link (og eventuelt adgangskode).
+- [x] `MVP` Preview: se galleriet som kunden. Det tæller ikke med i aktiviteten.
+- [x] `MVP` Send galleriet til kunden via e-mail direkte fra admin (se afsnit 19). Ved kundeadgang kan gæstelinket og kundeadgangskoden sendes hver for sig.
 - [ ] `v1` **Hurtige delingslinks:** vælg billeder i admin og opret et link, der kun viser de valgte billeder. Det er nyttigt til leverandører, samarbejdspartnere og presse.
 - [ ] `v1` Hvert hurtige delingslink har et navn, download til/fra (med valg af størrelse) og eventuelt en udløbsdato og en adgangskode.
 - [ ] `v1` Hurtige delingslinks er uafhængige af galleriets adgangskode og status. Modtageren ser kun de valgte billeder og kan ikke komme videre til resten af galleriet.
@@ -166,26 +166,26 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ## 8. Kundeoplevelse
 
-- [ ] `MVP` Cover-side med titel, dato, fotografens navn og logo samt en "Se galleri"-knap.
-- [ ] `MVP` Topbar med galleri-navn, sektionsnavigation og ikoner for butik, kurv, favoritter, download og del.
-- [ ] `MVP` Responsivt grid med lazy loading, responsive billedstørrelser og slørede pladsholdere.
-- [ ] `MVP` Lightbox i fuldskærm: swipe på mobil, piletaster på desktop, pinch-zoom samt knapper til favorit, download og køb.
-- [ ] `MVP` Favoritmarkering fra både grid og lightbox, og en visning af kun favoritter.
-- [ ] `MVP` Adgangskodeside for beskyttede gallerier.
+- [x] `MVP` Cover-side med titel, dato, fotografens navn og logo samt en "Se galleri"-knap.
+- [x] `MVP` Topbar med galleri-navn, sektionsnavigation og ikoner for butik, kurv, favoritter, download og del.
+- [x] `MVP` Responsivt grid med lazy loading, responsive billedstørrelser og slørede pladsholdere.
+- [x] `MVP` Lightbox i fuldskærm: swipe på mobil, piletaster på desktop, pinch-zoom samt knapper til favorit, download og køb.
+- [x] `MVP` Favoritmarkering fra både grid og lightbox, og en visning af kun favoritter.
+- [x] `MVP` Adgangskodeside for beskyttede gallerier.
 - [ ] `v1` Slideshow.
 - [ ] `v1` Kampagnebanner øverst i galleriet, fx "Gratis fragt på ordrer over 499 kr. Brug koden FRAGT". Det kan lukkes.
 - [ ] `v1` Side for udløbne gallerier med kontaktinfo til fotografen.
-- [ ] `v1` Del-knap: kopier link, eller brug den indbyggede delingsfunktion på mobil.
+- [x] `v1` Del-knap: kopier link, eller brug den indbyggede delingsfunktion på mobil.
 - [ ] `v1` "Log ind som kunde" i menuen. Når kunden er logget ind, vises det diskret i headeren, og "Markér som privat" findes i lightboxen og i massevalg.
 - [ ] `v1` Favoritlister: opret, omdøb, skift mellem og del lister direkte fra favoritvisningen.
 - [ ] `v1` Visning af en privat delt liste: en enkel side med listens navn, fotografens navn og listens billeder. Der er ingen navigation til resten af galleriet.
 
 ## 9. Download-flow for kunden
 
-- [ ] `MVP` Download hele galleriet, en sektion, favoritterne eller et enkelt billede.
-- [ ] `MVP` Valg af størrelse blandt dem, fotografen har tilladt.
-- [ ] `MVP` ZIP-filen streames, så downloaden starter med det samme uden ventetid på pakning.
-- [ ] `MVP` På mobil kan et enkelt billede gemmes direkte i fotoappen via den indbyggede delingsfunktion.
+- [x] `MVP` Download hele galleriet, en sektion, favoritterne eller et enkelt billede.
+- [x] `MVP` Valg af størrelse blandt dem, fotografen har tilladt.
+- [x] `MVP` ZIP-filen streames, så downloaden starter med det samme uden ventetid på pakning.
+- [x] `MVP` På mobil kan et enkelt billede gemmes direkte i fotoappen via den indbyggede delingsfunktion.
 - [ ] `v1` Download-PIN og e-mailkrav håndteres i samme flow uden at forlade siden.
 - [ ] `v1` Meget store downloads kan deles op i flere ZIP-filer.
 
@@ -299,29 +299,29 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 
 ### 19.1 Afsendelse og opsætning
 
-- [ ] `MVP` SMTP-opsætning i admin: server, port, kryptering (TLS/STARTTLS), brugernavn og adgangskode. Kan også sættes via miljøvariabler.
-- [ ] `MVP` Afsenderen vises med studiets navn (fx "Fotograf Sebastian") og egen afsenderadresse. Svar fra kunden går direkte til fotografens e-mail (Reply-To).
-- [ ] `MVP` "Send testmail" med en tydelig og forståelig fejlbesked, hvis opsætningen ikke virker.
-- [ ] `MVP` Mails sendes i baggrunden og forsøges igen automatisk ved midlertidige fejl.
+- [x] `MVP` SMTP-opsætning i admin: server, port, kryptering (TLS/STARTTLS), brugernavn og adgangskode. Kan også sættes via miljøvariabler.
+- [x] `MVP` Afsenderen vises med studiets navn (fx "Fotograf Sebastian") og egen afsenderadresse. Svar fra kunden går direkte til fotografens e-mail (Reply-To).
+- [x] `MVP` "Send testmail" med en tydelig og forståelig fejlbesked, hvis opsætningen ikke virker.
+- [x] `MVP` Mails sendes i baggrunden og forsøges igen automatisk ved midlertidige fejl.
 - [ ] `v1` Forudfyldte indstillinger og en kort guide for almindelige udbydere (fx Google Workspace, Microsoft 365, Simply, One.com, Brevo og Postmark), herunder SPF og DKIM, så mails ikke havner i spam.
 
 ### 19.2 Levering af galleri
 
-- [ ] `MVP` "Send galleri" fra Del-knappen i admin: modtagere (én eller flere, forudfyldt med kundens e-mail), skabelon, emne og besked.
-- [ ] `MVP` Fotografen vælger, hvad mailen indeholder: link til galleriet og eventuelt adgangskoden. Ved kundeadgang (afsnit 5.2) kan kundeadgangskoden sendes til kunden og gæstelinket til andre.
-- [ ] `MVP` Forhåndsvisning af mailen præcis som kunden ser den, og "Send test til mig selv", før den sendes.
-- [ ] `MVP` En smuk HTML-mail med studiets logo eller navn, galleriets titel med versaler, coverbilledet, beskeden og en tydelig knap, "Se galleriet". Coverbilledet er indlejret i mailen, så det vises med det samme.
-- [ ] `MVP` Mailen ser godt ud i både lys og mørk tilstand og på mobil og har en ren tekstversion.
-- [ ] `MVP` "Publicer og send" i ét trin, hvis galleriet stadig er en kladde.
-- [ ] `MVP` Afsendelseslog per galleri: modtager, tidspunkt, skabelon og status (sendt eller fejlet), og mulighed for at sende igen.
+- [x] `MVP` "Send galleri" fra Del-knappen i admin: modtagere (én eller flere, forudfyldt med kundens e-mail), skabelon, emne og besked.
+- [x] `MVP` Fotografen vælger, hvad mailen indeholder: link til galleriet og eventuelt adgangskoden. Ved kundeadgang (afsnit 5.2) kan kundeadgangskoden sendes til kunden og gæstelinket til andre.
+- [x] `MVP` Forhåndsvisning af mailen præcis som kunden ser den, og "Send test til mig selv", før den sendes.
+- [x] `MVP` En smuk HTML-mail med studiets logo eller navn, galleriets titel med versaler, coverbilledet, beskeden og en tydelig knap, "Se galleriet". Coverbilledet er indlejret i mailen, så det vises med det samme.
+- [x] `MVP` Mailen ser godt ud i både lys og mørk tilstand og på mobil og har en ren tekstversion.
+- [x] `MVP` "Publicer og send" i ét trin, hvis galleriet stadig er en kladde.
+- [x] `MVP` Afsendelseslog per galleri: modtager, tidspunkt, skabelon og status (sendt eller fejlet), og mulighed for at sende igen.
 - [ ] `v1` Send senere: planlæg afsendelsen til et bestemt tidspunkt.
 - [ ] `v1` Kopiér invitationsteksten med link til brug i SMS eller Messenger.
 
 ### 19.3 Skabeloner
 
-- [ ] `MVP` Flere navngivne skabeloner til levering af gallerier, fx "Tidlig levering" og "Bryllup", hver med emne og besked. Én skabelon er standard.
-- [ ] `MVP` Flettefelter i emne og besked: `{client_name}`, `{gallery_name}`, `{gallery_link}`, `{password}`, `{studio_name}` og `{event_date}`.
-- [ ] `MVP` Skabelonerne administreres under Indstillinger → E-mail-skabeloner.
+- [x] `MVP` Flere navngivne skabeloner til levering af gallerier, fx "Tidlig levering" og "Bryllup", hver med emne og besked. Én skabelon er standard.
+- [x] `MVP` Flettefelter i emne og besked: `{client_name}`, `{gallery_name}`, `{gallery_link}`, `{password}`, `{studio_name}` og `{event_date}`.
+- [x] `MVP` Skabelonerne administreres under Indstillinger → E-mail-skabeloner.
 - [ ] `v1` Skabelon til udløbspåmindelse.
 - [ ] `v1` Skabeloner til butikken: ordrebekræftelse, digital levering, afsendt og refundering.
 - [ ] `v1` Skabeloner per sprog, så mailen automatisk følger galleriets sprog.
@@ -335,9 +335,9 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 
 ## 20. Globale indstillinger
 
-- [ ] `MVP` Studie-branding: studienavn, logo og kontaktinfo (e-mail, telefon og website).
+- [x] `MVP` Studie-branding: studienavn, logo og kontaktinfo (e-mail, telefon og website).
 - [ ] `v1` Cover-logo: en lys version af logoet til brug oven på coverbilleder, samt favicon.
-- [ ] `MVP` Admin-konto: skift e-mail og adgangskode.
+- [x] `MVP` Admin-konto: skift e-mail og adgangskode.
 - [ ] `v1` Vandmærker af tekst eller billede med valg af position, størrelse og gennemsigtighed. Der kan være flere vandmærker. De lægges på billederne i `/cache`, aldrig på originalerne.
 - [ ] `v1` Standardindstillinger for nye gallerier: design, download, favoritter, butik og sprog.
 - [ ] `v1` Standardsprog for nye gallerier.
@@ -347,8 +347,8 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 
 ## 21. Sprog
 
-- [ ] `MVP` Al tekst i både kunde- og admininterfacet hentes fra oversættelsesfiler (i18n) fra første linje kode, så intet er hardcodet.
-- [ ] `MVP` Engelsk er første sprog og standardsprog.
+- [x] `MVP` Al tekst i både kunde- og admininterfacet hentes fra oversættelsesfiler (i18n) fra første linje kode, så intet er hardcodet.
+- [x] `MVP` Engelsk er første sprog og standardsprog.
 - [ ] `v1` Dansk.
 - [ ] `v1` Sprog kan vælges per galleri for kundevisningen og separat for admin.
 - [ ] `v1` Formatering af dato, tal og valuta følger sproget, fx `DKK 1,320.00` på engelsk og `1.320,00 kr.` på dansk.
@@ -356,25 +356,25 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 
 ## 22. Sikkerhed og adgang
 
-- [ ] `MVP` Admin-login med sikker hashing af adgangskoder og rate limiting.
-- [ ] `MVP` Billeder serveres kun gennem appen med adgangskontrol. Originaler kan ikke hentes direkte uden tilladelse.
-- [ ] `MVP` Rate limiting på galleri-adgangskoder og download-PIN.
+- [x] `MVP` Admin-login med sikker hashing af adgangskoder og rate limiting.
+- [x] `MVP` Billeder serveres kun gennem appen med adgangskontrol. Originaler kan ikke hentes direkte uden tilladelse.
+- [x] `MVP` Rate limiting på galleri-adgangskoder og download-PIN.
 - [ ] `v1` Delingslinks (hurtige delingslinks og delte favoritlister) bruger lange, tilfældige nøgler, som ikke kan gættes, og de kan tilbagekaldes. Serveren kontrollerer adgangen til hvert billede ud fra linkets rettigheder. Rate limiting gælder også kundeadgangskoden.
-- [ ] `MVP` Gallerier og billeder bliver ikke indekseret af søgemaskiner (`noindex`).
-- [ ] `MVP` CSRF-beskyttelse, sikre cookies og sikkerhedsheaders.
+- [x] `MVP` Gallerier og billeder bliver ikke indekseret af søgemaskiner (`noindex`).
+- [x] `MVP` CSRF-beskyttelse, sikre cookies og sikkerhedsheaders.
 - [ ] `v1` Tofaktorgodkendelse (TOTP) til admin.
 - [ ] `v1` GDPR: kundedata kan eksporteres og slettes, og der bruges ingen tredjeparts-tracking. Ordrer bevares af hensyn til bogføringen.
 
 ## 23. Drift: Docker, backup og opdateringer
 
 - [ ] `MVP` Officielt multi-arch Docker-image (`amd64` og `arm64`), der publiceres automatisk.
-- [ ] `MVP` Volumes til `/photos`, `/data` og `/cache` samt `PUID`, `PGID` og `TZ`.
-- [ ] `MVP` Konfiguration via miljøvariabler, fx `BASE_URL`.
-- [ ] `MVP` Opsætningsguide første gang: opret admin, angiv studienavn og vælg sprog.
-- [ ] `MVP` Healthcheck og logs til stdout.
-- [ ] `MVP` Automatiske databasemigreringer ved opdatering.
+- [x] `MVP` Volumes til `/photos`, `/data` og `/cache` samt `PUID`, `PGID` og `TZ`.
+- [x] `MVP` Konfiguration via miljøvariabler, fx `BASE_URL`.
+- [x] `MVP` Opsætningsguide første gang: opret admin, angiv studienavn og vælg sprog.
+- [x] `MVP` Healthcheck og logs til stdout.
+- [x] `MVP` Automatiske databasemigreringer ved opdatering.
 - [ ] `v1` Backup og gendannelse af `/data` fra admin.
-- [ ] `v1` Eksempel på `docker-compose.yml` og guide til reverse proxy med HTTPS.
+- [x] `v1` Eksempel på `docker-compose.yml` og guide til reverse proxy med HTTPS.
 - [ ] `Senere` Besked i admin, når en ny version er udgivet.
 
 ---
