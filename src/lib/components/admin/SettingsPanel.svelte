@@ -15,9 +15,10 @@
 		languages: string[];
 		watermarks: { id: string; name: string }[];
 		form: { error?: string; section?: string } | null;
+		store: { enabled: boolean; priceLists: { id: string; name: string; isDefault: boolean }[] };
 	}
 
-	let { gallery, sections, baseUrl, languages, watermarks, form }: Props = $props();
+	let { gallery, sections, baseUrl, languages, watermarks, form, store }: Props = $props();
 	const { t, formatDate } = useI18n();
 
 	// svelte-ignore state_referenced_locally
@@ -302,6 +303,30 @@
 				</div>
 			{/if}
 		</fieldset>
+		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
+	</form>
+
+	<form class="card block" method="POST" action="?/store" use:enhance={saved}>
+		<div class="title-row">
+			<h3>{t('admin.store.title')}</h3>
+			<span class="badge" class:on={gallery.storeEnabled && store.enabled}>{gallery.storeEnabled && store.enabled ? t('common.on') : t('common.off')}</span>
+		</div>
+		{#if !store.enabled}<p class="hint">{t('admin.galleryStore.globalOff')} <a href="/admin/store?tab=settings">{t('admin.nav.store')}</a></p>{/if}
+		<label class="switch">
+			<input type="checkbox" name="storeEnabled" checked={gallery.storeEnabled} />
+			<span>{t('admin.galleryStore.enabled')}</span>
+		</label>
+		{#if store.priceLists.length === 0}
+			<p class="hint">{t('admin.galleryStore.noPriceLists')} <a href="/admin/store?tab=pricelists">{t('admin.store.tab.pricelists')}</a></p>
+		{:else}
+			<label class="field">
+				<span>{t('admin.galleryStore.priceList')}</span>
+				<select name="priceListId" value={gallery.priceListId ?? ''}>
+					<option value="">{t('admin.galleryStore.useDefault', { name: store.priceLists.find((l) => l.isDefault)?.name ?? '' })}</option>
+					{#each store.priceLists as list (list.id)}<option value={list.id}>{list.name}</option>{/each}
+				</select>
+			</label>
+		{/if}
 		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
 	</form>
 

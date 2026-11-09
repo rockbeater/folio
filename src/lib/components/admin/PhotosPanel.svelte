@@ -161,7 +161,7 @@
 		if (action === 'delete' && !confirm(t('admin.bulk.deleteConfirm', { count: ids.length }))) return;
 		let result;
 		if (action === 'hide' || action === 'show') result = await callAction('hidePhotos', { ids, hidden: action === 'hide' });
-		else if (action === 'delete') result = await callAction('deletePhotos', { ids });
+		else if (action === 'delete') result = await deletePhotos(ids);
 		else {
 			if (!target) return;
 			result = await callAction('movePhotos', { ids, sectionId: target, mode: action });
@@ -211,7 +211,18 @@
 
 	async function remove(id: string) {
 		if (!confirm(t('admin.editor.deletePhotoConfirm'))) return;
-		await callAction('deletePhotos', { ids: [id] });
+		await deletePhotos([id]);
+	}
+
+	/** Delete, asking again when photos are part of orders that are not finished. */
+	async function deletePhotos(ids: string[]) {
+		const result = await callAction('deletePhotos', { ids });
+		if (result.type === 'failure' && result.status === 409) {
+			const count = (result.data as { inOrders?: number } | undefined)?.inOrders ?? 0;
+			if (!confirm(t('admin.store.photoInOrder', { count }))) return result;
+			return callAction('deletePhotos', { ids, force: true });
+		}
+		return result;
 	}
 
 	function onDragOver(event: DragEvent, overId: string) {

@@ -18,7 +18,9 @@ import {
 import { cancelScheduledEmail, queueGalleryEmail, resendEmail, sendGalleryTest } from '$lib/server/mail/send';
 import { listTemplates, pickTemplate } from '$lib/server/mail/templates';
 import { galleryValuesFromSettings, getPreset, listPresets, savePreset, settingsFromGallery } from '$lib/server/presets';
-import { getStudio, isSmtpConfigured } from '$lib/server/settings';
+import { getStore, getStudio, isSmtpConfigured } from '$lib/server/settings';
+import { getPriceList, listPriceLists } from '$lib/server/store/catalog';
+import { ordersForGallery, photosInOpenOrders } from '$lib/server/store/orders';
 import { createShareLink, deleteShareLink, getShareLink, listShareLinks, updateShareLink, type ShareLinkInput } from '$lib/server/shares';
 import { listWatermarks } from '$lib/server/watermarks';
 import { slugify } from '$lib/slug';
@@ -221,6 +223,8 @@ export const load: PageServerLoad = ({ params, url }) => {
 			download: normalizeDownload(gallery.download),
 			options: normalizeOptions(gallery.options),
 			access: normalizeAccess(gallery.access),
+			storeEnabled: gallery.storeEnabled,
+			priceListId: gallery.priceListId,
 			favoritesEnabled: gallery.favoritesEnabled,
 			language: gallery.language,
 			clientName: gallery.clientName,
@@ -255,6 +259,12 @@ export const load: PageServerLoad = ({ params, url }) => {
 			.orderBy(desc(schema.galleries.createdAt))
 			.all(),
 		languages: [...SUPPORTED_LANGUAGES],
+		store: {
+			enabled: getStore().enabled,
+			currency: getStore().currency,
+			priceLists: listPriceLists().map((l) => ({ id: l.id, name: l.name, isDefault: l.isDefault })),
+			orders: ordersForGallery(gallery.id).map((o) => ({ id: o.id, number: o.number, status: o.status, name: o.name, total: o.total, currency: o.currency, createdAt: o.createdAt }))
+		},
 		smtpConfigured: isSmtpConfigured(),
 		adminEmail: getStudio().email,
 		baseUrl: baseUrlFor(url)
@@ -430,7 +440,11 @@ export const actions: Actions = {
 	deletePhotos: async ({ params, request }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
-		await trashPhotos(gallery, f.json<string[]>('ids') ?? []);
+		const ids = f.json<string[]>('ids') ?? [];
+		// Warn before deleting photos that are part of an order that is not finished.
+		const inOrders = photosInOpenOrders(ids);
+		if (inOrders.length > 0 && !f.bool('force')) return fail(409, { inOrders: new Set(inOrders).size });
+		await trashPhotos(gallery, ids);
 		return { ok: true };
 	},
 
@@ -439,6 +453,14 @@ export const actions: Actions = {
 		const f = await formOf(request);
 		setPhotosHidden(gallery, f.json<string[]>('ids') ?? [], f.bool('hidden'));
 		return { ok: true };
+	},
+
+	store: async ({ params, request }) => {
+		const gallery = requireGallery(params.id);
+		const f = await formOf(request);
+		const priceListId = f.str('priceListId');
+		touchGallery(gallery.id, { storeEnabled: f.bool('storeEnabled'), priceListId: priceListId && getPriceList(priceListId) ? priceListId : null });
+		return { ok: true, section: 'store' };
 	},
 
 	unmarkPrivate: async ({ params, request }) => {

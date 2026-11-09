@@ -9,6 +9,7 @@
 	import Pause from '@lucide/svelte/icons/pause';
 	import Lock from '@lucide/svelte/icons/lock';
 	import LockOpen from '@lucide/svelte/icons/lock-open';
+	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, DISPLAY_WIDTHS, type PhotoView } from '$lib/types';
 
@@ -30,6 +31,8 @@
 		canMarkPrivate?: boolean;
 		isPrivate?: (photo: PhotoView) => boolean;
 		onprivate?: (id: string, value: boolean) => void;
+		canBuy?: boolean;
+		onbuy?: (id: string) => void;
 	}
 
 	let {
@@ -47,7 +50,9 @@
 		ondownload,
 		canMarkPrivate = false,
 		isPrivate = () => false,
-		onprivate = () => undefined
+		onprivate = () => undefined,
+		canBuy = false,
+		onbuy = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -269,6 +274,11 @@
 						aria-pressed={favorites.has(photo.id)}
 					>
 						<Heart size={22} strokeWidth={1.5} fill={favorites.has(photo.id) ? 'currentColor' : 'none'} />
+					</button>
+				{/if}
+				{#if canBuy}
+					<button type="button" class="icon" onclick={() => onbuy(photo.id)} aria-label={t('store.buy')} title={t('store.buy')}>
+						<ShoppingBag size={22} strokeWidth={1.5} />
 					</button>
 				{/if}
 				{#if canMarkPrivate}

@@ -21,7 +21,9 @@ export const config = {
 	scanIntervalSeconds: int('SCAN_INTERVAL_SECONDS', 60),
 	processingConcurrency: int('PROCESSING_CONCURRENCY', 2),
 	trashRetentionDays: int('TRASH_RETENTION_DAYS', 30),
-	smtpFromEnv: Boolean(process.env.SMTP_HOST)
+	smtpFromEnv: Boolean(process.env.SMTP_HOST),
+	/** Fake Stripe checkout (for development and demos). Payments go through a local page that sends a signed webhook. */
+	stripeSimulator: process.env.STRIPE_SIMULATOR === '1' || (process.env.STRIPE_SIMULATOR !== '0' && process.env.NODE_ENV !== 'production')
 };
 
 export const TRASH_FOLDER = '.trash';

@@ -41,7 +41,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `MVP` Opret galleri med navn og valgfri event-dato. Det opretter mappen i `/photos`.
 - [x] `v1` Filtrér gallerier på status og kategori-tags, søg på navn, og sortér efter dato, navn eller oprettelse.
 - [x] `v1` Søg i hele billedbiblioteket på tværs af gallerier (filnavn).
-- [ ] `v1` Nøgletal på dashboardet: nye ordrer, seneste aktivitet og gallerier, der snart udløber.
+- [x] `v1` Nøgletal på dashboardet: nye ordrer, seneste aktivitet og gallerier, der snart udløber.
 
 ## 2. Galleri og filsystem
 
@@ -55,7 +55,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `MVP` Korrekt EXIF-rotation og konvertering til sRGB ved visning. Originalerne røres aldrig.
 - [x] `MVP` Ændrede filer genbehandles automatisk, og slettede filer forsvinder fra galleriet.
 - [x] `v1` Papirkurv: billeder og sektioner, der slettes via admin, flyttes til `/photos/.trash` og tømmes efter 30 dage.
-- [ ] `v1` Advarsel, hvis man sletter et billede, der indgår i en ubehandlet ordre.
+- [x] `v1` Advarsel, hvis man sletter et billede, der indgår i en ubehandlet ordre.
 - [ ] `Senere` Valgfri `galleri.yml`, der bruges som skabelon, når et galleri oprettes fra filsystemet.
 
 ## 3. Galleri-editor: billeder og sektioner
@@ -155,8 +155,8 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ### 5.5 Butik
 
-- [ ] `v1` Butik til/fra per galleri.
-- [ ] `v1` Vælg prisliste for galleriet.
+- [x] `v1` Butik til/fra per galleri.
+- [x] `v1` Vælg prisliste for galleriet.
 - [ ] `Senere` Personaliseret produktforhåndsvisning, hvor kundens billede vises på produktet, fx i en ramme eller på et lærred.
 
 ## 6. Galleri-editor: aktivitet
@@ -166,7 +166,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` E-mailregistreringer.
 - [x] `v1` Private billeder: de billeder, kunden har markeret som private, med mulighed for at fjerne markeringen.
 - [x] `v1` Delingslinks: hurtige delingslinks og delte favoritlister med antal visninger og downloads. Hvert link kan kopieres igen, redigeres eller deaktiveres.
-- [ ] `v1` Ordrer fra dette galleri.
+- [x] `v1` Ordrer fra dette galleri.
 - [x] `v1` Simpel optælling af besøg uden tredjeparts-tracking.
 
 ## 7. Deling og preview
@@ -215,96 +215,96 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ### Prislister
 
-- [ ] `v1` Flere prislister, fx "Nordic Digital self fulfill". Én prisliste er markeret som standard og bruges til nye gallerier. Prislisten vælges per galleri.
-- [ ] `v1` Detaljer for en prisliste: navn, hvor mange gallerier den er tildelt (med link til dem), minimumsordre og antal produkter.
-- [ ] `v1` Minimumsbeløb per prisliste: kunden kan ikke gå til betaling, før kurven når beløbet.
-- [ ] `v1` Dupliker, omdøb og slet prislister, og vælg standard.
+- [x] `v1` Flere prislister, fx "Nordic Digital self fulfill". Én prisliste er markeret som standard og bruges til nye gallerier. Prislisten vælges per galleri.
+- [x] `v1` Detaljer for en prisliste: navn, hvor mange gallerier den er tildelt (med link til dem), minimumsordre og antal produkter.
+- [x] `v1` Minimumsbeløb per prisliste: kunden kan ikke gå til betaling, før kurven når beløbet.
+- [x] `v1` Dupliker, omdøb og slet prislister, og vælg standard.
 
 ### Produkter
 
-- [ ] `v1` Produkterne vises grupperet efter kategori (fx Prints, Vægbilleder og Digitalt) med billede, navn og "Fra"-pris.
-- [ ] `v1` Et produkt har navn, kategori, op til 5 produktbilleder (kvadratiske anbefales) og en beskrivelse med simpel formatering (fed, kursiv, understreget og links).
-- [ ] `v1` Produktoptioner, fx Størrelse (10x15, 13x18, 18x24, 20x30, A4, A3, 30x40, 30x45, 40x60, 50x70) og Papir (Glossy, Semi glossy). Optionerne kan sorteres med træk og slip, redigeres og slettes.
-- [ ] `v1` Variationsmatrix: alle kombinationer af optionerne oprettes automatisk. Hver kombination har sin egen pris, ekstra fragt og synlighed, så enkelte kombinationer kan skjules uden at blive slettet. Matrixen kan filtreres på alle, synlige og skjulte.
-- [ ] `v1` Produkter uden optioner har én pris og én ekstra fragt.
-- [ ] `v1` Fysiske produkter håndteres altid af fotografen selv. Digitale produkter kan kunden downloade straks efter betaling.
-- [ ] `v1` Digitale produkter: enkeltbillede (høj opløsning eller web), hel sektion eller helt galleri.
-- [ ] `v1` "Kræver intet billede": produktet kan lægges direkte i kurven uden et valgt billede, fx en USB-nøgle eller en ekstra ydelse.
-- [ ] `v1` "Momsfritaget" per produkt.
-- [ ] `v1` "Maks. én per køb" per produkt.
-- [ ] `v1` "Køb til flere billeder": kunden kan vælge flere billeder til samme produkt i ét trin.
-- [ ] `v1` Beskæringsværktøj: kunden vælger et udsnit, når billedets format ikke passer til printformatet.
+- [x] `v1` Produkterne vises grupperet efter kategori (fx Prints, Vægbilleder og Digitalt) med billede, navn og "Fra"-pris.
+- [x] `v1` Et produkt har navn, kategori, op til 5 produktbilleder (kvadratiske anbefales) og en beskrivelse med simpel formatering (fed, kursiv, understreget og links).
+- [x] `v1` Produktoptioner, fx Størrelse (10x15, 13x18, 18x24, 20x30, A4, A3, 30x40, 30x45, 40x60, 50x70) og Papir (Glossy, Semi glossy). Optionerne kan sorteres med træk og slip, redigeres og slettes.
+- [x] `v1` Variationsmatrix: alle kombinationer af optionerne oprettes automatisk. Hver kombination har sin egen pris, ekstra fragt og synlighed, så enkelte kombinationer kan skjules uden at blive slettet. Matrixen kan filtreres på alle, synlige og skjulte.
+- [x] `v1` Produkter uden optioner har én pris og én ekstra fragt.
+- [x] `v1` Fysiske produkter håndteres altid af fotografen selv. Digitale produkter kan kunden downloade straks efter betaling.
+- [x] `v1` Digitale produkter: enkeltbillede (høj opløsning eller web), hel sektion eller helt galleri.
+- [x] `v1` "Kræver intet billede": produktet kan lægges direkte i kurven uden et valgt billede, fx en USB-nøgle eller en ekstra ydelse.
+- [x] `v1` "Momsfritaget" per produkt.
+- [x] `v1` "Maks. én per køb" per produkt.
+- [x] `v1` "Køb til flere billeder": kunden kan vælge flere billeder til samme produkt i ét trin.
+- [x] `v1` Beskæringsværktøj: kunden vælger et udsnit, når billedets format ikke passer til printformatet.
 
 ## 12. Butik: kurv og checkout
 
-- [ ] `v1` "Køb"-knap på billedet: vælg produkt og variant, og læg i kurven.
-- [ ] `v1` Kurven huskes på tværs af besøg.
-- [ ] `v1` Ret antal, fjern varer og se samlet pris inkl. moms og fragt før betaling.
-- [ ] `v1` Felt til rabatkode i kurven.
-- [ ] `v1` Valg af leveringsadresse og fragtmetode. Rene digitale ordrer kræver ingen adresse.
-- [ ] `v1` Tydelig besked, hvis kurven ikke når prislistens minimumsbeløb.
-- [ ] `v1` Kunden accepterer handelsbetingelserne og, ved køb af digitale produkter, også billedlicensen.
-- [ ] `v1` Betaling via Stripe Checkout. Ordrer på 0 kr. (fx med 100 % rabat) gennemføres uden Stripe.
-- [ ] `v1` Kvitteringsside og ordrebekræftelse. Digitale produkter kan downloades straks fra kvitteringssiden og via et link i mailen.
+- [x] `v1` "Køb"-knap på billedet: vælg produkt og variant, og læg i kurven.
+- [x] `v1` Kurven huskes på tværs af besøg.
+- [x] `v1` Ret antal, fjern varer og se samlet pris inkl. moms og fragt før betaling.
+- [x] `v1` Felt til rabatkode i kurven.
+- [x] `v1` Valg af leveringsadresse og fragtmetode. Rene digitale ordrer kræver ingen adresse.
+- [x] `v1` Tydelig besked, hvis kurven ikke når prislistens minimumsbeløb.
+- [x] `v1` Kunden accepterer handelsbetingelserne og, ved køb af digitale produkter, også billedlicensen.
+- [x] `v1` Betaling via Stripe Checkout. Ordrer på 0 kr. (fx med 100 % rabat) gennemføres uden Stripe.
+- [x] `v1` Kvitteringsside og ordrebekræftelse. Digitale produkter kan downloades straks fra kvitteringssiden og via et link i mailen.
 
 ## 13. Butik: ordrer
 
-- [ ] `v1` Ordreoversigt med kolonnerne ordrenummer, status, kunde, galleri, type (fysisk/digital), dato og beløb.
-- [ ] `v1` Filtrering per kolonne (nummer, status, kunde, galleri og type) og paginering.
-- [ ] `v1` Ordrestatus: Afventer betaling, Behandles, Afsendt, Fuldført, Annulleret og Refunderet.
-- [ ] `v1` Ordredetalje: produkter med billede og filnavn, adresse, fragt, rabat, moms og betalingsstatus fra Stripe.
-- [ ] `v1` Download ordrens filer samlet til print som en ZIP, hvor filerne er navngivet efter produkt, størrelse og antal.
-- [ ] `v1` Markér som afsendt med trackingnummer, hvilket sender en mail til kunden.
-- [ ] `v1` Hel eller delvis refundering direkte fra admin via Stripe.
-- [ ] `v1` Interne noter på ordren.
-- [ ] `v1` Eksport af ordrer til CSV til bogføring.
+- [x] `v1` Ordreoversigt med kolonnerne ordrenummer, status, kunde, galleri, type (fysisk/digital), dato og beløb.
+- [x] `v1` Filtrering per kolonne (nummer, status, kunde, galleri og type) og paginering.
+- [x] `v1` Ordrestatus: Afventer betaling, Behandles, Afsendt, Fuldført, Annulleret og Refunderet.
+- [x] `v1` Ordredetalje: produkter med billede og filnavn, adresse, fragt, rabat, moms og betalingsstatus fra Stripe.
+- [x] `v1` Download ordrens filer samlet til print som en ZIP, hvor filerne er navngivet efter produkt, størrelse og antal.
+- [x] `v1` Markér som afsendt med trackingnummer, hvilket sender en mail til kunden.
+- [x] `v1` Hel eller delvis refundering direkte fra admin via Stripe.
+- [x] `v1` Interne noter på ordren.
+- [x] `v1` Eksport af ordrer til CSV til bogføring.
 - [ ] `Senere` Faktura og kvittering som PDF.
 
 ## 14. Butik: kunder
 
-- [ ] `v1` Kundeliste ud fra ordrerne: navn, e-mail, antal ordrer, samlet køb og seneste ordre.
-- [ ] `v1` Kundedetalje med ordrehistorik.
-- [ ] `v1` Eksport til CSV.
+- [x] `v1` Kundeliste ud fra ordrerne: navn, e-mail, antal ordrer, samlet køb og seneste ordre.
+- [x] `v1` Kundedetalje med ordrehistorik.
+- [x] `v1` Eksport til CSV.
 
 ## 15. Butik: moms
 
-- [ ] `v1` Momssatser per land, som fotografen selv opretter (fx Danmark 25 %). For hver sats vælges, om den også gælder fragt og digitale produkter.
-- [ ] `v1` Priser angives og vises inkl. moms, og momsbeløbet specificeres på ordren og kvitteringen.
-- [ ] `v1` Produkter kan fritages for moms (se afsnit 11).
-- [ ] `v1` Momsrapport: omsætning og opkrævet moms per periode, med eksport til CSV til momsangivelsen.
+- [x] `v1` Momssatser per land, som fotografen selv opretter (fx Danmark 25 %). For hver sats vælges, om den også gælder fragt og digitale produkter.
+- [x] `v1` Priser angives og vises inkl. moms, og momsbeløbet specificeres på ordren og kvitteringen.
+- [x] `v1` Produkter kan fritages for moms (se afsnit 11).
+- [x] `v1` Momsrapport: omsætning og opkrævet moms per periode, med eksport til CSV til momsangivelsen.
 
 ## 16. Butik: shipping
 
-- [ ] `v1` Fragtmetoder med navn, fast gebyr per ordre og forventet leveringstid, fx "Hjemmelevering, 55 kr., Danmark".
-- [ ] `v1` Hver fragtmetode gælder for ét land eller for resten af verden (international). Der kan være flere metoder per land, og der skal være mindst én metode for hvert land, man sælger til.
-- [ ] `v1` Ekstra fragt per produkt eller variation lægges oven i ordrens fragtgebyr, fx ved store vægbilleder.
-- [ ] `v1` Gratis fragt over et bestemt beløb, sat op som rabatkode (se afsnit 17).
-- [ ] `v1` Afhentning hos fotografen som en fragtmetode til 0 kr.
-- [ ] `v1` Rene digitale ordrer kræver ingen fragt.
+- [x] `v1` Fragtmetoder med navn, fast gebyr per ordre og forventet leveringstid, fx "Hjemmelevering, 55 kr., Danmark".
+- [x] `v1` Hver fragtmetode gælder for ét land eller for resten af verden (international). Der kan være flere metoder per land, og der skal være mindst én metode for hvert land, man sælger til.
+- [x] `v1` Ekstra fragt per produkt eller variation lægges oven i ordrens fragtgebyr, fx ved store vægbilleder.
+- [x] `v1` Gratis fragt over et bestemt beløb, sat op som rabatkode (se afsnit 17).
+- [x] `v1` Afhentning hos fotografen som en fragtmetode til 0 kr.
+- [x] `v1` Rene digitale ordrer kræver ingen fragt.
 - [ ] `Senere` Fragtpris efter antal eller vægt.
 
 ## 17. Butik: rabatkoder, kampagner og gavekort
 
-- [ ] `v1` Rabattyper: procent, fast beløb, gratis fragt og gratis produkt (fx et gratis print). De kan kombineres, fx 100 % rabat og gratis fragt.
-- [ ] `v1` Hver rabatkode har navn, kode, beskrivelse, startdato og eventuelt slutdato.
-- [ ] `v1` Betingelser: minimumsbeløb (fx gratis fragt over 499 kr.), maks. antal brug i alt, maks. ét brug per galleri og begrænsning til bestemte gallerier eller produkter.
-- [ ] `v1` Oversigt med fanerne Aktive, Planlagte og Inaktive og kolonnerne navn, kode, status, periode, antal brug og banner.
-- [ ] `v1` Kampagnebanner: en rabatkode kan vises som banner øverst i gallerierne.
+- [x] `v1` Rabattyper: procent, fast beløb, gratis fragt og gratis produkt (fx et gratis print). De kan kombineres, fx 100 % rabat og gratis fragt.
+- [x] `v1` Hver rabatkode har navn, kode, beskrivelse, startdato og eventuelt slutdato.
+- [x] `v1` Betingelser: minimumsbeløb (fx gratis fragt over 499 kr.), maks. antal brug i alt, maks. ét brug per galleri og begrænsning til bestemte gallerier eller produkter.
+- [x] `v1` Oversigt med fanerne Aktive, Planlagte og Inaktive og kolonnerne navn, kode, status, periode, antal brug og banner.
+- [x] `v1` Kampagnebanner: en rabatkode kan vises som banner øverst i gallerierne.
 - [ ] `Senere` Gavekort: salg og indløsning af gavekort med saldo, samt en redigerbar mail til at dele gavekortet.
 - [ ] `Senere` Automatiske rabatter uden kode, fx mængderabat.
 
 ## 18. Butik: indstillinger og Stripe
 
-- [ ] `v1` Butikken kan slås til og fra globalt for alle gallerier.
-- [ ] `v1` Butiksnavn, kontakt-e-mail og valuta, som vælges ved opsætningen.
-- [ ] `v1` Handelsbetingelser med simpel formatering, vist ved checkout.
-- [ ] `v1` Digital billedlicens med simpel formatering, vist ved checkout, når kurven indeholder digitale produkter.
-- [ ] `v1` Stripe-opsætning: indsæt nøgle, se den valideret med kontonavn, få webhooken oprettet automatisk, og skift mellem test mode og live mode.
-- [ ] `v1` Status for Stripe-forbindelsen: forbundet eller ej, test eller live, og hvornår den seneste webhook blev modtaget.
-- [ ] `v1` Ordrer markeres først som betalt, når betalingen er bekræftet via webhook.
-- [ ] `v1` Betalingsmetoder (kort, Apple Pay, Google Pay, MobilePay m.fl.) styres i Stripes dashboard uden ekstra kode. Folio angiver ikke selv betalingsmetoderne, så Checkout automatisk viser dem, der er slået til og passer til valuta og land. MobilePay kræver fx valutaen DKK, EUR, NOK eller SEK og en virksomhed i EØS.
-- [ ] `v1` Webhooken oprettes via Stripes API med de hændelser, Folio bruger. Signing secret returneres kun ved oprettelsen og gemmes med det samme. Går den tabt, sletter Folio endpointet og opretter et nyt.
-- [ ] `v1` Der kan bruges en begrænset nøgle (restricted key) i stedet for den hemmelige nøgle. Guiden viser de nødvendige rettigheder: skrive-adgang til Checkout Sessions, Webhook Endpoints og Refunds samt læse-adgang til betalinger og hændelser.
+- [x] `v1` Butikken kan slås til og fra globalt for alle gallerier.
+- [x] `v1` Butiksnavn, kontakt-e-mail og valuta, som vælges ved opsætningen.
+- [x] `v1` Handelsbetingelser med simpel formatering, vist ved checkout.
+- [x] `v1` Digital billedlicens med simpel formatering, vist ved checkout, når kurven indeholder digitale produkter.
+- [x] `v1` Stripe-opsætning: indsæt nøgle, se den valideret med kontonavn, få webhooken oprettet automatisk, og skift mellem test mode og live mode.
+- [x] `v1` Status for Stripe-forbindelsen: forbundet eller ej, test eller live, og hvornår den seneste webhook blev modtaget.
+- [x] `v1` Ordrer markeres først som betalt, når betalingen er bekræftet via webhook.
+- [x] `v1` Betalingsmetoder (kort, Apple Pay, Google Pay, MobilePay m.fl.) styres i Stripes dashboard uden ekstra kode. Folio angiver ikke selv betalingsmetoderne, så Checkout automatisk viser dem, der er slået til og passer til valuta og land. MobilePay kræver fx valutaen DKK, EUR, NOK eller SEK og en virksomhed i EØS.
+- [x] `v1` Webhooken oprettes via Stripes API med de hændelser, Folio bruger. Signing secret returneres kun ved oprettelsen og gemmes med det samme. Går den tabt, sletter Folio endpointet og opretter et nyt.
+- [x] `v1` Der kan bruges en begrænset nøgle (restricted key) i stedet for den hemmelige nøgle. Guiden viser de nødvendige rettigheder: skrive-adgang til Checkout Sessions, Webhook Endpoints og Refunds samt læse-adgang til betalinger og hændelser.
 - [ ] `Senere` Offline-betaling: kunden afgiver ordren uden at betale online, og fotografen markerer den som betalt manuelt, fx efter bankoverførsel.
 - [ ] `Senere` Ordreforsinkelse: digitale ordrer frigives først efter en valgt periode (fx 6 timer), så fotografen kan nå at gennemgå dem.
 
@@ -338,14 +338,14 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `MVP` Flettefelter i emne og besked: `{client_name}`, `{gallery_name}`, `{gallery_link}`, `{password}`, `{studio_name}` og `{event_date}`.
 - [x] `MVP` Skabelonerne administreres under Indstillinger → E-mail-skabeloner.
 - [x] `v1` Skabelon til udløbspåmindelse.
-- [ ] `v1` Skabeloner til butikken: ordrebekræftelse, digital levering, afsendt og refundering.
+- [x] `v1` Skabeloner til butikken: ordrebekræftelse, digital levering, afsendt og refundering.
 - [x] `v1` Skabeloner per sprog, så mailen automatisk følger galleriets sprog.
 
 ### 19.4 Automatiske mails og notifikationer
 
 - [x] `v1` Udløbspåmindelse et valgt antal dage før galleriet udløber. Den kan sendes til kunden og/eller til alle, der har registreret sig, favoritmarkeret eller downloadet.
-- [ ] `v1` Butiksmails: ordrebekræftelse, digital levering, afsendt (med trackingnummer) og refundering.
-- [ ] `v1` Notifikationer til fotografen: ny ordre og indsendt favoritliste.
+- [x] `v1` Butiksmails: ordrebekræftelse, digital levering, afsendt (med trackingnummer) og refundering.
+- [x] `v1` Notifikationer til fotografen: ny ordre og indsendt favoritliste.
 - [x] `v1` Alle mails sendes på galleriets sprog.
 
 ## 20. Globale indstillinger
@@ -354,7 +354,7 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `v1` Cover-logo: en lys version af logoet til brug oven på coverbilleder, samt favicon.
 - [x] `MVP` Admin-konto: skift e-mail og adgangskode.
 - [x] `v1` Vandmærker af tekst eller billede med valg af position, størrelse og gennemsigtighed. Der kan være flere vandmærker. De lægges på billederne i `/cache`, aldrig på originalerne.
-- [ ] `v1` Standardindstillinger for nye gallerier: design, download, favoritter, butik og sprog.
+- [x] `v1` Standardindstillinger for nye gallerier: design, download, favoritter, butik og sprog.
 - [x] `v1` Standardsprog for nye gallerier.
 - [x] `v1` Vis filnavne som standard (kan ændres per galleri).
 - [ ] `v1` Søgemaskine-synlighed: Ingen (standard) eller Kun forsiden. Gallerier indekseres aldrig.
@@ -366,7 +366,7 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `MVP` Engelsk er første sprog og standardsprog.
 - [x] `v1` Dansk.
 - [x] `v1` Sprog kan vælges per galleri for kundevisningen og separat for admin.
-- [ ] `v1` Formatering af dato, tal og valuta følger sproget, fx `DKK 1,320.00` på engelsk og `1.320,00 kr.` på dansk.
+- [x] `v1` Formatering af dato, tal og valuta følger sproget, fx `DKK 1,320.00` på engelsk og `1.320,00 kr.` på dansk.
 - [ ] `Senere` Flere sprog, fx svensk, norsk og tysk. Det kræver kun en ny oversættelsesfil.
 
 ## 22. Sikkerhed og adgang

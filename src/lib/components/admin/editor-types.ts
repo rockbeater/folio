@@ -30,6 +30,8 @@ export interface EditorGallery {
 	download: DownloadSettings;
 	options: GalleryOptions;
 	access: GalleryAccess;
+	storeEnabled: boolean;
+	priceListId: string | null;
 	favoritesEnabled: boolean;
 	language: string;
 	clientName: string | null;

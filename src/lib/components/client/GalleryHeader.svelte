@@ -5,6 +5,8 @@
 	import Play from '@lucide/svelte/icons/play';
 	import Lock from '@lucide/svelte/icons/lock';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+	import Store from '@lucide/svelte/icons/store';
 	import { useI18n } from '$lib/i18n';
 	import type { NavStyle, SectionView } from '$lib/types';
 
@@ -30,6 +32,10 @@
 		onclientlogin?: () => void;
 		onclientlogout?: () => void;
 		onselect?: () => void;
+		/** Store: show the shop and the cart. */
+		showStore?: boolean;
+		cartCount?: number;
+		storeActive?: boolean;
 	}
 
 	let {
@@ -52,7 +58,10 @@
 		canSelect = false,
 		onclientlogin = () => undefined,
 		onclientlogout = () => undefined,
-		onselect = () => undefined
+		onselect = () => undefined,
+		showStore = false,
+		cartCount = 0,
+		storeActive = false
 	}: Props = $props();
 	let menu = $state<HTMLDetailsElement>();
 	const hasMenu = $derived(clientLogin || canSelect);
@@ -91,6 +100,17 @@
 		{/if}
 
 		<div class="actions">
+			{#if showStore}
+				<a class="icon" class:text={withText} href="/g/{slug}/store" aria-current={storeActive ? 'page' : undefined} aria-label={t('store.shop')}>
+					<Store size={22} strokeWidth={1.5} />
+					{#if withText}<span class="label">{t('store.shop')}</span>{/if}
+				</a>
+				<a class="icon" class:text={withText} href="/g/{slug}/cart" aria-label={t('store.cart')}>
+					<ShoppingBag size={22} strokeWidth={1.5} />
+					{#if withText}<span class="label">{t('store.cart')}</span>{/if}
+					{#if cartCount > 0}<span class="badge tabular">{cartCount}</span>{/if}
+				</a>
+			{/if}
 			{#if showFavorites}
 				<a
 					class="icon"

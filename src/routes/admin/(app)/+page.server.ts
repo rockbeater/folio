@@ -1,3 +1,4 @@
+import { listOrders } from '$lib/server/store/orders';
 import { fail, redirect } from '@sveltejs/kit';
 import { desc, eq, like, ne } from 'drizzle-orm';
 import { config } from '$lib/server/config';
@@ -85,6 +86,7 @@ export const load: PageServerLoad = ({ url }) => {
 		results,
 		recent,
 		expiring,
+		newOrders: listOrders({ status: 'processing' }).all.map((o) => ({ id: o.id, number: o.number, name: o.name, total: o.total, currency: o.currency, createdAt: o.createdAt })),
 		library: { path: config.photosDir, available: libraryState.available, scanning: libraryState.scanning }
 	};
 };

@@ -28,7 +28,9 @@ export function settingsFromGallery(g: Gallery): PresetSettings {
 		watermarkId: g.watermarkId,
 		expiryDays,
 		reminderDays: g.reminderDays,
-		access: { ...normalizeAccess(g.access), clientPassword: null, clientSections: [] }
+		access: { ...normalizeAccess(g.access), clientPassword: null, clientSections: [] },
+		storeEnabled: g.storeEnabled,
+		priceListId: g.priceListId
 	};
 }
 
@@ -75,7 +77,9 @@ export function galleryValuesFromSettings(settings: PresetSettings) {
 		watermarkId: settings.watermarkId ?? null,
 		expiresOn: settings.expiryDays ? addDays(settings.expiryDays) : null,
 		reminderDays: settings.reminderDays ?? null,
-		access: { ...normalizeAccess(settings.access ?? DEFAULT_ACCESS), clientPassword: null, clientSections: [] as string[] }
+		access: { ...normalizeAccess(settings.access ?? DEFAULT_ACCESS), clientPassword: null, clientSections: [] as string[] },
+		storeEnabled: settings.storeEnabled ?? false,
+		priceListId: settings.priceListId ?? null
 	};
 }
 

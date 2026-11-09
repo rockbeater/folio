@@ -120,6 +120,13 @@ New folders show up in the admin as drafts within a minute. Folio writes a small
 | `UPLOAD_MAX_MB` | `500` | Maximum size of one uploaded file. |
 | `TRASH_RETENTION_DAYS` | `30` | Days before deleted photos are removed from `/photos/.trash`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` | – | Optional. Email settings can also be entered in the admin; environment variables win. `SMTP_SECURITY` is `starttls`, `tls` or `none`. |
+| `STRIPE_SIMULATOR` | `0` in Docker | `1` turns on a simulated payment page when no Stripe key is set, so the whole order flow can be tried without Stripe. Never use it for real sales. |
+
+### Store and Stripe
+
+The store is off until you open it under **Store → Settings**. Choose the currency first, then add a price list with products, VAT rates and shipping methods, and turn on the store for each gallery under **Settings → Store**.
+
+To take payments, paste a Stripe secret key or a restricted key under **Store → Settings**. Folio checks the key, creates the webhook endpoint `<BASE_URL>/api/stripe/webhook` itself and stores its signing secret. Stripe must be able to reach that address, so set `BASE_URL` to your public HTTPS address. Orders are only marked as paid when the signed webhook arrives. Use a test key (`sk_test_…` or `rk_test_…`) and Stripe's test cards to try everything before you switch to a live key.
 
 ### HTTPS
 

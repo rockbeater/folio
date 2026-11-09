@@ -3,6 +3,7 @@
 	import Download from '@lucide/svelte/icons/download';
 	import Check from '@lucide/svelte/icons/check';
 	import Lock from '@lucide/svelte/icons/lock';
+	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import { useI18n } from '$lib/i18n';
 	import { displaySrcset, displayUrl, type GridSize, type GridStyle, type PhotoView } from '$lib/types';
 
@@ -23,6 +24,8 @@
 		/** When set, clicking a photo selects it instead of opening it. */
 		selection?: Set<string> | null;
 		onselect?: (id: string) => void;
+		canBuy?: boolean;
+		onbuy?: (id: string) => void;
 	}
 
 	let {
@@ -39,7 +42,9 @@
 		ondownload,
 		isPrivate = () => false,
 		selection = null,
-		onselect = () => undefined
+		onselect = () => undefined,
+		canBuy = false,
+		onbuy = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -122,8 +127,13 @@
 		</button>
 		{#if selection}
 			<span class="check" aria-hidden="true">{#if selection.has(photo.id)}<Check size={16} strokeWidth={2.5} />{/if}</span>
-		{:else if canFavorite || canDownload}
+		{:else if canFavorite || canDownload || canBuy}
 			<div class="actions">
+				{#if canBuy}
+					<button type="button" onclick={() => onbuy(photo.id)} aria-label={t('store.buy')}>
+						<ShoppingBag size={20} strokeWidth={1.5} />
+					</button>
+				{/if}
 				{#if canFavorite}
 					<button
 						type="button"

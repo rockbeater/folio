@@ -2,7 +2,7 @@ import { getContext, setContext } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { MessageKey } from '$lib/i18n';
 import { toast } from '$lib/toast.svelte';
-import type { ListView } from '$lib/types';
+import type { ListView, PhotoView } from '$lib/types';
 
 export type DownloadScope = 'all' | 'section' | 'favorites' | 'photo';
 
@@ -47,6 +47,10 @@ export class GalleryState {
 	/** Multi-select (the client marks several photos private at once). */
 	selecting = $state(false);
 	selection = new SvelteSet<string>();
+	/** Store: whether photos can be bought, the number of items in the cart and the open buy dialog. */
+	canBuy = $state(false);
+	cartCount = $state(0);
+	buy = $state<{ photo: PhotoView | null; photos: PhotoView[]; productId?: string } | null>(null);
 	private t: Init['t'];
 
 	constructor(init: Init) {

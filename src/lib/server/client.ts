@@ -9,6 +9,7 @@ import { getGalleryBySlug, getPhotosBySection, getSections, publicGallery, toPho
 import { activeListId, getListByToken, listPhotoIds, listViews } from './lists';
 import { getPreferences, getStudio } from './settings';
 import { isLinkOpen } from './shares';
+import { bannerCoupon } from './store/catalog';
 import { getWatermark, watermarkKey } from './watermarks';
 import { normalizeAccess, normalizeDesign, normalizeOptions, type ListView, type Role } from '$lib/types';
 
@@ -185,9 +186,13 @@ export function studioForClients() {
 }
 
 /** The announcement banner for a gallery, if one is set up and enabled. */
-export function bannerFor(gallery: Gallery): { text: string; code: string } | null {
+export function bannerFor(gallery: Gallery, storeOpen = false): { text: string; code: string } | null {
+	if (!normalizeOptions(gallery.options).banner) return null;
+	// A coupon marked as banner wins over the general announcement while the gallery's store is open.
+	const coupon = storeOpen ? bannerCoupon(gallery.id) : null;
+	if (coupon) return { text: coupon.description.trim() || coupon.name, code: coupon.code };
 	const { banner } = getPreferences();
-	if (!banner.enabled || !banner.text.trim() || !normalizeOptions(gallery.options).banner) return null;
+	if (!banner.enabled || !banner.text.trim()) return null;
 	return { text: banner.text.trim(), code: banner.code.trim() };
 }
 

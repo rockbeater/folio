@@ -2,9 +2,9 @@ import crypto from 'node:crypto';
 import { and, asc, eq } from 'drizzle-orm';
 import { getDb, schema } from '../db';
 import type { EmailTemplate, TemplateKind } from '../db/schema';
-import { createI18n } from '$lib/i18n';
+import { createI18n, type MessageKey } from '$lib/i18n';
 
-export const TEMPLATE_KINDS: TemplateKind[] = ['delivery', 'reminder'];
+export const TEMPLATE_KINDS: TemplateKind[] = ['delivery', 'reminder', 'order', 'digital', 'shipped', 'refunded'];
 
 export function listTemplates(kind?: TemplateKind): EmailTemplate[] {
 	return getDb()
@@ -22,9 +22,19 @@ export function getTemplate(id: string): EmailTemplate | undefined {
 /** The built-in text for a template kind, in a language. */
 export function builtInTemplate(kind: TemplateKind, language: string): { name: string; subject: string; body: string } {
 	const { t } = createI18n(language);
-	return kind === 'reminder'
-		? { name: t('email.reminderTemplate.name'), subject: t('email.reminderTemplate.subject'), body: t('email.reminderTemplate.body') }
-		: { name: t('email.defaultTemplate.name'), subject: t('email.defaultTemplate.subject'), body: t('email.defaultTemplate.body') };
+	const prefix = {
+		delivery: 'email.defaultTemplate',
+		reminder: 'email.reminderTemplate',
+		order: 'email.orderTemplate',
+		digital: 'email.digitalTemplate',
+		shipped: 'email.shippedTemplate',
+		refunded: 'email.refundedTemplate'
+	}[kind];
+	return {
+		name: t(`${prefix}.name` as MessageKey),
+		subject: t(`${prefix}.subject` as MessageKey),
+		body: t(`${prefix}.body` as MessageKey)
+	};
 }
 
 /** Make sure every kind has at least one template, and each kind+language group has one default. */

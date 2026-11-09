@@ -6,11 +6,12 @@ import type { Attachment } from 'nodemailer/lib/mailer';
 import { and, asc, desc, eq, isNull, lte } from 'drizzle-orm';
 import { config } from '../config';
 import { getDb, schema } from '../db';
-import type { Gallery, GalleryEmailPayload } from '../db/schema';
+import type { Gallery, GalleryEmailPayload, Order, TemplateKind } from '../db/schema';
 import { getGalleryById, getSections } from '../galleries';
 import { originalFile } from '../images/paths';
 import { ensureEmailCover } from '../images/render';
-import { getSmtp, getStudio, isSmtpConfigured, type SmtpSettings } from '../settings';
+import { getSmtp, getStore, getStudio, isSmtpConfigured, type SmtpSettings } from '../settings';
+import { formatMoney } from '$lib/store';
 import { createI18n } from '$lib/i18n';
 import { mergeFields, renderGalleryEmail, type MergeValues } from './render';
 import { builtInTemplate, pickTemplate } from './templates';
@@ -164,6 +165,70 @@ export function queueGalleryEmail(
 	void processQueue();
 }
 
+/** Queue a store email to the buyer (order confirmation, digital delivery, shipped, refunded). */
+export function queueStoreEmail(order: Order, kind: Extract<TemplateKind, 'order' | 'digital' | 'shipped' | 'refunded'>, refundAmount = 0): void {
+	const store = getStore();
+	const baseUrl = config.baseUrl || store.siteUrl;
+	const { t } = createI18n(order.language);
+	const template = pickTemplate(kind, order.language) ?? builtInTemplate(kind, order.language);
+	const link = `${baseUrl}/order/${order.token}`;
+	const values: Record<string, string> = {
+		client_name: order.name,
+		order_number: String(order.number),
+		order_total: formatMoney(order.total, order.currency, order.language),
+		order_link: link,
+		tracking_number: order.tracking ?? '',
+		refund_amount: formatMoney(refundAmount, order.currency, order.language),
+		studio_name: store.name || getStudio().name,
+		gallery_name: order.galleryName
+	};
+	const subject = mergeFields(template.subject, values);
+	getDb()
+		.insert(schema.emailLog)
+		.values({
+			id: crypto.randomUUID(),
+			kind: 'store',
+			galleryId: order.galleryId,
+			templateId: null,
+			recipient: order.email,
+			subject,
+			payload: {
+				subject,
+				body: mergeFields(template.body, values),
+				includePassword: false,
+				baseUrl,
+				title: t('store.orderNumber', { number: String(order.number) }),
+				link,
+				buttonLabel: t(kind === 'digital' ? 'email.downloadButton' : 'email.orderButton'),
+				language: order.language
+			}
+		})
+		.run();
+	void processQueue();
+}
+
+/** A store email: the same layout as gallery emails, with the logo but without a cover photo. */
+function composeStoreEmail(payload: GalleryEmailPayload): ComposedEmail {
+	const studio = getStudio();
+	const store = getStore();
+	const attachments: Attachment[] = [];
+	const logo = logoPngPath();
+	if (logo) attachments.push({ filename: 'logo.png', path: logo, cid: 'logo@folio' });
+	const { html, text } = renderGalleryEmail({
+		language: payload.language ?? 'en',
+		galleryName: payload.title ?? payload.subject,
+		eventDate: '',
+		message: payload.body,
+		link: payload.link ?? payload.baseUrl,
+		buttonLabel: payload.buttonLabel,
+		password: null,
+		studio: { ...studio, name: store.name || studio.name, email: store.email || studio.email },
+		coverSrc: null,
+		logoSrc: logo ? 'cid:logo@folio' : null
+	});
+	return { subject: payload.subject, html, text, attachments };
+}
+
 /** Queue a short plain-text notification to the photographer (studio email or admin). */
 export function queueNotice(galleryId: string | null, to: string, subject: string, body: string): void {
 	if (!to) return;
@@ -297,6 +362,25 @@ export async function processQueue(): Promise<void> {
 				} catch (err) {
 					db.update(schema.emailLog)
 						.set({ status: 'failed', attempts: entry.attempts + 1, error: (err as Error).message?.slice(0, 500) ?? String(err) })
+						.where(eq(schema.emailLog.id, entry.id))
+						.run();
+				}
+				continue;
+			}
+			if (entry.kind === 'store' && entry.payload) {
+				try {
+					await mailer.sendMail({ ...sender(smtp), to: entry.recipient, ...composeStoreEmail(entry.payload) });
+					db.update(schema.emailLog).set({ status: 'sent', sentAt: Date.now(), error: null, attempts: entry.attempts + 1 }).where(eq(schema.emailLog.id, entry.id)).run();
+				} catch (err) {
+					const attempts = entry.attempts + 1;
+					const retry = isTransient(err) && attempts <= RETRY_DELAYS_MS.length;
+					db.update(schema.emailLog)
+						.set({
+							attempts,
+							status: retry ? 'queued' : 'failed',
+							error: (err as Error).message?.slice(0, 500) ?? String(err),
+							nextAttemptAt: Date.now() + (RETRY_DELAYS_MS[attempts - 1] ?? 0)
+						})
 						.where(eq(schema.emailLog.id, entry.id))
 						.run();
 				}

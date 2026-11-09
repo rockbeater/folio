@@ -7,7 +7,7 @@
 
 	interface Template {
 		id: string;
-		kind: 'delivery' | 'reminder';
+		kind: string;
 		language: string;
 		name: string;
 		subject: string;
@@ -20,7 +20,8 @@
 	const { t } = useI18n();
 
 	let editing = $state<Omit<Template, 'isDefault'> | null>(null);
-	const kinds = ['delivery', 'reminder'] as const;
+	const kinds = ['delivery', 'reminder', 'order', 'digital', 'shipped', 'refunded'] as const;
+	const storeKinds: string[] = ['order', 'digital', 'shipped', 'refunded'];
 	const languageName = (lang: string) => LANGUAGE_NAMES[lang as Language] ?? lang;
 
 	const done: SubmitFunction = async (input) => {
@@ -110,7 +111,7 @@
 			<label class="field">
 				<span>{t('admin.email.message')}</span>
 				<textarea name="body" bind:value={editing.body} rows="10"></textarea>
-				<p class="hint">{t('admin.email.messageHint')} {t('admin.templates.expiryField')}</p>
+				<p class="hint">{storeKinds.includes(editing.kind) ? t('admin.templates.storeFields') : `${t('admin.email.messageHint')} ${t('admin.templates.expiryField')}`}</p>
 			</label>
 			<div class="row">
 				<button class="btn primary" type="submit">{t('common.save')}</button>

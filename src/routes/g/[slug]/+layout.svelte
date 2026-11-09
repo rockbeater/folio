@@ -8,6 +8,7 @@
 	import DownloadDialog from '$lib/components/client/DownloadDialog.svelte';
 	import EmailDialog from '$lib/components/client/EmailDialog.svelte';
 	import ClientLoginDialog from '$lib/components/client/ClientLoginDialog.svelte';
+	import BuyDialog from '$lib/components/client/BuyDialog.svelte';
 	import ExpiredPage from '$lib/components/client/ExpiredPage.svelte';
 	import GalleryAssist from '$lib/components/client/GalleryAssist.svelte';
 	import GalleryHeader from '$lib/components/client/GalleryHeader.svelte';
@@ -31,6 +32,8 @@
 	$effect(() => {
 		gallery.apply(data.visitor);
 		gallery.canMarkPrivate = data.gallery.canMarkPrivate;
+		gallery.canBuy = Boolean(data.store?.products.some((p) => !p.noPhoto && !(p.kind === 'digital' && p.digital?.scope === 'gallery')));
+		gallery.cartCount = data.store?.cartCount ?? 0;
 	});
 	let clientDialog = $state(false);
 
@@ -148,6 +151,9 @@
 				onclientlogin={() => (clientDialog = true)}
 				onclientlogout={clientLogout}
 				onselect={() => (gallery.selecting = true)}
+				showStore={Boolean(data.store)}
+				cartCount={gallery.cartCount}
+				storeActive={page.route.id === '/g/[slug]/store'}
 			/>
 			<main class="content">
 				{#if data.pending > 0}
@@ -162,6 +168,9 @@
 		{/if}
 		{#if gallery.emailPrompt}
 			<EmailDialog />
+		{/if}
+		{#if gallery.buy && data.store}
+			<BuyDialog products={data.store.products} currency={data.store.currency} />
 		{/if}
 		{#if clientDialog}
 			<ClientLoginDialog slug={data.gallery.slug} onclose={() => (clientDialog = false)} />

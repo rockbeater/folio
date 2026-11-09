@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { bannerFor, galleryShell, loadClientGallery, recordActivity, studioForClients, type VisitorInfo } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import { publicGallery } from '$lib/server/galleries';
+import { getCart, priceCart, storeContext } from '$lib/server/store/cart';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
@@ -31,6 +32,7 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 			pending: 0,
 			totalPhotos: 0,
 			banner: null,
+			store: null,
 			lockedCover: { placeholder: cover?.placeholder ?? null, color: cover?.color ?? null }
 		};
 	}
@@ -44,5 +46,15 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 		cookies.set(visitCookie, '1', { path: '/', httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:' });
 	}
 
-	return { state, ...shell, studio, banner: bannerFor(gallery), lockedCover: null };
+	const ctx = storeContext(gallery);
+	const cart = ctx ? getCart(cookies, gallery.id) : null;
+	const store = ctx
+		? {
+				currency: ctx.store.currency,
+				products: ctx.products,
+				cartCount: cart ? (priceCart(gallery, role, cart.items, cart.couponCode)?.count ?? 0) : 0
+			}
+		: null;
+
+	return { state, ...shell, studio, banner: bannerFor(gallery, Boolean(ctx)), store, lockedCover: null };
 };

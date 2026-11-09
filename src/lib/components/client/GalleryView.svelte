@@ -26,6 +26,10 @@
 		else gs.selection.add(id);
 	}
 
+	function buy(photoId: string) {
+		gs.buy = { photo: photos.find((p) => p.id === photoId) ?? null, photos };
+	}
+
 	async function markSelected(value: boolean) {
 		if (await gs.setPrivate([...gs.selection], value)) gs.stopSelecting();
 	}
@@ -77,6 +81,8 @@
 	isPrivate={(p) => gs.isPrivate(p)}
 	selection={gs.selecting ? gs.selection : null}
 	onselect={toggleSelect}
+	canBuy={gs.canBuy}
+	onbuy={buy}
 />
 
 {#if gs.selecting}
@@ -111,6 +117,8 @@
 		canMarkPrivate={gs.canMarkPrivate}
 		isPrivate={(p) => gs.isPrivate(p)}
 		onprivate={(id, value) => gs.setPrivate([id], value)}
+		canBuy={gs.canBuy}
+		onbuy={buy}
 	/>
 {/if}
 

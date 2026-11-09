@@ -11,9 +11,9 @@ export interface MergeValues {
 }
 
 /** Replace {field} placeholders and tidy up what an empty field leaves behind ("Hi ," -> "Hi,"). */
-export function mergeFields(template: string, values: MergeValues): string {
+export function mergeFields(template: string, values: MergeValues | Record<string, string>): string {
 	return template
-		.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? values[key as keyof MergeValues] : match))
+		.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? (values as Record<string, string>)[key] : match))
 		.replace(/[ \t]+([,.!?;:])/g, '$1')
 		.replace(/[ \t]{2,}/g, ' ');
 }
@@ -53,6 +53,8 @@ export interface GalleryEmailContent {
 	link: string;
 	password: string | null;
 	studio: { name: string; email: string; website: string; phone: string };
+	/** Label of the button (defaults to "View gallery"). */
+	buttonLabel?: string;
 	/** Image sources: "cid:…" when sending, regular URLs in the admin preview. */
 	coverSrc: string | null;
 	logoSrc: string | null;
@@ -113,7 +115,7 @@ export function renderGalleryEmail(c: GalleryEmailContent): { html: string; text
 		<tr><td class="pad" style="padding:36px 40px 10px;font-family:${FONT}">${paragraphs(c.message)}</td></tr>
 		${password}
 		<tr><td class="pad" align="center" style="padding:24px 40px 44px">
-			<a href="${escapeHtml(c.link)}" class="btn" style="display:inline-block;background:#1e1e1e;color:#ffffff;text-decoration:none;font-family:${FONT};font-size:13px;letter-spacing:0.18em;text-transform:uppercase;padding:17px 34px">${escapeHtml(t('email.viewGallery'))}</a>
+			<a href="${escapeHtml(c.link)}" class="btn" style="display:inline-block;background:#1e1e1e;color:#ffffff;text-decoration:none;font-family:${FONT};font-size:13px;letter-spacing:0.18em;text-transform:uppercase;padding:17px 34px">${escapeHtml(c.buttonLabel ?? t('email.viewGallery'))}</a>
 		</td></tr>
 	</table>
 	<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
@@ -130,7 +132,7 @@ export function renderGalleryEmail(c: GalleryEmailContent): { html: string; text
 		'',
 		c.message.trim(),
 		'',
-		`${t('email.viewGallery')}: ${c.link}`,
+		`${c.buttonLabel ?? t('email.viewGallery')}: ${c.link}`,
 		c.password ? `${t('email.password')}: ${c.password}` : '',
 		'',
 		'--',

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import type { DownloadSettings, GalleryAccess, GalleryDesign, GalleryOptions, GalleryStatus, WatermarkPosition } from '$lib/types';
+import type { Crop, DigitalSpec, OrderStatus, PaymentStatus, ProductKind, ProductOption, Variant } from '$lib/store';
 
 const now = sql`(unixepoch() * 1000)`;
 
@@ -57,6 +58,8 @@ export const galleries = sqliteTable(
 		clientEmail: text('client_email'),
 		options: text('options', { mode: 'json' }).$type<GalleryOptions>(),
 		access: text('access', { mode: 'json' }).$type<GalleryAccess>(),
+		storeEnabled: integer('store_enabled', { mode: 'boolean' }).notNull().default(false),
+		priceListId: text('price_list_id'),
 		tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
 		watermarkId: text('watermark_id'),
 		/** Last day the gallery is visible (YYYY-MM-DD); it is hidden after that day. */
@@ -213,7 +216,7 @@ export const shareLinks = sqliteTable(
 	(t) => [index('share_links_gallery_idx').on(t.galleryId)]
 );
 
-export type TemplateKind = 'delivery' | 'reminder';
+export type TemplateKind = 'delivery' | 'reminder' | 'order' | 'digital' | 'shipped' | 'refunded';
 
 export const emailTemplates = sqliteTable('email_templates', {
 	id: text('id').primaryKey(),
@@ -228,13 +231,18 @@ export const emailTemplates = sqliteTable('email_templates', {
 });
 
 export type EmailStatus = 'queued' | 'sent' | 'failed';
-export type EmailKind = 'gallery' | 'reminder' | 'test' | 'notice';
+export type EmailKind = 'gallery' | 'reminder' | 'test' | 'notice' | 'store';
 
 export interface GalleryEmailPayload {
 	subject: string;
 	body: string;
 	includePassword: boolean;
 	baseUrl: string;
+	/** Store emails: heading, button link and label, and language. */
+	title?: string;
+	link?: string;
+	buttonLabel?: string;
+	language?: string;
 }
 
 export const emailLog = sqliteTable(
@@ -318,6 +326,8 @@ export interface PresetSettings {
 	reminderDays?: number | null;
 	/** Access, list and homepage settings; the client password and sections stay with each gallery. */
 	access?: GalleryAccess;
+	storeEnabled?: boolean;
+	priceListId?: string | null;
 }
 
 /** Saved gallery settings that can be applied to galleries; the default is used for new galleries. */
@@ -329,6 +339,182 @@ export const presets = sqliteTable('presets', {
 	createdAt: integer('created_at').notNull().default(now)
 });
 
+// --- Store ------------------------------------------------------------------
+
+export const priceLists = sqliteTable('price_lists', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	/** Minimum order amount (minor units); 0 for none. */
+	minOrder: integer('min_order').notNull().default(0),
+	isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+	createdAt: integer('created_at').notNull().default(now)
+});
+
+export const products = sqliteTable(
+	'products',
+	{
+		id: text('id').primaryKey(),
+		priceListId: text('price_list_id')
+			.notNull()
+			.references(() => priceLists.id, { onDelete: 'cascade' }),
+		category: text('category').notNull().default(''),
+		name: text('name').notNull(),
+		description: text('description').notNull().default(''),
+		images: text('images', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+		kind: text('kind').$type<ProductKind>().notNull().default('physical'),
+		digital: text('digital', { mode: 'json' }).$type<DigitalSpec>(),
+		options: text('options', { mode: 'json' }).$type<ProductOption[]>().notNull().default(sql`'[]'`),
+		variants: text('variants', { mode: 'json' }).$type<Variant[]>().notNull().default(sql`'[]'`),
+		price: integer('price').notNull().default(0),
+		extraShipping: integer('extra_shipping').notNull().default(0),
+		noPhoto: integer('no_photo', { mode: 'boolean' }).notNull().default(false),
+		taxExempt: integer('tax_exempt', { mode: 'boolean' }).notNull().default(false),
+		maxOne: integer('max_one', { mode: 'boolean' }).notNull().default(false),
+		multiPhoto: integer('multi_photo', { mode: 'boolean' }).notNull().default(false),
+		position: integer('position').notNull().default(0),
+		createdAt: integer('created_at').notNull().default(now)
+	},
+	(t) => [index('products_price_list_idx').on(t.priceListId)]
+);
+
+export const taxRates = sqliteTable('tax_rates', {
+	id: text('id').primaryKey(),
+	country: text('country').notNull().unique(),
+	/** Basis points: 2500 is 25 %. */
+	rate: integer('rate').notNull(),
+	shipping: integer('shipping', { mode: 'boolean' }).notNull().default(true),
+	digital: integer('digital', { mode: 'boolean' }).notNull().default(true)
+});
+
+export const shippingMethods = sqliteTable('shipping_methods', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	/** ISO country code, or '*' for the rest of the world. */
+	country: text('country').notNull(),
+	fee: integer('fee').notNull().default(0),
+	deliveryTime: text('delivery_time').notNull().default(''),
+	pickup: integer('pickup', { mode: 'boolean' }).notNull().default(false),
+	position: integer('position').notNull().default(0)
+});
+
+export const coupons = sqliteTable('coupons', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	/** Stored in upper case; matched case-insensitively. */
+	code: text('code').notNull().unique(),
+	description: text('description').notNull().default(''),
+	startsOn: text('starts_on').notNull(),
+	endsOn: text('ends_on'),
+	percent: integer('percent'),
+	amountOff: integer('amount_off'),
+	freeShipping: integer('free_shipping', { mode: 'boolean' }).notNull().default(false),
+	freeProductId: text('free_product_id'),
+	minAmount: integer('min_amount'),
+	maxUses: integer('max_uses'),
+	oncePerGallery: integer('once_per_gallery', { mode: 'boolean' }).notNull().default(false),
+	galleryIds: text('gallery_ids', { mode: 'json' }).$type<string[]>(),
+	productIds: text('product_ids', { mode: 'json' }).$type<string[]>(),
+	/** Show the code as a banner at the top of galleries. */
+	banner: integer('banner', { mode: 'boolean' }).notNull().default(false),
+	active: integer('active', { mode: 'boolean' }).notNull().default(true),
+	uses: integer('uses').notNull().default(0),
+	createdAt: integer('created_at').notNull().default(now)
+});
+
+export interface CartItem {
+	id: string;
+	productId: string;
+	variantKey: string;
+	photoId: string | null;
+	quantity: number;
+	crop: Crop | null;
+}
+
+/** A visitor's cart in one gallery, remembered by a cookie across visits. */
+export const carts = sqliteTable('carts', {
+	id: text('id').primaryKey(),
+	galleryId: text('gallery_id')
+		.notNull()
+		.references(() => galleries.id, { onDelete: 'cascade' }),
+	items: text('items', { mode: 'json' }).$type<CartItem[]>().notNull().default(sql`'[]'`),
+	couponCode: text('coupon_code'),
+	updatedAt: integer('updated_at').notNull().default(now)
+});
+
+export interface OrderAddress {
+	line1: string;
+	line2: string;
+	postalCode: string;
+	city: string;
+	country: string;
+}
+
+export const orders = sqliteTable(
+	'orders',
+	{
+		id: text('id').primaryKey(),
+		number: integer('number').notNull().unique(),
+		/** Secret for the receipt page and digital downloads. */
+		token: text('token').notNull().unique(),
+		galleryId: text('gallery_id').references(() => galleries.id, { onDelete: 'set null' }),
+		galleryName: text('gallery_name').notNull().default(''),
+		/** Who placed the order: guests never get private photos in digital downloads. */
+		buyerRole: text('buyer_role').$type<'guest' | 'client'>().notNull().default('guest'),
+		status: text('status').$type<OrderStatus>().notNull().default('pending'),
+		paymentStatus: text('payment_status').$type<PaymentStatus>().notNull().default('unpaid'),
+		email: text('email').notNull(),
+		name: text('name').notNull(),
+		phone: text('phone').notNull().default(''),
+		country: text('country').notNull().default(''),
+		address: text('address', { mode: 'json' }).$type<OrderAddress>(),
+		shippingName: text('shipping_name'),
+		currency: text('currency').notNull(),
+		language: text('language').notNull().default('en'),
+		kind: text('kind').$type<'physical' | 'digital' | 'mixed'>().notNull(),
+		subtotal: integer('subtotal').notNull(),
+		discount: integer('discount').notNull().default(0),
+		shipping: integer('shipping').notNull().default(0),
+		tax: integer('tax').notNull().default(0),
+		total: integer('total').notNull(),
+		refunded: integer('refunded').notNull().default(0),
+		couponCode: text('coupon_code'),
+		stripeSessionId: text('stripe_session_id'),
+		stripePaymentIntent: text('stripe_payment_intent'),
+		stripeMode: text('stripe_mode').$type<'test' | 'live' | 'simulated' | 'free'>(),
+		tracking: text('tracking'),
+		notes: text('notes').notNull().default(''),
+		createdAt: integer('created_at').notNull().default(now),
+		paidAt: integer('paid_at'),
+		updatedAt: integer('updated_at').notNull().default(now)
+	},
+	(t) => [index('orders_gallery_idx').on(t.galleryId), index('orders_email_idx').on(t.email)]
+);
+
+export const orderItems = sqliteTable(
+	'order_items',
+	{
+		id: text('id').primaryKey(),
+		orderId: text('order_id')
+			.notNull()
+			.references(() => orders.id, { onDelete: 'cascade' }),
+		productId: text('product_id'),
+		productName: text('product_name').notNull(),
+		variantLabel: text('variant_label').notNull().default(''),
+		kind: text('kind').$type<ProductKind>().notNull(),
+		digital: text('digital', { mode: 'json' }).$type<DigitalSpec>(),
+		photoId: text('photo_id'),
+		filename: text('filename'),
+		sectionId: text('section_id'),
+		crop: text('crop', { mode: 'json' }).$type<Crop>(),
+		quantity: integer('quantity').notNull(),
+		unitPrice: integer('unit_price').notNull(),
+		discount: integer('discount').notNull().default(0),
+		taxRate: integer('tax_rate').notNull().default(0),
+		tax: integer('tax').notNull().default(0)
+	},
+	(t) => [index('order_items_order_idx').on(t.orderId), index('order_items_photo_idx').on(t.photoId)]
+);
+
 export type Gallery = typeof galleries.$inferSelect;
 export type Section = typeof sections.$inferSelect;
 export type Photo = typeof photos.$inferSelect;
@@ -338,3 +524,9 @@ export type Watermark = typeof watermarks.$inferSelect;
 export type Preset = typeof presets.$inferSelect;
 export type FavoriteList = typeof favoriteLists.$inferSelect;
 export type ShareLink = typeof shareLinks.$inferSelect;
+export type PriceList = typeof priceLists.$inferSelect;
+export type Product = typeof products.$inferSelect;
+export type Coupon = typeof coupons.$inferSelect;
+export type Order = typeof orders.$inferSelect;
+export type OrderItem = typeof orderItems.$inferSelect;
+export type Cart = typeof carts.$inferSelect;

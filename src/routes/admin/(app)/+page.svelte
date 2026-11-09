@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatMoney } from '$lib/store';
 	import { enhance } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import Plus from '@lucide/svelte/icons/plus';
@@ -98,8 +99,21 @@
 	{/if}
 	<p class="hint library">{t('admin.galleries.libraryPath', { path: data.library.path })}</p>
 
-	{#if data.expiring.length > 0 || data.recent.length > 0}
+	{#if data.expiring.length > 0 || data.recent.length > 0 || data.newOrders.length > 0}
 		<div class="widgets">
+			{#if data.newOrders.length > 0}
+				<section class="card widget">
+					<h2>{t('admin.dashboard.newOrders', { count: data.newOrders.length })}</h2>
+					<ul>
+						{#each data.newOrders.slice(0, 6) as o (o.id)}
+							<li>
+								<a href="/admin/store/orders/{o.id}">#{o.number} · {o.name}</a>
+								<span class="hint tabular">{formatMoney(o.total, o.currency, lang)}</span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 			{#if data.expiring.length > 0}
 				<section class="card widget">
 					<h2>{t('admin.dashboard.expiring')}</h2>

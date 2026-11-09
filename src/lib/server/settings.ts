@@ -130,3 +130,63 @@ export function savePreferences(update: Partial<Preferences>): Preferences {
 export function isSmtpConfigured(smtp = getSmtp()): boolean {
 	return Boolean(smtp.host && smtp.port && smtp.fromEmail);
 }
+
+export interface StripeSettings {
+	/** Secret or restricted key. Never sent to the browser. */
+	secretKey: string;
+	mode: 'test' | 'live' | null;
+	accountName: string;
+	webhookId: string;
+	webhookSecret: string;
+	webhookUrl: string;
+	lastWebhookAt: number | null;
+	error: string;
+}
+
+export interface StoreSettings {
+	/** Global switch for the store in all galleries. */
+	enabled: boolean;
+	name: string;
+	email: string;
+	/** ISO 4217 code, chosen when the store is set up. */
+	currency: string;
+	terms: string;
+	license: string;
+	/** Address of this site as last seen at checkout (for links in store emails without BASE_URL). */
+	siteUrl: string;
+	stripe: StripeSettings;
+}
+
+const DEFAULT_STRIPE: StripeSettings = {
+	secretKey: '',
+	mode: null,
+	accountName: '',
+	webhookId: '',
+	webhookSecret: '',
+	webhookUrl: '',
+	lastWebhookAt: null,
+	error: ''
+};
+
+const DEFAULT_STORE: StoreSettings = {
+	enabled: false,
+	name: '',
+	email: '',
+	currency: 'EUR',
+	terms: '',
+	license: '',
+	siteUrl: '',
+	stripe: DEFAULT_STRIPE
+};
+
+export function getStore(): StoreSettings {
+	const stored = read('store', DEFAULT_STORE);
+	return { ...stored, stripe: { ...DEFAULT_STRIPE, ...stored.stripe } };
+}
+
+export function saveStore(update: Partial<Omit<StoreSettings, 'stripe'>> & { stripe?: Partial<StripeSettings> }): StoreSettings {
+	const current = getStore();
+	const next = { ...current, ...update, stripe: { ...current.stripe, ...update.stripe } };
+	write('store', next);
+	return next;
+}

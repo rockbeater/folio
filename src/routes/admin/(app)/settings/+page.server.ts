@@ -7,8 +7,8 @@ import sharp from 'sharp';
 import { changeEmail, changePassword, checkPassword } from '$lib/server/auth';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
-import type { TextWatermark } from '$lib/server/db/schema';
-import { deleteTemplate, listTemplates, saveTemplate, setDefaultTemplate } from '$lib/server/mail/templates';
+import type { TemplateKind, TextWatermark } from '$lib/server/db/schema';
+import { deleteTemplate, listTemplates, saveTemplate, setDefaultTemplate, TEMPLATE_KINDS } from '$lib/server/mail/templates';
 import { sendTestEmail } from '$lib/server/mail/send';
 import { deletePreset, listPresets, renamePreset, setDefaultPreset } from '$lib/server/presets';
 import {
@@ -183,7 +183,7 @@ export const actions: Actions = {
 		const language = String(form.get('language') ?? '');
 		saveTemplate({
 			id: String(form.get('id') ?? '') || undefined,
-			kind: form.get('kind') === 'reminder' ? 'reminder' : 'delivery',
+			kind: (TEMPLATE_KINDS as string[]).includes(String(form.get('kind'))) ? (String(form.get('kind')) as TemplateKind) : 'delivery',
 			language: isLanguage(language) ? language : getStudio().language,
 			name,
 			subject: String(form.get('subject') ?? '').trim(),

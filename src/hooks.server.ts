@@ -22,6 +22,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (needsSetup()) redirect(303, '/setup');
 	}
 
+	// Everything under /admin needs a login. Layout loads redirect pages to the login,
+	// but form actions and endpoints do not run layout loads, so they are checked here.
+	if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login') && !event.locals.admin) {
+		const isPage = event.request.method === 'GET' && !pathname.startsWith('/admin/api') && !pathname.includes('/export/');
+		if (isPage) redirect(303, `/admin/login?next=${encodeURIComponent(pathname + event.url.search)}`);
+		return new Response('Unauthorized', { status: 401 });
+	}
+
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%lang%', event.locals.lang)
 	});

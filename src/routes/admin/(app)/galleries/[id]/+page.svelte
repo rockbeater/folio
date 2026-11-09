@@ -88,9 +88,10 @@
 				languages={data.languages}
 				watermarks={data.watermarks}
 				form={form as { error?: string; section?: string } | null}
+				store={data.store}
 			/>
 		{:else if tab === 'activity'}
-			<ActivityPanel baseUrl={data.baseUrl} activity={data.activity} galleryName={data.gallery.slug} />
+			<ActivityPanel baseUrl={data.baseUrl} store={data.store} activity={data.activity} galleryName={data.gallery.slug} />
 		{:else}
 			<EmailPanel
 				gallery={data.gallery}

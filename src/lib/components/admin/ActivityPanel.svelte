@@ -4,6 +4,7 @@
 	import { callAction } from '$lib/admin-actions';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import ShareLinkDialog from './ShareLinkDialog.svelte';
+	import { formatMoney } from '$lib/store';
 	import { toast } from '$lib/toast.svelte';
 
 	interface Activity {
@@ -36,7 +37,11 @@
 		}[];
 	}
 
-	let { activity, galleryName, baseUrl }: { activity: Activity; galleryName: string; baseUrl: string } = $props();
+	interface StoreOrders {
+		orders: { id: string; number: number; status: string; name: string; total: number; currency: string; createdAt: number }[];
+	}
+
+	let { activity, galleryName, baseUrl, store }: { activity: Activity; galleryName: string; baseUrl: string; store: StoreOrders } = $props();
 	let editing = $state<Activity['shareLinks'][number] | null>(null);
 	const today = new Date().toLocaleDateString('sv-SE');
 
@@ -81,6 +86,23 @@
 		<div class="card stat"><span class="value tabular">{activity.downloadCount}</span><span class="hint">{t('admin.activity.downloads')}</span></div>
 		<div class="card stat"><span class="value tabular">{activity.visitors.length}</span><span class="hint">{t('admin.activity.visitors')}</span></div>
 	</div>
+
+	{#if store.orders.length > 0}
+		<section class="card block">
+			<h3>{t('admin.activity.orders')}</h3>
+			<ul class="list">
+				{#each store.orders as o (o.id)}
+					<li>
+						<div class="who">
+							<a href="/admin/store/orders/{o.id}"><strong>#{o.number} · {o.name}</strong></a>
+							<span class="hint">{t(`store.status.${o.status}` as MessageKey)} · {dateTime.format(o.createdAt)}</span>
+						</div>
+						<span class="tabular">{formatMoney(o.total, o.currency, lang)}</span>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
 	<section class="card block">
 		<h3>{t('admin.activity.favorites')}</h3>
