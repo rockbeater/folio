@@ -287,7 +287,9 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [ ] `v1` Stripe-opsætning: indsæt nøgle, se den valideret med kontonavn, få webhooken oprettet automatisk, og skift mellem test mode og live mode.
 - [ ] `v1` Status for Stripe-forbindelsen: forbundet eller ej, test eller live, og hvornår den seneste webhook blev modtaget.
 - [ ] `v1` Ordrer markeres først som betalt, når betalingen er bekræftet via webhook.
-- [ ] `v1` Betalingsmetoder (kort, Apple Pay, Google Pay, MobilePay) styres i Stripe uden ekstra kode.
+- [ ] `v1` Betalingsmetoder (kort, Apple Pay, Google Pay, MobilePay m.fl.) styres i Stripes dashboard uden ekstra kode. Folio angiver ikke selv betalingsmetoderne, så Checkout automatisk viser dem, der er slået til og passer til valuta og land. MobilePay kræver fx valutaen DKK, EUR, NOK eller SEK og en virksomhed i EØS.
+- [ ] `v1` Webhooken oprettes via Stripes API med de hændelser, Folio bruger. Signing secret returneres kun ved oprettelsen og gemmes med det samme. Går den tabt, sletter Folio endpointet og opretter et nyt.
+- [ ] `v1` Der kan bruges en begrænset nøgle (restricted key) i stedet for den hemmelige nøgle. Guiden viser de nødvendige rettigheder: skrive-adgang til Checkout Sessions, Webhook Endpoints og Refunds samt læse-adgang til betalinger og hændelser.
 - [ ] `Senere` Offline-betaling: kunden afgiver ordren uden at betale online, og fotografen markerer den som betalt manuelt, fx efter bankoverførsel.
 - [ ] `Senere` Ordreforsinkelse: digitale ordrer frigives først efter en valgt periode (fx 6 timer), så fotografen kan nå at gennemgå dem.
 
