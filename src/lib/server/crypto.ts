@@ -42,6 +42,11 @@ export function sha256(value: string): string {
 
 let secret: Buffer | null = null;
 
+/** Forget the cached secret (after a restore replaced secret.key). */
+export function resetAppSecret(): void {
+	secret = null;
+}
+
 /** Per-installation secret used to sign cookies. Created on first start in the data folder. */
 export function appSecret(): Buffer {
 	if (secret) return secret;

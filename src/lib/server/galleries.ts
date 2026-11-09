@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import type { Gallery, Photo, Section } from './db/schema';
 import { naturalCompare } from '$lib/slug';
+import { sharpenKey } from './images/render';
 import {
 	effectiveDownload,
 	normalizeAccess,
@@ -70,7 +71,7 @@ export function toPhotoView(p: Photo, wmKey: string | null = null): PhotoView {
 		width: p.width || 3,
 		height: p.height || 2,
 		color: p.color,
-		key: wmKey ? `${p.version}-${wmKey}` : String(p.version),
+		key: `${p.version}${sharpenKey()}${wmKey ? `-${wmKey}` : ''}`,
 		ready: p.status === 'ready',
 		private: p.private
 	};

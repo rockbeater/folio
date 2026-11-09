@@ -9,7 +9,7 @@ import { getDb, schema } from '../db';
 import type { Gallery, GalleryEmailPayload, Order, TemplateKind } from '../db/schema';
 import { getGalleryById, getSections } from '../galleries';
 import { originalFile } from '../images/paths';
-import { ensureEmailCover } from '../images/render';
+import { ensureEmailCover, sharpenKey } from '../images/render';
 import { getSmtp, getStore, getStudio, isSmtpConfigured, type SmtpSettings } from '../settings';
 import { formatMoney } from '$lib/store';
 import { createI18n } from '$lib/i18n';
@@ -97,7 +97,7 @@ export async function composeGalleryEmail(gallery: Gallery, payload: GalleryEmai
 	let coverSrc: string | null = null;
 	const cover = emailCoverPhoto(gallery);
 	if (cover) {
-		if (preview) coverSrc = `/img/${cover.id}/${cover.version}/w960.webp`; // admin preview: no watermark
+		if (preview) coverSrc = `/img/${cover.id}/${cover.version}${sharpenKey()}/w960.webp`; // admin preview: no watermark
 		else {
 			const section = getSections(gallery.id).find((s) => s.id === cover.sectionId);
 			if (section) {

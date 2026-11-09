@@ -357,8 +357,8 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `v1` Standardindstillinger for nye gallerier: design, download, favoritter, butik og sprog.
 - [x] `v1` Standardsprog for nye gallerier.
 - [x] `v1` Vis filnavne som standard (kan ændres per galleri).
-- [ ] `v1` Søgemaskine-synlighed: Ingen (standard) eller Kun forsiden. Gallerier indekseres aldrig.
-- [ ] `v1` Skarphed for visningskopier: Ingen, Standard eller Optimal. Originalerne ændres ikke.
+- [x] `v1` Søgemaskine-synlighed: Ingen (standard) eller Kun forsiden. Gallerier indekseres aldrig.
+- [x] `v1` Skarphed for visningskopier: Ingen, Standard eller Optimal. Originalerne ændres ikke.
 
 ## 21. Sprog
 
@@ -377,8 +377,8 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `v1` Delingslinks (hurtige delingslinks og delte favoritlister) bruger lange, tilfældige nøgler, som ikke kan gættes, og de kan tilbagekaldes. Serveren kontrollerer adgangen til hvert billede ud fra linkets rettigheder. Rate limiting gælder også kundeadgangskoden.
 - [x] `MVP` Gallerier og billeder bliver ikke indekseret af søgemaskiner (`noindex`).
 - [x] `MVP` CSRF-beskyttelse, sikre cookies og sikkerhedsheaders.
-- [ ] `v1` Tofaktorgodkendelse (TOTP) til admin.
-- [ ] `v1` GDPR: kundedata kan eksporteres og slettes, og der bruges ingen tredjeparts-tracking. Ordrer bevares af hensyn til bogføringen.
+- [x] `v1` Tofaktorgodkendelse (TOTP) til admin.
+- [x] `v1` GDPR: kundedata kan eksporteres og slettes, og der bruges ingen tredjeparts-tracking. Ordrer bevares af hensyn til bogføringen.
 
 ## 23. Drift: Docker, backup og opdateringer
 
@@ -388,7 +388,7 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `MVP` Opsætningsguide første gang: opret admin, angiv studienavn og vælg sprog.
 - [x] `MVP` Healthcheck og logs til stdout.
 - [x] `MVP` Automatiske databasemigreringer ved opdatering.
-- [ ] `v1` Backup og gendannelse af `/data` fra admin.
+- [x] `v1` Backup og gendannelse af `/data` fra admin.
 - [x] `v1` Eksempel på `docker-compose.yml` og guide til reverse proxy med HTTPS.
 - [ ] `Senere` Besked i admin, når en ny version er udgivet.
 

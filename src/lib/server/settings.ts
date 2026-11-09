@@ -103,12 +103,18 @@ export interface Preferences {
 	banner: { enabled: boolean; text: string; code: string };
 	/** Public homepage listing the galleries marked "Show on homepage". Off by default. */
 	homepage: { enabled: boolean; title: string; intro: string; links: string[] };
+	/** Search engines may index nothing (default) or only the homepage. Galleries are never indexed. */
+	searchVisibility: 'none' | 'homepage';
+	/** Sharpening of display copies; originals are never changed. */
+	sharpening: 'none' | 'standard' | 'optimal';
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
 	defaultLanguage: 'en',
 	banner: { enabled: false, text: '', code: '' },
-	homepage: { enabled: false, title: '', intro: '', links: [] }
+	homepage: { enabled: false, title: '', intro: '', links: [] },
+	searchVisibility: 'none',
+	sharpening: 'none'
 };
 
 export function getPreferences(): Preferences {
@@ -121,8 +127,17 @@ export function getPreferences(): Preferences {
 	};
 }
 
+let sharpeningCache: Preferences['sharpening'] | null = null;
+
+/** Read on every image request, so it is cached until the preferences change. */
+export function sharpening(): Preferences['sharpening'] {
+	sharpeningCache ??= getPreferences().sharpening;
+	return sharpeningCache;
+}
+
 export function savePreferences(update: Partial<Preferences>): Preferences {
 	const next = { ...getPreferences(), ...update };
+	sharpeningCache = null;
 	write('preferences', next);
 	return next;
 }

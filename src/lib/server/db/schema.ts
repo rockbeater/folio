@@ -15,6 +15,10 @@ export const users = sqliteTable('users', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull().unique(),
 	passwordHash: text('password_hash').notNull(),
+	/** Base32 TOTP secret when two-factor login is on. */
+	totpSecret: text('totp_secret'),
+	/** SHA-256 hashes of unused recovery codes. */
+	recoveryCodes: text('recovery_codes', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
 	createdAt: integer('created_at').notNull().default(now)
 });
 

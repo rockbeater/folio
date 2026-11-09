@@ -1,4 +1,5 @@
 import { redirect, type Handle, type ServerInit } from '@sveltejs/kit';
+import { getPreferences } from '$lib/server/settings';
 import { hasAdmin, sessionUser } from '$lib/server/auth';
 import { startServices } from '$lib/server/startup';
 
@@ -11,6 +12,11 @@ let setupDone = false;
 function needsSetup(): boolean {
 	if (!setupDone) setupDone = hasAdmin();
 	return !setupDone;
+}
+
+function isHomepageIndexable(): boolean {
+	const prefs = getPreferences();
+	return prefs.searchVisibility === 'homepage' && prefs.homepage.enabled;
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -34,7 +40,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		transformPageChunk: ({ html }) => html.replace('%lang%', event.locals.lang)
 	});
 
-	response.headers.set('x-robots-tag', 'noindex, nofollow, noimageindex');
+	// Nothing is indexed, except the homepage when the photographer allows it.
+	const indexable = pathname === '/' && !event.locals.admin && isHomepageIndexable();
+	if (!indexable) response.headers.set('x-robots-tag', 'noindex, nofollow, noimageindex');
 	response.headers.set('x-content-type-options', 'nosniff');
 	response.headers.set('referrer-policy', 'same-origin');
 	response.headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');

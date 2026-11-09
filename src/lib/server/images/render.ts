@@ -1,11 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
+import { sharpening } from '../settings';
 import exifr from 'exifr';
 import { DISPLAY_WIDTHS, type DisplayWidth } from '$lib/types';
 import { displayFile, downloadFile, emailCoverFile, photoCacheDir, type DownloadVariant } from './paths';
 import type { Watermark } from '../db/schema';
 import { watermarkKey, withWatermark } from '../watermarks';
+
+/** Cache key part and sharp settings for the chosen sharpening of display copies. */
+export function sharpenKey(level = sharpening()): string {
+	return level === 'standard' ? 's1' : level === 'optimal' ? 's2' : '';
+}
+
+const SHARPEN = { s1: { sigma: 0.5 }, s2: { sigma: 0.9, m1: 0.8, m2: 2.5 } } as const;
+
 
 sharp.cache(false);
 
@@ -51,7 +60,7 @@ async function pruneOldVersions(photoId: string, version: number): Promise<void>
 	const entries = await fs.readdir(dir).catch(() => [] as string[]);
 	await Promise.all(
 		entries
-			.filter((name) => !name.startsWith(`v${version}-`))
+			.filter((name) => !new RegExp(`^v${version}(s[12])?-`).test(name))
 			.map((name) => fs.rm(path.join(dir, name), { force: true }))
 	);
 }
@@ -78,13 +87,13 @@ export async function processPhoto(original: string, photoId: string, version: n
 	const width = (swap ? meta.height : meta.width) ?? info.width;
 	const height = (swap ? meta.width : meta.height) ?? info.height;
 
+	const sharpen = sharpenKey();
 	for (const w of DISPLAY_WIDTHS) {
-		await writeAtomic(displayFile(photoId, version, w), (tmp) =>
-			sharp(data, raw)
-				.resize({ width: w, withoutEnlargement: true })
-				.webp({ quality: w <= 480 ? 74 : 80, effort: 4 })
-				.toFile(tmp)
-		);
+		await writeAtomic(displayFile(photoId, version, w, null, sharpen), (tmp) => {
+			let image = sharp(data, raw).resize({ width: w, withoutEnlargement: true });
+			if (sharpen) image = image.sharpen(SHARPEN[sharpen as keyof typeof SHARPEN]);
+			return image.webp({ quality: w <= 480 ? 74 : 80, effort: 4 }).toFile(tmp);
+		});
 	}
 
 	const stats = await sharp(data, raw).stats();
@@ -127,18 +136,19 @@ export async function ensureDisplay(
 	photoId: string,
 	version: number,
 	width: DisplayWidth,
-	watermark: Watermark | null = null
+	watermark: Watermark | null = null,
+	sharpen = sharpenKey()
 ): Promise<string> {
-	const plain = await once(displayFile(photoId, version, width), (tmp) =>
-		sharp(original, { failOn: 'none' })
-			.rotate()
-			.resize({ width, withoutEnlargement: true })
+	const plain = await once(displayFile(photoId, version, width, null, sharpen), (tmp) => {
+		let image = sharp(original, { failOn: 'none' }).rotate().resize({ width, withoutEnlargement: true });
+		if (sharpen) image = image.sharpen(SHARPEN[sharpen as keyof typeof SHARPEN]);
+		return image
 			.toColourspace('srgb')
 			.webp({ quality: width <= 480 ? 74 : 80, effort: 4 })
-			.toFile(tmp)
-	);
+			.toFile(tmp);
+	});
 	if (!watermark) return plain;
-	return once(displayFile(photoId, version, width, watermarkKey(watermark)), async (tmp) => {
+	return once(displayFile(photoId, version, width, watermarkKey(watermark), sharpen), async (tmp) => {
 		const base = await sharp(plain).toBuffer();
 		const marked = await withWatermark(base, watermark);
 		await marked.webp({ quality: width <= 480 ? 74 : 80, effort: 4 }).toFile(tmp);

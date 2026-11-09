@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 import type { Cookies } from '@sveltejs/kit';
 import { eq, lt } from 'drizzle-orm';
 import { getDb, schema } from './db';
-import { hashPassword, randomToken, sha256, verifyPassword } from './crypto';
+import { hashPassword, randomToken, sha256, verifyPassword, readSignedValue, signedValue } from './crypto';
+import { hashRecoveryCode, verifyTotp } from './totp';
 
 export const SESSION_COOKIE = 'folio_session';
 const SESSION_DAYS = 30;
@@ -101,4 +102,58 @@ export function sessionUser(cookies: Cookies): AdminUser | null {
 
 export function purgeExpiredSessions(): void {
 	getDb().delete(schema.sessions).where(lt(schema.sessions.expiresAt, Date.now())).run();
+}
+
+// --- Two-factor login (TOTP) ---------------------------------------------------
+
+const PENDING_COOKIE = 'folio_2fa';
+const SETUP_COOKIE = 'folio_2fa_setup';
+
+export function totpSecretOf(userId: string): string | null {
+	return getDb().select({ s: schema.users.totpSecret }).from(schema.users).where(eq(schema.users.id, userId)).get()?.s ?? null;
+}
+
+export function setTotp(userId: string, secret: string | null, recoveryHashes: string[]): void {
+	getDb().update(schema.users).set({ totpSecret: secret, recoveryCodes: recoveryHashes }).where(eq(schema.users.id, userId)).run();
+}
+
+/** Check an authenticator code, or use up one of the recovery codes. */
+export function verifySecondFactor(userId: string, code: string): boolean {
+	const user = getDb().select().from(schema.users).where(eq(schema.users.id, userId)).get();
+	if (!user?.totpSecret) return false;
+	if (verifyTotp(user.totpSecret, code)) return true;
+	const hash = hashRecoveryCode(code);
+	if (!user.recoveryCodes.includes(hash)) return false;
+	setTotp(user.id, user.totpSecret, user.recoveryCodes.filter((h) => h !== hash));
+	return true;
+}
+
+/** After the password: remember the user for five minutes while the code is asked for. */
+export function startPendingLogin(cookies: Cookies, url: URL, userId: string): void {
+	cookies.set(PENDING_COOKIE, signedValue(`${userId}:${Date.now() + 5 * 60_000}`), { ...cookieOptions(url), maxAge: 5 * 60 });
+}
+
+export function pendingLogin(cookies: Cookies): string | null {
+	const value = readSignedValue(cookies.get(PENDING_COOKIE));
+	const [userId, expires] = value?.split(':') ?? [];
+	return userId && Number(expires) > Date.now() ? userId : null;
+}
+
+export function clearPendingLogin(cookies: Cookies, url: URL): void {
+	cookies.delete(PENDING_COOKIE, cookieOptions(url));
+}
+
+/** The secret being set up, kept in a signed cookie until the first code is confirmed. */
+export function setupSecret(cookies: Cookies, url: URL, userId: string, secret?: string): string | null {
+	if (secret) {
+		cookies.set(SETUP_COOKIE, signedValue(`${userId}:${secret}`), { ...cookieOptions(url), maxAge: 15 * 60 });
+		return secret;
+	}
+	const value = readSignedValue(cookies.get(SETUP_COOKIE));
+	const [id, stored] = value?.split(':') ?? [];
+	return id === userId && stored ? stored : null;
+}
+
+export function clearSetupSecret(cookies: Cookies, url: URL): void {
+	cookies.delete(SETUP_COOKIE, cookieOptions(url));
 }

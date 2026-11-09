@@ -8,8 +8,8 @@ export function photoCacheDir(photoId: string): string {
 	return path.join(config.cacheDir, 'photos', photoId.slice(0, 2), photoId);
 }
 
-export function displayFile(photoId: string, version: number, width: DisplayWidth, wmKey: string | null = null): string {
-	return path.join(photoCacheDir(photoId), `v${version}-w${width}${wmKey ? `-wm${wmKey}` : ''}.webp`);
+export function displayFile(photoId: string, version: number, width: DisplayWidth, wmKey: string | null = null, sharpen = ''): string {
+	return path.join(photoCacheDir(photoId), `v${version}${sharpen}-w${width}${wmKey ? `-wm${wmKey}` : ''}.webp`);
 }
 
 export function downloadFile(photoId: string, version: number, variant: DownloadVariant, wmKey: string | null = null): string {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import AuthCard from '$lib/components/admin/AuthCard.svelte';
 	import { createI18n, type MessageKey } from '$lib/i18n';
 
@@ -7,6 +8,8 @@
 	// svelte-ignore state_referenced_locally
 	const { t } = createI18n(data.language);
 	let busy = $state(false);
+	// Keep ?next= through the login steps.
+	const next = $derived(page.url.searchParams.get('next'));
 </script>
 
 <svelte:head><title>{t('admin.login.title')} · Folio</title></svelte:head>
@@ -14,6 +17,7 @@
 <AuthCard title={t('admin.login.title')}>
 	<form
 		method="POST"
+		action={`?/${form?.step === 'totp' ? 'totp' : 'login'}${next ? `&next=${encodeURIComponent(next)}` : ''}`}
 		class="stack form"
 		use:enhance={() => {
 			busy = true;
@@ -23,14 +27,23 @@
 			};
 		}}
 	>
-		<label class="field">
-			<span>{t('common.email')}</span>
-			<input type="email" name="email" value={form?.email ?? ''} required autocomplete="username" />
-		</label>
-		<label class="field">
-			<span>{t('common.password')}</span>
-			<input type="password" name="password" required autocomplete="current-password" />
-		</label>
+		{#if form?.step === 'totp'}
+			<p class="hint">{t('admin.totp.prompt')}</p>
+			<label class="field">
+				<span>{t('admin.totp.code')}</span>
+				<!-- svelte-ignore a11y_autofocus -->
+				<input name="code" required autocomplete="one-time-code" inputmode="text" autofocus spellcheck="false" />
+			</label>
+		{:else}
+			<label class="field">
+				<span>{t('common.email')}</span>
+				<input type="email" name="email" value={form && 'email' in form ? form.email : ''} required autocomplete="username" />
+			</label>
+			<label class="field">
+				<span>{t('common.password')}</span>
+				<input type="password" name="password" required autocomplete="current-password" />
+			</label>
+		{/if}
 		{#if form?.error}<p class="error-text" role="alert">{t(form.error as MessageKey)}</p>{/if}
 		<button class="btn primary" type="submit" disabled={busy}>{t('admin.login.submit')}</button>
 	</form>

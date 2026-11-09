@@ -18,7 +18,9 @@ Projektet hedder **Folio**: et selvhostet alternativ til Pixieset med galleri og
 ## Kode
 
 - SvelteKit (Svelte 5, runes) + TypeScript, SQLite via Drizzle (`src/lib/server/db/schema.ts`, migrationer i `drizzle/`), billeder via sharp.
-- Server-kode ligger i `src/lib/server/`: `library/` (scanning af fotomappen), `images/` (cache-filer), `mail/` (e-mail), `access.ts` (adgang til gallerier).
+- Server-kode ligger i `src/lib/server/`: `library/` (scanning af fotomappen), `images/` (cache-filer), `mail/` (e-mail), `access.ts` og `client.ts` (adgang, roller gæst/kunde/ejer), `lists.ts` og `shares.ts` (favoritlister og delingslinks), `store/` (butik, kurv, ordrer og Stripe via REST), `totp.ts`, `gdpr.ts` og `backup.ts`.
+- Butikslogik, der deles af server og klient (priser, varianter, moms, totaler), ligger i `src/lib/store.ts`. Beløb er heltal i valutaens mindste enhed.
+- Alt under `/admin` kræver login i `src/hooks.server.ts`. Form actions kører ikke layoutets load, så stol ikke på layoutet til adgangskontrol.
 - Kundegalleri: `src/routes/g/[slug]/` og `src/lib/components/client/`. Admin: `src/routes/admin/` og `src/lib/components/admin/`.
 - Al brugertekst ligger i `src/lib/i18n/en.ts`. Skriv aldrig tekst direkte i komponenterne.
 - Designtokens ligger i `src/lib/styles/base.css` (kunde) og `admin.css` (admin). Følg DESIGN.md.

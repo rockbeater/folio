@@ -14,7 +14,7 @@
 	let { data, form } = $props();
 	const { t } = useI18n();
 
-	const TABS = ['branding', 'preferences', 'homepage', 'watermarks', 'presets', 'email', 'templates', 'account'] as const;
+	const TABS = ['branding', 'preferences', 'homepage', 'watermarks', 'presets', 'email', 'templates', 'privacy', 'backup', 'account'] as const;
 	type Tab = (typeof TABS)[number];
 	const tab = $derived<Tab>((TABS as readonly string[]).includes(page.url.searchParams.get('tab') ?? '') ? (page.url.searchParams.get('tab') as Tab) : 'branding');
 	const tabLabel: Record<Tab, MessageKey> = {
@@ -25,6 +25,8 @@
 		presets: 'admin.studio.tabPresets',
 		email: 'admin.studio.tabEmail',
 		templates: 'admin.studio.tabTemplates',
+		privacy: 'admin.studio.tabPrivacy',
+		backup: 'admin.studio.tabBackup',
 		account: 'admin.studio.tabAccount'
 	};
 
@@ -141,6 +143,15 @@
 					<p class="hint">{t('admin.prefs.defaultLanguageHint')}</p>
 				</label>
 			</div>
+			<label class="field">
+				<span>{t('admin.prefs.sharpening')}</span>
+				<select name="sharpening" value={data.preferences.sharpening}>
+					<option value="none">{t('admin.prefs.sharpening.none')}</option>
+					<option value="standard">{t('admin.prefs.sharpening.standard')}</option>
+					<option value="optimal">{t('admin.prefs.sharpening.optimal')}</option>
+				</select>
+				<p class="hint">{t('admin.prefs.sharpeningHint')}</p>
+			</label>
 			<h3>{t('admin.prefs.banner')}</h3>
 			<p class="hint">{t('admin.prefs.bannerHint')}</p>
 			<label class="switch"><input type="checkbox" name="bannerEnabled" checked={data.preferences.banner.enabled} /><span>{t('admin.prefs.bannerEnabled')}</span></label>
@@ -248,7 +259,104 @@
 		</form>
 	{:else if tab === 'templates'}
 		<TemplatesTab templates={data.templates} languages={data.languages} defaultLanguage={data.preferences.defaultLanguage} {saved} />
+	{:else if tab === 'privacy'}
+		<form class="card block" method="POST" action="?/privacy" use:enhance={saved}>
+			<h3>{t('admin.privacy.search')}</h3>
+			<label class="field">
+				<select name="searchVisibility" value={data.preferences.searchVisibility}>
+					<option value="none">{t('admin.privacy.searchNone')}</option>
+					<option value="homepage">{t('admin.privacy.searchHomepage')}</option>
+				</select>
+				<p class="hint">{t('admin.privacy.searchHint')}</p>
+			</label>
+			<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
+		</form>
+		<section class="card block">
+			<h3>{t('admin.privacy.gdpr')}</h3>
+			<p class="hint">{t('admin.privacy.gdprHint')}</p>
+			<form class="row" method="GET">
+				<input type="hidden" name="tab" value="privacy" />
+				<input type="email" name="email" value={data.gdpr?.email ?? ''} placeholder={t('common.email')} required aria-label={t('common.email')} />
+				<button class="btn" type="submit">{t('admin.dashboard.search')}</button>
+			</form>
+			{#if data.gdpr}
+				{@const s = data.gdpr.summary}
+				<p>{t('admin.privacy.found', { visits: s.visits, lists: s.lists, activity: s.activity, emails: s.emails, orders: s.orders })}</p>
+				<div class="row">
+					<a class="btn" href="/admin/api/gdpr?email={encodeURIComponent(data.gdpr.email)}">{t('admin.privacy.export')}</a>
+					<form
+						method="POST"
+						action="?/gdprDelete"
+						use:enhance={saved}
+						onsubmit={(e) => {
+							if (!confirm(t('admin.privacy.deleteConfirm', { email: data.gdpr!.email }))) e.preventDefault();
+						}}
+					>
+						<input type="hidden" name="email" value={data.gdpr.email} />
+						<button class="btn danger" type="submit">{t('admin.privacy.delete')}</button>
+					</form>
+				</div>
+				<p class="hint">{t('admin.privacy.ordersKept')}</p>
+			{/if}
+			<p class="hint">{t('admin.privacy.noTracking')}</p>
+		</section>
+	{:else if tab === 'backup'}
+		<section class="card block">
+			<h3>{t('admin.backup.download')}</h3>
+			<p class="hint">{t('admin.backup.downloadHint')}</p>
+			<div><a class="btn primary" href="/admin/api/backup">{t('admin.backup.downloadButton')}</a></div>
+		</section>
+		<form
+			class="card block"
+			method="POST"
+			action="?/restore"
+			enctype="multipart/form-data"
+			use:enhance={({ cancel }) => {
+				if (!confirm(t('admin.backup.restoreConfirm'))) cancel();
+			}}
+		>
+			<h3>{t('admin.backup.restore')}</h3>
+			<p class="hint">{t('admin.backup.restoreHint')}</p>
+			<input type="file" name="backup" accept=".zip,application/zip" required />
+			{#if errorText && form?.tab === 'backup'}<p class="error-text">{errorText}</p>{/if}
+			<div><button class="btn danger" type="submit">{t('admin.backup.restoreButton')}</button></div>
+		</form>
 	{:else}
+		<section class="card block">
+			<div class="row between">
+				<h3>{t('admin.totp.title')}</h3>
+				<span class="badge" class:on={data.account.totp}>{data.account.totp ? t('common.on') : t('common.off')}</span>
+			</div>
+			<p class="hint">{t('admin.totp.intro')}</p>
+			{#if form && 'recoveryCodes' in form && form.recoveryCodes}
+				<div class="alert info">
+					<p>{t('admin.totp.recoveryIntro')}</p>
+					<pre class="codes">{(form.recoveryCodes as string[]).join('\n')}</pre>
+				</div>
+			{/if}
+			{#if data.account.totp}
+				<p class="hint">{t('admin.totp.recoveryLeft', { count: data.account.recoveryLeft })}</p>
+				<form class="row" method="POST" action="?/totpDisable" use:enhance={saved}>
+					<input type="password" name="password" required placeholder={t('admin.account.currentPassword')} autocomplete="current-password" aria-label={t('admin.account.currentPassword')} />
+					<button class="btn ghost" type="submit">{t('admin.totp.disable')}</button>
+				</form>
+			{:else if data.totpSetup}
+				<div class="totp-setup">
+					<div class="qr">{@html data.totpSetup.qr}</div>
+					<div class="stack">
+						<p>{t('admin.totp.scan')}</p>
+						<p class="hint">{t('admin.totp.manual')} <code>{data.totpSetup.secret}</code></p>
+						<form class="row" method="POST" action="?/totpEnable" use:enhance={saved}>
+							<input name="code" required inputmode="numeric" autocomplete="one-time-code" placeholder="123456" aria-label={t('admin.totp.code')} />
+							<button class="btn primary" type="submit">{t('admin.totp.enable')}</button>
+						</form>
+						<form method="POST" action="?/totpCancel" use:enhance={saved}><button class="btn ghost small" type="submit">{t('common.cancel')}</button></form>
+					</div>
+				</div>
+			{:else}
+				<form method="POST" action="?/totpStart" use:enhance={saved}><button class="btn" type="submit">{t('admin.totp.setUp')}</button></form>
+			{/if}
+		</section>
 		<form class="card block" method="POST" action="?/account" use:enhance={saved}>
 			<label class="field">
 				<span>{t('admin.account.email')}</span>
@@ -366,5 +474,34 @@
 		.grid-smtp {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	.between {
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.card + .card {
+		margin-top: 16px;
+	}
+
+	.totp-setup {
+		display: flex;
+		gap: 20px;
+		flex-wrap: wrap;
+		align-items: flex-start;
+	}
+
+	.qr :global(svg) {
+		width: 180px;
+		height: 180px;
+		background: #fff;
+		border-radius: 6px;
+	}
+
+	.codes {
+		margin: 8px 0 0;
+		font-size: 1rem;
+		line-height: 1.7;
 	}
 </style>

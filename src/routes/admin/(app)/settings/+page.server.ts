@@ -1,10 +1,14 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
+import QRCode from 'qrcode';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
-import { changeEmail, changePassword, checkPassword } from '$lib/server/auth';
+import { changeEmail, changePassword, checkPassword, clearSetupSecret, setTotp, setupSecret, totpSecretOf } from '$lib/server/auth';
+import { restoreBackup } from '$lib/server/backup';
+import { deletePersonalData, summary } from '$lib/server/gdpr';
+import { generateSecret, otpauthUri, recoveryCodes, verifyTotp } from '$lib/server/totp';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
 import type { TemplateKind, TextWatermark } from '$lib/server/db/schema';
@@ -50,8 +54,11 @@ function isLanguage(value: string): boolean {
 	return (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
 }
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const smtp = getSmtp();
+	const admin = locals.admin!;
+	const pending = setupSecret(cookies, url, admin.id);
+	const gdprEmail = (url.searchParams.get('email') ?? '').trim().toLowerCase();
 	return {
 		studio: getStudio(),
 		preferences: getPreferences(),
@@ -71,7 +78,18 @@ export const load: PageServerLoad = ({ locals }) => {
 		})),
 		presets: listPresets().map((p) => ({ id: p.id, name: p.name, isDefault: p.isDefault })),
 		languages: [...SUPPORTED_LANGUAGES],
-		account: { email: locals.admin!.email }
+		account: {
+			email: admin.email,
+			totp: Boolean(totpSecretOf(admin.id)),
+			recoveryLeft: getDb().select({ codes: schema.users.recoveryCodes }).from(schema.users).where(eq(schema.users.id, admin.id)).get()?.codes.length ?? 0
+		},
+		totpSetup: pending
+			? {
+					secret: pending.replace(/(.{4})/g, '$1 ').trim(),
+					qr: await QRCode.toString(otpauthUri(pending, admin.email, getStudio().name || 'Folio'), { type: 'svg', margin: 1, width: 200 })
+				}
+			: null,
+		gdpr: EMAIL.test(gdprEmail) ? { email: gdprEmail, summary: summary(gdprEmail) } : null
 	};
 };
 
@@ -121,10 +139,12 @@ export const actions: Actions = {
 
 	preferences: async ({ request }) => {
 		const form = await request.formData();
+		const sharpen = String(form.get('sharpening') ?? '');
 		const adminLanguage = String(form.get('adminLanguage') ?? '');
 		const defaultLanguage = String(form.get('defaultLanguage') ?? '');
 		if (isLanguage(adminLanguage)) saveStudio({ language: adminLanguage });
 		savePreferences({
+			sharpening: sharpen === 'standard' || sharpen === 'optimal' ? sharpen : 'none',
 			defaultLanguage: isLanguage(defaultLanguage) ? defaultLanguage : getPreferences().defaultLanguage,
 			banner: {
 				enabled: form.get('bannerEnabled') === 'on',
@@ -288,6 +308,56 @@ export const actions: Actions = {
 		const form = await request.formData();
 		deletePreset(String(form.get('id')));
 		return { tab: 'presets', saved: true };
+	},
+
+	privacy: async ({ request }) => {
+		const form = await request.formData();
+		savePreferences({ searchVisibility: form.get('searchVisibility') === 'homepage' ? 'homepage' : 'none' });
+		return { tab: 'privacy', saved: true };
+	},
+
+	gdprDelete: async ({ request }) => {
+		const form = await request.formData();
+		const email = String(form.get('email') ?? '').trim().toLowerCase();
+		if (!EMAIL.test(email)) return fail(400, { tab: 'privacy', error: 'admin.setup.errEmail' });
+		deletePersonalData(email);
+		return { tab: 'privacy', saved: true, deleted: email };
+	},
+
+	restore: async ({ request }) => {
+		const form = await request.formData();
+		const file = form.get('backup');
+		if (!(file instanceof File) || file.size === 0) return fail(400, { tab: 'backup', error: 'admin.backup.errFile' });
+		const result = await restoreBackup(Buffer.from(await file.arrayBuffer()));
+		if (!result.ok) return fail(400, { tab: 'backup', error: 'admin.backup.errFile' });
+		redirect(303, '/admin/login');
+	},
+
+	totpStart: async ({ cookies, url, locals }) => {
+		setupSecret(cookies, url, locals.admin!.id, generateSecret());
+		return { tab: 'account' };
+	},
+
+	totpCancel: async ({ cookies, url }) => {
+		clearSetupSecret(cookies, url);
+		return { tab: 'account' };
+	},
+
+	totpEnable: async ({ request, cookies, url, locals }) => {
+		const secret = setupSecret(cookies, url, locals.admin!.id);
+		const code = String((await request.formData()).get('code') ?? '');
+		if (!secret || !verifyTotp(secret, code)) return fail(400, { tab: 'account', error: 'admin.totp.wrong' });
+		const { codes, hashes } = recoveryCodes();
+		setTotp(locals.admin!.id, secret, hashes);
+		clearSetupSecret(cookies, url);
+		return { tab: 'account', saved: true, recoveryCodes: codes };
+	},
+
+	totpDisable: async ({ request, locals }) => {
+		const password = String((await request.formData()).get('password') ?? '');
+		if (!(await checkPassword(locals.admin!.id, password))) return fail(400, { tab: 'account', error: 'admin.account.wrongPassword' });
+		setTotp(locals.admin!.id, null, []);
+		return { tab: 'account', saved: true };
 	},
 
 	account: async ({ request, locals }) => {

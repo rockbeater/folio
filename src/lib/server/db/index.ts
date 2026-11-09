@@ -40,6 +40,18 @@ export function getDb(): DB {
 	return instance.db;
 }
 
+/** The raw SQLite connection (for backups). */
+export function getSqlite(): Database.Database {
+	getDb();
+	return instance!.sqlite;
+}
+
+/** Close the database; the next getDb() opens (and migrates) it again. Used by restore. */
+export function closeDb(): void {
+	instance?.sqlite.close();
+	instance = null;
+}
+
 /** Swap the database (tests only). */
 export function setDbForTests(db: { db: DB; sqlite: Database.Database } | null): void {
 	instance = db;

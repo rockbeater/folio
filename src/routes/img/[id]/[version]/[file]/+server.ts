@@ -6,7 +6,7 @@ import { canViewGallery, isPubliclyVisible } from '$lib/server/access';
 import { canSeeSharedPhoto, photoFilter, roleFor } from '$lib/server/client';
 import { getDb, schema } from '$lib/server/db';
 import { originalFile } from '$lib/server/images/paths';
-import { ensureDisplay } from '$lib/server/images/render';
+import { ensureDisplay, sharpenKey } from '$lib/server/images/render';
 import { getWatermark, watermarkKey } from '$lib/server/watermarks';
 import { DISPLAY_WIDTHS, type DisplayWidth } from '$lib/types';
 import type { RequestHandler } from './$types';
@@ -19,7 +19,7 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ params, cookies, locals, request }) => {
 	const match = /^w(\d+)\.webp$/.exec(params.file);
 	const width = Number(match?.[1]) as DisplayWidth;
-	const keyMatch = /^(\d+)(?:-([a-f0-9]+))?$/.exec(params.version);
+	const keyMatch = /^(\d+)(s[12])?(?:-([a-f0-9]+))?$/.exec(params.version);
 	if (!match || !DISPLAY_WIDTHS.includes(width) || !keyMatch) error(404);
 
 	const row = getDb()
@@ -39,10 +39,11 @@ export const GET: RequestHandler = async ({ params, cookies, locals, request }) 
 
 	const { photo, gallery } = row;
 	const galleryWatermark = getWatermark(gallery.watermarkId) ?? null;
-	const watermark = isAdmin ? (keyMatch[2] ? galleryWatermark : null) : galleryWatermark;
+	const watermark = isAdmin ? (keyMatch[3] ? galleryWatermark : null) : galleryWatermark;
 	const wmKey = watermarkKey(watermark);
 
-	const etag = `"${photo.id}-${photo.version}-${width}-${wmKey ?? 'plain'}"`;
+	const sharpen = sharpenKey();
+	const etag = `"${photo.id}-${photo.version}${sharpen}-${width}-${wmKey ?? 'plain'}"`;
 	if (request.headers.get('if-none-match') === etag) return new Response(null, { status: 304 });
 
 	let file: string;
@@ -52,7 +53,7 @@ export const GET: RequestHandler = async ({ params, cookies, locals, request }) 
 		error(404);
 	}
 	const stat = await fs.promises.stat(file);
-	const current = keyMatch[1] === String(photo.version) && (keyMatch[2] ?? null) === wmKey;
+	const current = keyMatch[1] === String(photo.version) && (keyMatch[2] ?? '') === sharpen && (keyMatch[3] ?? null) === wmKey;
 	return new Response(Readable.toWeb(fs.createReadStream(file)) as ReadableStream, {
 		headers: {
 			'content-type': 'image/webp',
