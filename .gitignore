@@ -1,0 +1,10 @@
+node_modules
+/build
+/.svelte-kit
+/package
+/dev-data
+.env
+.env.*
+!.env.example
+vite.config.*.timestamp-*
+*.log

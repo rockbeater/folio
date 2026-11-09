@@ -1,0 +1,8 @@
+node_modules
+build
+.svelte-kit
+dev-data
+.git
+.github
+*.md
+!README.md
