@@ -253,7 +253,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ## 15. Butik: moms
 
-- [ ] `v1` Momssatser per land med Danmark 25 % som standard. For hver sats vælges, om den også gælder fragt og digitale produkter.
+- [ ] `v1` Momssatser per land, som fotografen selv opretter (fx Danmark 25 %). For hver sats vælges, om den også gælder fragt og digitale produkter.
 - [ ] `v1` Priser angives og vises inkl. moms, og momsbeløbet specificeres på ordren og kvitteringen.
 - [ ] `v1` Produkter kan fritages for moms (se afsnit 11).
 - [ ] `v1` Momsrapport: omsætning og opkrævet moms per periode, med eksport til CSV til momsangivelsen.
@@ -281,7 +281,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 ## 18. Butik: indstillinger og Stripe
 
 - [ ] `v1` Butikken kan slås til og fra globalt for alle gallerier.
-- [ ] `v1` Butiksnavn, kontakt-e-mail og valuta (DKK som standard).
+- [ ] `v1` Butiksnavn, kontakt-e-mail og valuta, som vælges ved opsætningen.
 - [ ] `v1` Handelsbetingelser med simpel formatering, vist ved checkout.
 - [ ] `v1` Digital billedlicens med simpel formatering, vist ved checkout, når kurven indeholder digitale produkter.
 - [ ] `v1` Stripe-opsætning: indsæt nøgle, se den valideret med kontonavn, få webhooken oprettet automatisk, og skift mellem test mode og live mode.

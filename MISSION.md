@@ -25,7 +25,8 @@
 4. **Klar til salg fra start.** Webshoppen bygges efter galleri-kernen, men datamodellen og arkitekturen tager højde for den fra dag ét.
 5. **Betaling uden friktion.** Stripe skal kunne sættes op af en fotograf med en helt almindelig Stripe-konto, uden udviklerhjælp.
 6. **Privatliv og sikkerhed som standard.** Gallerier er private, indtil fotografen siger andet. Ingen kortdata rører vores server.
-7. **Flersproget fra start.** Al tekst ligger i oversættelsesfiler. Engelsk kommer først og dansk derefter, og sproget kan vælges per galleri.
+7. **Generelt produkt.** Folio er lavet til alle fotografer, ikke til én bestemt forretning. Navne, sprog, valuta, lande, priser og tekster er indstillinger med neutrale standardværdier. Intet er hardcodet til et bestemt studie eller land.
+8. **Flersproget fra start.** Al tekst ligger i oversættelsesfiler. Engelsk kommer først og dansk derefter, og sproget kan vælges per galleri.
 
 ---
 
@@ -55,7 +56,7 @@ services:
       - BASE_URL=https://galleri.ditdomaene.dk
       - PUID=1000            # filrettigheder på /photos, vigtigt på NAS
       - PGID=1000
-      - TZ=Europe/Copenhagen
+      - TZ=Europe/Copenhagen  # din egen tidszone
     volumes:
       - /mnt/nas/gallerier:/photos
       - ./data:/data
@@ -127,7 +128,7 @@ Webshoppen er forberedt i arkitekturen fra start og implementeres efter galleri-
 - **Prislister:** Flere prislister, der knyttes til gallerier. Det samme produkt kan have forskellig pris i forskellige prislister.
 - **Digitale produkter:** Salg af højopløselige enkeltbilleder eller hele gallerier.
 - **Shipping:** Forsendelsesmetoder, lande og zoner, fast pris, fri fragt over et beløb og afhentning.
-- **Moms:** Priser vises inklusive moms (standard 25 % i Danmark) med korrekt specifikation på kvitteringen.
+- **Moms:** Fotografen opretter selv sine momssatser (fx 25 % i Danmark). Priser vises inklusive moms med korrekt specifikation på kvitteringen.
 - **En god ordre-backend:** Ordrestatus (betalt, i produktion, afsendt, leveret), beskeder til kunden og eksport af ordrens filer til print (fx en ZIP med filer navngivet efter størrelse og antal).
 - **Fulfillment:** Fotografen håndterer selv alle fysiske ordrer. Automatisk fulfillment via printlab er bevidst udeladt indtil videre.
 
