@@ -158,7 +158,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 - [ ] `MVP` Kopier galleri-link (og eventuelt adgangskode).
 - [ ] `MVP` Preview: se galleriet som kunden. Det tæller ikke med i aktiviteten.
-- [ ] `v1` Send galleriet til kunden via e-mail fra admin med en redigerbar skabelon. Ved kundeadgang kan gæstelinket og kundeadgangskoden sendes hver for sig.
+- [ ] `MVP` Send galleriet til kunden via e-mail direkte fra admin (se afsnit 19). Ved kundeadgang kan gæstelinket og kundeadgangskoden sendes hver for sig.
 - [ ] `v1` **Hurtige delingslinks:** vælg billeder i admin og opret et link, der kun viser de valgte billeder. Det er nyttigt til leverandører, samarbejdspartnere og presse.
 - [ ] `v1` Hvert hurtige delingslink har et navn, download til/fra (med valg af størrelse) og eventuelt en udløbsdato og en adgangskode.
 - [ ] `v1` Hurtige delingslinks er uafhængige af galleriets adgangskode og status. Modtageren ser kun de valgte billeder og kan ikke komme videre til resten af galleriet.
@@ -291,20 +291,57 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [ ] `Senere` Offline-betaling: kunden afgiver ordren uden at betale online, og fotografen markerer den som betalt manuelt, fx efter bankoverførsel.
 - [ ] `Senere` Ordreforsinkelse: digitale ordrer frigives først efter en valgt periode (fx 6 timer), så fotografen kan nå at gennemgå dem.
 
-## 19. E-mail og notifikationer
+## 19. E-mail: levering og notifikationer
 
-- [ ] `v1` SMTP-opsætning med mulighed for at sende en testmail.
-- [ ] `v1` Redigerbare skabeloner: del galleri, udløbspåmindelse, ordrebekræftelse, digital levering, afsendt og refundering.
+Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens første møde med galleriet, så den skal være lige så gennemført som galleriet selv.
+
+### 19.1 Afsendelse og opsætning
+
+- [ ] `MVP` SMTP-opsætning i admin: server, port, kryptering (TLS/STARTTLS), brugernavn og adgangskode. Kan også sættes via miljøvariabler.
+- [ ] `MVP` Afsenderen vises med studiets navn (fx "Fotograf Sebastian") og egen afsenderadresse. Svar fra kunden går direkte til fotografens e-mail (Reply-To).
+- [ ] `MVP` "Send testmail" med en tydelig og forståelig fejlbesked, hvis opsætningen ikke virker.
+- [ ] `MVP` Mails sendes i baggrunden og forsøges igen automatisk ved midlertidige fejl.
+- [ ] `v1` Forudfyldte indstillinger og en kort guide for almindelige udbydere (fx Google Workspace, Microsoft 365, Simply, One.com, Brevo og Postmark), herunder SPF og DKIM, så mails ikke havner i spam.
+
+### 19.2 Levering af galleri
+
+- [ ] `MVP` "Send galleri" fra Del-knappen i admin: modtagere (én eller flere, forudfyldt med kundens e-mail), skabelon, emne og besked.
+- [ ] `MVP` Fotografen vælger, hvad mailen indeholder: link til galleriet og eventuelt adgangskoden. Ved kundeadgang (afsnit 5.2) kan kundeadgangskoden sendes til kunden og gæstelinket til andre.
+- [ ] `MVP` Forhåndsvisning af mailen præcis som kunden ser den, og "Send test til mig selv", før den sendes.
+- [ ] `MVP` En smuk HTML-mail med studiets logo eller navn, galleriets titel med versaler, coverbilledet, beskeden og en tydelig knap, "Se galleriet". Coverbilledet er indlejret i mailen, så det vises med det samme.
+- [ ] `MVP` Mailen ser godt ud i både lys og mørk tilstand og på mobil og har en ren tekstversion.
+- [ ] `MVP` "Publicer og send" i ét trin, hvis galleriet stadig er en kladde.
+- [ ] `MVP` Afsendelseslog per galleri: modtager, tidspunkt, skabelon og status (sendt eller fejlet), og mulighed for at sende igen.
+- [ ] `v1` Send senere: planlæg afsendelsen til et bestemt tidspunkt.
+- [ ] `v1` Kopiér invitationsteksten med link til brug i SMS eller Messenger.
+
+### 19.3 Skabeloner
+
+- [ ] `MVP` Flere navngivne skabeloner til levering af gallerier, fx "Tidlig levering" og "Bryllup", hver med emne og besked. Én skabelon er standard.
+- [ ] `MVP` Flettefelter i emne og besked: `{client_name}`, `{gallery_name}`, `{gallery_link}`, `{password}`, `{studio_name}` og `{event_date}`.
+- [ ] `MVP` Skabelonerne administreres under Indstillinger → E-mail-skabeloner.
+- [ ] `v1` Skabelon til udløbspåmindelse.
+- [ ] `v1` Skabeloner til butikken: ordrebekræftelse, digital levering, afsendt og refundering.
+- [ ] `v1` Skabeloner per sprog, så mailen automatisk følger galleriets sprog.
+
+### 19.4 Automatiske mails og notifikationer
+
+- [ ] `v1` Udløbspåmindelse et valgt antal dage før galleriet udløber. Den kan sendes til kunden og/eller til alle, der har registreret sig, favoritmarkeret eller downloadet.
+- [ ] `v1` Butiksmails: ordrebekræftelse, digital levering, afsendt (med trackingnummer) og refundering.
 - [ ] `v1` Notifikationer til fotografen: ny ordre og indsendt favoritliste.
-- [ ] `v1` Mails sendes på galleriets sprog.
+- [ ] `v1` Alle mails sendes på galleriets sprog.
 
 ## 20. Globale indstillinger
 
-- [ ] `MVP` Studie-branding: navn, logo (lys og mørk version) og kontaktinfo.
+- [ ] `MVP` Studie-branding: studienavn, logo og kontaktinfo (e-mail, telefon og website).
+- [ ] `v1` Cover-logo: en lys version af logoet til brug oven på coverbilleder, samt favicon.
 - [ ] `MVP` Admin-konto: skift e-mail og adgangskode.
 - [ ] `v1` Vandmærker af tekst eller billede med valg af position, størrelse og gennemsigtighed. Der kan være flere vandmærker. De lægges på billederne i `/cache`, aldrig på originalerne.
 - [ ] `v1` Standardindstillinger for nye gallerier: design, download, favoritter, butik og sprog.
-- [ ] `v1` Standardsprog.
+- [ ] `v1` Standardsprog for nye gallerier.
+- [ ] `v1` Vis filnavne som standard (kan ændres per galleri).
+- [ ] `v1` Søgemaskine-synlighed: Ingen (standard) eller Kun forsiden. Gallerier indekseres aldrig.
+- [ ] `v1` Skarphed for visningskopier: Ingen, Standard eller Optimal. Originalerne ændres ikke.
 
 ## 21. Sprog
 
