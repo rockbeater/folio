@@ -72,6 +72,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `v1` Robust upload af store mængder: chunked upload, der kan genoptages, og håndtering af dubletter (spring over / erstat / omdøb).
 - [x] `v1` Fokuspunkt på coveret, så beskæringen rammer rigtigt på både mobil og desktop.
 - [x] `v1` Massehandlinger: vælg flere billeder og flyt, kopier, skjul, slet, download dem eller opret et hurtigt delingslink (se afsnit 7).
+- [x] `v1` Lightbox i admin: klik på et billede for at se det stort, bladre med piletasterne og sætte det som cover, skjule det eller downloade originalen. Mens der er valgt billeder, vælger et klik i stedet.
 - [x] `v1` Skjul enkelte billeder for kunden uden at slette filen.
 - [x] `v1` "Mere"-menu: anvend preset, kopier indstillinger fra et andet galleri, download originaler og slet galleri.
 

@@ -14,6 +14,7 @@
 	import Download from '@lucide/svelte/icons/download';
 	import { callAction } from '$lib/admin-actions';
 	import ShareLinkDialog from './ShareLinkDialog.svelte';
+	import AdminLightbox from './AdminLightbox.svelte';
 	import { uploadFile, type DuplicatePolicy } from '$lib/admin-upload';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
@@ -63,6 +64,16 @@
 			? sections.flatMap((s) => s.photos).filter((p) => p.filename.toLowerCase().includes(query.trim().toLowerCase()))
 			: order.map((id) => section?.photos.find((p) => p.id === id)).filter((p) => p !== undefined)
 	);
+
+	// The lightbox pages through the photos that are ready, in the order of the grid.
+	const viewable = $derived(photos.filter((p) => p.status === 'ready'));
+	let viewing = $state<number | null>(null);
+
+	/** A click on a photo opens it; while photos are being selected (or with Shift/Ctrl/Cmd) it selects. */
+	function openOrSelect(id: string, event: MouseEvent) {
+		if (selected.size > 0 || event.shiftKey || event.metaKey || event.ctrlKey) toggleSelect(id, event);
+		else viewing = viewable.findIndex((p) => p.id === id);
+	}
 
 	const IMAGE = /\.(jpe?g|png|webp)$/i;
 
@@ -382,15 +393,23 @@
 								type="checkbox"
 								checked={selected.has(photo.id)}
 								onclick={(e) => {
-									e.preventDefault();
+									// No preventDefault: the browser would undo the tick after the state is set.
 									toggleSelect(photo.id, e);
+									e.currentTarget.checked = selected.has(photo.id);
 								}}
 								aria-label={t('admin.bulk.select')}
 							/>
 						</label>
 						{#if photo.hidden}<span class="badge hidden-badge"><EyeOff size={12} />{t('admin.bulk.hidden')}</span>{/if}
 						{#if photo.status === 'ready'}
-							<img src={displayUrl(photo, 480)} alt="" loading="lazy" draggable="false" />
+							<button
+								class="open"
+								type="button"
+								onclick={(e) => openOrSelect(photo.id, e)}
+								aria-label={selected.size > 0 ? t('admin.bulk.select') : t('admin.lightbox.open', { name: photo.filename })}
+							>
+								<img src={displayUrl(photo, 480)} alt="" loading="lazy" draggable="false" />
+							</button>
 						{:else if photo.status === 'pending'}
 							<LoaderCircle size={20} class="spin" />
 						{:else}
@@ -434,6 +453,18 @@
 
 {#if linkFor}
 	<ShareLinkDialog photoIds={linkFor} {baseUrl} onclose={() => (linkFor = null)} />
+{/if}
+
+{#if viewing !== null && viewable.length > 0}
+	<AdminLightbox
+		photos={viewable}
+		bind:index={viewing}
+		galleryId={gallery.id}
+		coverPhotoId={gallery.coverPhotoId}
+		onclose={() => (viewing = null)}
+		oncover={setCover}
+		onhide={toggleHidden}
+	/>
 {/if}
 
 <style>
@@ -555,17 +586,28 @@
 
 	/* Fill the square box (in a grid cell a plain 100% height would follow the photo's own
 	   height and crop portrait photos), and show the whole photo inside it. */
-	.thumb img {
+	.open {
 		position: absolute;
 		inset: 0;
+		z-index: 0;
+		padding: 8px;
+		border: 0;
+		background: none;
+		cursor: zoom-in;
+	}
+
+	li.selecting .open {
+		cursor: pointer;
+	}
+
+	.open img {
+		display: block;
 		width: 100%;
 		height: 100%;
-		padding: 8px;
-		box-sizing: border-box;
 		object-fit: contain;
 	}
 
-	.thumb > :not(img) {
+	.thumb > :not(.open) {
 		z-index: 1;
 	}
 
@@ -606,7 +648,7 @@
 		height: 30px;
 	}
 
-	.select {
+	.thumb > .select {
 		position: absolute;
 		top: 6px;
 		left: 6px;
@@ -645,22 +687,33 @@
 		left: 6px;
 	}
 
+	/* Floats over the page, so nothing moves when photos are selected. */
 	.bulk {
-		position: sticky;
-		top: 64px;
-		z-index: 5;
+		position: fixed;
+		bottom: 20px;
+		left: 50%;
+		z-index: 25;
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 12px;
 		flex-wrap: wrap;
+		width: max-content;
+		max-width: calc(100vw - 32px);
 		padding: 10px 14px;
+		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+		transform: translateX(-50%);
+	}
+
+	/* Room under the last row, so the floating bar does not cover it. */
+	.panel:has(.bulk) {
+		padding-bottom: 96px;
 	}
 
 	.bulk select {
 		width: auto;
 		min-height: 32px;
-		padding: 4px 8px;
+		padding: 4px 30px 4px 8px;
+		background-position: right 8px center;
 	}
 
 	.duplicate select {
