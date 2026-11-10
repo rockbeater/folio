@@ -202,6 +202,31 @@
 	line-height: 1.5;
 }
 
+/* File pickers: our button and colours instead of the browser's. */
+.admin input[type='file'] {
+	width: 100%;
+	min-width: 0;
+	color: var(--muted);
+	font-size: 0.8125rem;
+}
+
+.admin input[type='file']::file-selector-button {
+	height: 34px;
+	margin-right: 10px;
+	padding: 0 14px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--panel);
+	color: var(--text);
+	font: inherit;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.admin input[type='file']::file-selector-button:hover {
+	border-color: var(--muted);
+}
+
 .admin input:focus,
 .admin select:focus,
 .admin textarea:focus {
@@ -421,7 +446,15 @@
 	gap: 4px;
 	margin-bottom: 24px;
 	border-bottom: 1px solid var(--line);
+	/* Tabs that do not fit scroll sideways (swipe), without scrollbars; hidden vertically,
+	   as the active tab's line overlaps the border by a pixel. */
 	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+}
+
+.admin .tabs::-webkit-scrollbar {
+	display: none;
 }
 
 .admin .tabs a {

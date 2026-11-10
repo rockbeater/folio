@@ -117,4 +117,16 @@
 			padding: 0 8px;
 		}
 	}
+
+	/* Small phones: the menu, the bell and log out need the room; "Galleries" leads home too. */
+	@media (max-width: 480px) {
+		.brand {
+			display: none;
+		}
+
+		nav a {
+			padding: 0 6px;
+			font-size: 0.875rem;
+		}
+	}
 </style>
