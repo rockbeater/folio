@@ -1,6 +1,6 @@
 import { listOrders } from '$lib/server/store/orders';
 import { fail, redirect } from '@sveltejs/kit';
-import { desc, eq, like, ne } from 'drizzle-orm';
+import { desc, eq, like } from 'drizzle-orm';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
 import { processingStats } from '$lib/server/galleries';
@@ -76,16 +76,6 @@ export const load: PageServerLoad = ({ url }) => {
 				.map((r) => ({ ...r, key: String(r.version) }))
 		: null;
 
-	const names = new Map(rows.map((g) => [g.id, g.name]));
-	const recent = db
-		.select()
-		.from(schema.activity)
-		.where(ne(schema.activity.kind, 'visit'))
-		.orderBy(desc(schema.activity.createdAt))
-		.limit(8)
-		.all()
-		.map((a) => ({ id: a.id, galleryId: a.galleryId, galleryName: names.get(a.galleryId) ?? '', kind: a.kind, email: a.email, createdAt: a.createdAt }));
-
 	const soon = inDays(14);
 	const expiring = galleries.filter((g) => g.status === 'published' && g.expiresOn && !g.expired && g.expiresOn <= soon);
 
@@ -94,7 +84,6 @@ export const load: PageServerLoad = ({ url }) => {
 		tags: [...new Set(rows.flatMap((g) => g.tags))].sort((a, b) => a.localeCompare(b)),
 		q,
 		results,
-		recent,
 		expiring,
 		newOrders: listOrders({ status: 'processing' }).all.map((o) => ({ id: o.id, number: o.number, name: o.name, total: o.total, currency: o.currency, createdAt: o.createdAt })),
 		library: { path: config.photosDir, available: libraryState.available, scanning: libraryState.scanning }

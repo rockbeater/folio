@@ -202,6 +202,8 @@ With `LOG_LEVEL=info` you see form posts and API calls that change something, up
 
 ## Statistics and your own visits
 
+The **bell** at the top of the admin shows what happened in all galleries: paid orders, submitted selections, downloads and registrations, with the number of new items since you last looked. **See all** opens the activity page, grouped by day and filterable.
+
 Each gallery's **Activity** tab shows visits per day, downloads, registrations, favorite lists with notes and thumbnails, the most favorited photos, share links and orders. Folio counts visits on your own server; there is no third-party tracking.
 
 Your own visits are not counted: not while you are logged in, and not from IP addresses you have used while logged in during the last 30 days (so also not from a private window on the same network). The list of addresses and the switch are under **Settings → Privacy**.

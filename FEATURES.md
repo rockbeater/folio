@@ -41,7 +41,8 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `MVP` Opret galleri med navn og valgfri event-dato. Det opretter mappen i `/photos`.
 - [x] `v1` Filtrér gallerier på status og kategori-tags, søg på navn, og sortér efter dato, navn eller oprettelse.
 - [x] `v1` Søg i hele billedbiblioteket på tværs af gallerier (filnavn).
-- [x] `v1` Nøgletal på dashboardet: nye ordrer, seneste aktivitet og gallerier, der snart udløber.
+- [x] `v1` Nøgletal på dashboardet: nye ordrer og gallerier, der snart udløber.
+- [x] `v1` Aktivitet bag en klokke i topbaren: betalte ordrer, indsendte udvalg, downloads og registreringer på tværs af gallerier, med antal nye siden sidst. En aktivitetsside viser det hele, grupperet pr. dag og med filtre.
 
 ## 2. Galleri og filsystem
 

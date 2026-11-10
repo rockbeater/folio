@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { createI18n, provideI18n } from '$lib/i18n';
+	import NotificationBell from '$lib/components/admin/NotificationBell.svelte';
 
 	let { data, children } = $props();
 	// svelte-ignore state_referenced_locally
@@ -26,6 +27,7 @@
 			{/each}
 		</nav>
 		<div class="right">
+			<NotificationBell unread={data.unread} />
 			<span class="studio">{data.studioName}</span>
 			<form method="POST" action="/admin/logout">
 				<button class="icon-btn" type="submit" aria-label={t('admin.nav.logout')} title={t('admin.nav.logout')}>

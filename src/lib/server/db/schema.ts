@@ -298,7 +298,7 @@ export const activity = sqliteTable(
 		detail: text('detail', { mode: 'json' }).$type<ActivityDetail>(),
 		createdAt: integer('created_at').notNull().default(now)
 	},
-	(t) => [index('activity_gallery_kind_idx').on(t.galleryId, t.kind)]
+	(t) => [index('activity_gallery_kind_idx').on(t.galleryId, t.kind), index('activity_created_idx').on(t.createdAt)]
 );
 
 export interface TextWatermark {

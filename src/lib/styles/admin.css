@@ -162,6 +162,7 @@
 .admin input[type='number'],
 .admin input[type='url'],
 .admin input[type='tel'],
+.admin input[type='search'],
 .admin select,
 .admin textarea {
 	width: 100%;
@@ -172,6 +173,15 @@
 	background: var(--panel);
 	color: var(--text);
 	font-size: 0.9375rem;
+}
+
+.admin input[type='search'] {
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.admin input[type='search']::-webkit-search-decoration {
+	-webkit-appearance: none;
 }
 
 .admin textarea {

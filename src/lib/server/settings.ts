@@ -150,6 +150,15 @@ export function savePreferences(update: Partial<Preferences>): Preferences {
 	return next;
 }
 
+/** When the owner last looked at the activity (the bell): newer items are marked as new. */
+export function getActivitySeenAt(): number {
+	return read('activitySeen', { at: 0 }).at;
+}
+
+export function setActivitySeenAt(at: number): void {
+	write('activitySeen', { at });
+}
+
 export function isSmtpConfigured(smtp = getSmtp()): boolean {
 	return Boolean(smtp.host && smtp.port && smtp.fromEmail);
 }

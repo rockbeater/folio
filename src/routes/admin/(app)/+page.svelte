@@ -14,7 +14,6 @@
 
 	let { data, form } = $props();
 	const { t, plural, formatDate, lang } = useI18n();
-	const dateTime = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' });
 
 	let creating = $state(false);
 	let scanning = $state(false);
@@ -58,10 +57,6 @@
 		goto(q ? `?q=${encodeURIComponent(q)}` : '?', { keepFocus: true, noScroll: true, replaceState: true });
 	}
 
-	const activityLabel: Record<string, MessageKey> = {
-		download: 'admin.dashboard.activityDownload',
-		registration: 'admin.dashboard.activityRegistration'
-	};
 </script>
 
 <svelte:head><title>{t('admin.galleries.title')} · Folio</title></svelte:head>
@@ -99,7 +94,7 @@
 	{/if}
 	<p class="hint library">{t('admin.galleries.libraryPath', { path: data.library.path })}</p>
 
-	{#if data.expiring.length > 0 || data.recent.length > 0 || data.newOrders.length > 0}
+	{#if data.expiring.length > 0 || data.newOrders.length > 0}
 		<div class="widgets">
 			{#if data.newOrders.length > 0}
 				<section class="card widget">
@@ -120,22 +115,6 @@
 					<ul>
 						{#each data.expiring as g (g.id)}
 							<li><a href="/admin/galleries/{g.id}?tab=settings">{g.name}</a><span class="hint">{formatDate(g.expiresOn!, 'short')}</span></li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-			{#if data.recent.length > 0}
-				<section class="card widget">
-					<h2>{t('admin.dashboard.recent')}</h2>
-					<ul>
-						{#each data.recent as a (a.id)}
-							<li>
-								<span>
-									{t(activityLabel[a.kind] ?? 'admin.dashboard.activityDownload', { who: a.email ?? t('admin.activity.anonymous') })}
-									<a href="/admin/galleries/{a.galleryId}?tab=activity">{a.galleryName}</a>
-								</span>
-								<span class="hint">{dateTime.format(a.createdAt)}</span>
-							</li>
 						{/each}
 					</ul>
 				</section>
