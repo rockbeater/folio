@@ -224,6 +224,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` Detaljer for en prisliste: navn, hvor mange gallerier den er tildelt (med link til dem), minimumsordre og antal produkter.
 - [x] `v1` Minimumsbeløb per prisliste: kunden kan ikke gå til betaling, før kurven når beløbet.
 - [x] `v1` Dupliker, omdøb og slet prislister, og vælg standard.
+- [x] `v1` "Tildel alle gallerier" på en prisliste: alle gallerier bruger prislisten med ét klik, og butikken kan slås til i dem samtidig.
 
 ### Produkter
 

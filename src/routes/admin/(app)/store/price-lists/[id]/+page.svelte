@@ -16,6 +16,14 @@
 		await update({ reset: false });
 		if (result.type === 'success') toast(t('common.saved'));
 	};
+
+	const assigned: SubmitFunction = ({ cancel }) => {
+		if (!confirm(t('admin.priceLists.assignConfirm', { name: data.list.name, count: data.totalGalleries }))) return cancel();
+		return async ({ result, update }) => {
+			await update({ reset: false });
+			if (result.type === 'success') toast(t('admin.priceLists.assigned', { count: Number(result.data?.assigned ?? 0) }));
+		};
+	};
 </script>
 
 <svelte:head><title>{data.list.name} · Folio</title></svelte:head>
@@ -35,6 +43,18 @@
 		</div>
 		<p class="hint">{t('admin.priceLists.summary', { products: data.list.products, galleries: data.list.galleries.length })}</p>
 		<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
+	</form>
+
+	<form class="card block" method="POST" action="?/assignAll" use:enhance={assigned}>
+		<h3>{t('admin.priceLists.galleries')}</h3>
+		<p class="hint">{t('admin.priceLists.usage', { used: data.list.galleries.length, total: data.totalGalleries, store: data.storeOn })}</p>
+		{#if data.list.galleries.length}
+			<ul class="used">
+				{#each data.list.galleries as g (g.id)}<li><a href="/admin/galleries/{g.id}?tab=settings">{g.name}</a></li>{/each}
+			</ul>
+		{/if}
+		<label class="switch"><input type="checkbox" name="enableStore" checked /><span>{t('admin.priceLists.enableStore')}</span></label>
+		<div><button class="btn" type="submit" disabled={data.totalGalleries === 0}>{t('admin.priceLists.assignAll')}</button></div>
 	</form>
 
 	{#each categories as category (category)}
@@ -99,6 +119,16 @@
 		color: var(--muted);
 		text-decoration: none;
 		margin-bottom: 8px;
+	}
+
+	.used {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 14px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.875rem;
 	}
 
 	.category {

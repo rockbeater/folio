@@ -127,7 +127,7 @@ The store is off until you set it up. In the admin under **Store**:
 3. **VAT:** add the rate for each country you sell to. Prices include VAT.
 4. **Shipping:** add at least one method per country, or one for the rest of the world. Pickup is a method with fee 0. Digital-only orders need no shipping.
 5. **Discount codes** (optional), also shown as a banner in galleries.
-6. In each gallery: **Settings → Store**: turn it on and choose the price list.
+6. In each gallery: **Settings → Store**: turn it on and choose the price list. Or open the price list and click **Assign to all galleries**, which can also turn the store on everywhere at once.
 
 The top of the store pages lists what still stops customers from ordering.
 

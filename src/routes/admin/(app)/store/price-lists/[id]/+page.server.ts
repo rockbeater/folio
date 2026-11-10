@@ -9,8 +9,12 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = ({ params }) => {
 	const list = listPriceLists().find((l) => l.id === params.id);
 	if (!list) error(404, 'not-found');
+	const galleries = getDb().select({ id: schema.galleries.id, storeEnabled: schema.galleries.storeEnabled }).from(schema.galleries).all();
+	const using = new Set(list.galleries.map((g) => g.id));
 	return {
 		list,
+		totalGalleries: galleries.length,
+		storeOn: galleries.filter((g) => g.storeEnabled && using.has(g.id)).length,
 		currency: getStore().currency,
 		products: listProducts(list.id).map((p) => {
 			const data = toProductData(p);
@@ -26,6 +30,16 @@ export const actions: Actions = {
 		if (!name) return fail(400);
 		updatePriceList(params.id, { name, minOrder: toMinor(String(form.get('minOrder') ?? ''), getStore().currency) });
 		return { saved: true };
+	},
+	/** Use this price list in every gallery, optionally turning their store on as well. */
+	assignAll: async ({ params, request }) => {
+		if (!getPriceList(params.id)) error(404);
+		const enableStore = (await request.formData()).get('enableStore') === 'on';
+		const result = getDb()
+			.update(schema.galleries)
+			.set(enableStore ? { priceListId: params.id, storeEnabled: true } : { priceListId: params.id })
+			.run();
+		return { assigned: result.changes };
 	},
 	addProduct: async ({ params, request }) => {
 		if (!getPriceList(params.id)) error(404);
