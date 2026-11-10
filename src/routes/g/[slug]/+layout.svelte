@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 	import { createI18n, provideI18n } from '$lib/i18n';
@@ -28,7 +29,7 @@
 
 	// svelte-ignore state_referenced_locally
 	const gallery = setGalleryState(
-		new GalleryState({ slug: data.gallery.slug, visitor: data.visitor, canMarkPrivate: data.gallery.canMarkPrivate, t })
+		new GalleryState({ slug: data.gallery.slug, share: data.shared?.token, visitor: data.visitor, canMarkPrivate: data.gallery.canMarkPrivate, t })
 	);
 	// Keep the state in step with the server after logins and navigation.
 	$effect(() => {
@@ -110,6 +111,18 @@
 			redirectTo={page.url.pathname}
 			onback={data.gallery.clientLogin ? backToSelection : null}
 		/>
+	{:else if data.state === 'shop' && data.shared}
+		<!-- The cart for someone a favorite list was shared with: no way into the rest of the gallery. -->
+		<header class="shop-bar">
+			<a class="back" href="/l/{data.shared.token}">
+				<ArrowLeft size={18} strokeWidth={1.5} />
+				<span>{t('client.share.backToList', { name: data.shared.name || t('client.lists.default') })}</span>
+			</a>
+			<span class="label shop-name">{data.gallery.name}</span>
+		</header>
+		<main class="content">
+			{@render children()}
+		</main>
 	{:else if data.state === 'register'}
 		<RegisterGate
 			slug={data.gallery.slug}
@@ -205,6 +218,36 @@
 	.content {
 		padding: 0 clamp(var(--space-4), 3vw, var(--space-7)) var(--space-8);
 		min-height: 60vh;
+	}
+
+	.shop-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		min-height: 64px;
+		padding: var(--space-3) clamp(var(--space-4), 3vw, var(--space-7));
+	}
+
+	.back {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 44px;
+		min-width: 0;
+		color: var(--color-text);
+		text-decoration: none;
+	}
+
+	.back span,
+	.shop-name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.shop-name {
+		color: var(--color-text-muted);
 	}
 
 	.notice {

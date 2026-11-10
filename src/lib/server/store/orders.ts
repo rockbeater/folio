@@ -115,7 +115,9 @@ export async function placeOrder(
 	cart: { items: CartItem[]; couponCode: string | null },
 	input: CheckoutInput,
 	baseUrl: string,
-	simulator: boolean
+	simulator: boolean,
+	/** Where "back" on the payment page leads (the cart). */
+	cartPath = `/g/${gallery.slug}/cart`
 ): Promise<{ redirect: string } | { error: CheckoutError; message?: string }> {
 	const view = priceCart(gallery, role, cart.items, cart.couponCode, { country: input.country, methodId: input.methodId });
 	if (!view) {
@@ -217,7 +219,7 @@ export async function placeOrder(
 				lines,
 				shipping: !discounted && totals.shipping > 0 && method ? { name: method.name, amount: totals.shipping } : null,
 				successUrl: success,
-				cancelUrl: `${baseUrl}/g/${gallery.slug}/cart`,
+				cancelUrl: `${baseUrl}${cartPath}`,
 				locale: gallery.language === 'da' ? 'da' : 'auto'
 			});
 			touch(id, { stripeSessionId: session.id, stripeMode: store.stripe.mode ?? 'test' });

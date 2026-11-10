@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { error, json } from '@sveltejs/kit';
 import type { CartItem } from '$lib/server/db/schema';
-import { photoFilter, photosByIds, requireOpenGallery } from '$lib/server/client';
+import { photosByIds, shopAccess, type ViewerContext } from '$lib/server/client';
 import { ensureCart, getCart, priceCart, saveCart, storeContext } from '$lib/server/store/cart';
 import { centeredCrop, printAspect, priceOf, variantLabel, type Crop } from '$lib/store';
 import type { RequestHandler } from './$types';
@@ -13,9 +13,16 @@ function view(gallery: Parameters<typeof priceCart>[0], role: Parameters<typeof 
 	});
 }
 
+/** The gallery's cart, also for people shopping from a shared favorite list (?share=). */
+function access(slug: string, viewer: ViewerContext, url: URL) {
+	const result = shopAccess(slug, viewer, url.searchParams.get('share'));
+	if (!result) error(403);
+	return result;
+}
+
 /** The priced cart; ?country= and ?method= add shipping and VAT. */
 export const GET: RequestHandler = ({ params, cookies, locals, url }) => {
-	const { gallery, role } = requireOpenGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
+	const { gallery, role } = access(params.slug, { cookies, isAdmin: Boolean(locals.admin) }, url);
 	const cart = getCart(cookies, gallery.id);
 	const result = view(gallery, role, cart?.items ?? [], cart?.couponCode ?? null, url);
 	if (!result) error(404, 'store-closed');
@@ -43,7 +50,7 @@ interface Body {
 }
 
 export const POST: RequestHandler = async ({ params, cookies, locals, url, request }) => {
-	const { gallery, role } = requireOpenGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
+	const { gallery, role, canSee } = access(params.slug, { cookies, isAdmin: Boolean(locals.admin) }, url);
 	const ctx = storeContext(gallery);
 	if (!ctx) error(404, 'store-closed');
 	const body = (await request.json().catch(() => ({}))) as Body;
@@ -59,7 +66,6 @@ export const POST: RequestHandler = async ({ params, cookies, locals, url, reque
 			if (!product || !priceOf(product, key)) error(400, 'variant');
 			const needsPhoto = !product.noPhoto && !(product.kind === 'digital' && product.digital?.scope === 'gallery');
 			const ids = Array.isArray(body.photoIds) ? body.photoIds.filter((v): v is string => typeof v === 'string').slice(0, product.multiPhoto ? 200 : 1) : [];
-			const canSee = photoFilter(gallery, role);
 			const photos = needsPhoto ? photosByIds(gallery.id, ids).filter(canSee) : [];
 			if (needsPhoto && photos.length === 0) error(400, 'photo');
 			const aspect = product.kind === 'physical' ? printAspect(variantLabel(product, key)) : null;

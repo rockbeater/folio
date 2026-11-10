@@ -56,7 +56,7 @@
 	async function add() {
 		if (!product || !price) return;
 		busy = true;
-		const res = await fetch(`/g/${gs.slug}/api/cart`, {
+		const res = await fetch(`/g/${gs.slug}/api/cart${gs.share ? `?share=${encodeURIComponent(gs.share)}` : ''}`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({

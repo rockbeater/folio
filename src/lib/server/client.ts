@@ -17,7 +17,7 @@ import {
 import { getDb, schema } from './db';
 import type { ActivityDetail, ActivityKind, FavoriteList, Gallery, Photo } from './db/schema';
 import { getGalleryBySlug, getPhotosBySection, getSections, publicGallery, toPhotoView, toSectionView } from './galleries';
-import { activeListId, getListByToken, listViews, memberships } from './lists';
+import { activeListId, getListByToken, listPhotoIds, listViews, memberships } from './lists';
 import { getPreferences, getStudio } from './settings';
 import { isLinkOpen } from './shares';
 import { bannerCoupon } from './store/catalog';
@@ -77,6 +77,44 @@ export function sharedListFor(gallery: Gallery, token: string | null): FavoriteL
 	if (!list || list.galleryId !== gallery.id) return null;
 	if (!isPubliclyVisible(gallery) || !normalizeAccess(gallery.access).listSharing) return null;
 	return list;
+}
+
+/**
+ * An open share leads on to the gallery, so it needs the gallery password like the gallery does;
+ * a private share shows only the list and needs nothing.
+ */
+export function isListLocked(cookies: Cookies, gallery: Gallery, list: FavoriteList, isAdmin: boolean): boolean {
+	return !list.sharePrivate && !isAdmin && !isUnlocked(cookies, gallery) && !isClient(cookies, gallery);
+}
+
+export interface ShopAccess {
+	gallery: Gallery;
+	role: Role;
+	/** Photos this viewer may buy. */
+	canSee: (p: Photo) => boolean;
+	/** Set when the viewer shops from a shared favorite list instead of the gallery. */
+	list: FavoriteList | null;
+}
+
+/**
+ * Who may use the cart: viewers of the open gallery, and people a favorite list was shared with
+ * (they may buy the photos of that list only). Whether the store is on is checked by the caller.
+ */
+export function shopAccess(slug: string, viewer: ViewerContext, share: string | null): ShopAccess | null {
+	const { gallery, state, role } = loadClientGallery(slug, viewer);
+	if (state === 'open') return { gallery, role, canSee: photoFilter(gallery, role), list: null };
+	if (state === 'expired') return null;
+	const list = sharedListFor(gallery, share);
+	if (!list || isListLocked(viewer.cookies, gallery, list, viewer.isAdmin)) return null;
+	const ids = new Set(listPhotoIds(list.id));
+	const guest = photoFilter(gallery, 'guest');
+	return { gallery, role: 'guest', canSee: (p) => ids.has(p.id) && guest(p), list };
+}
+
+/** The list's own name, or the name of the predefined list it belongs to. */
+export function sharedListName(gallery: Gallery, list: FavoriteList): string {
+	const preset = list.presetId ? normalizeAccess(gallery.access).lists.find((p) => p.id === list.presetId) : undefined;
+	return preset?.name ?? list.name;
 }
 
 /**

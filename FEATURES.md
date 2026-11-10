@@ -152,7 +152,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
   - **Åben deling:** linket åbner listen, men modtageren kan også gå videre til resten af galleriet med de samme rettigheder som en gæst. Galleri-adgangskoden kræves stadig, hvis galleriet har en.
 - [x] `v1` Linket viser altid listens aktuelle indhold, og kunden kan stoppe delingen når som helst. Så holder linket op med at virke.
 - [x] `v1` En delt liste viser kun billeder, som en gæst må se. Private billeder og sektioner kun for kunden kommer aldrig med, og kunden får at vide, hvor mange billeder der er udeladt.
-- [x] `v1` Download og køb fra en delt liste følger galleriets indstillinger for gæster. Download-PIN gælder stadig.
+- [x] `v1` Download og køb fra en delt liste følger galleriets indstillinger for gæster. Download-PIN gælder stadig. Har galleriet en butik, kan modtageren bestille print af listens billeder (kun dem) og betale uden galleriets adgangskode.
 - [x] `v1` Fotografen kan slå deling af favoritlister til og fra per galleri og vælge, om privat deling er standard.
 
 ### 5.5 Butik

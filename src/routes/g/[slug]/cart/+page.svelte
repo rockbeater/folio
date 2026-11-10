@@ -56,6 +56,7 @@
 		const query = new URLSearchParams();
 		if (country) query.set('country', country);
 		if (methodId) query.set('method', methodId);
+		if (gs.share) query.set('share', gs.share);
 		const res = await fetch(`/g/${gs.slug}/api/cart?${query}`, {
 			method,
 			headers: body ? { 'content-type': 'application/json' } : undefined,
@@ -110,14 +111,18 @@
 	const errorText = $derived(form?.error ? t(`store.err.${form.error}` as MessageKey) + (form.message ? ` (${form.message})` : '') : '');
 </script>
 
-{#if data.state === 'open'}
+{#if data.state === 'open' || data.state === 'shop'}
 	<h1 class="title label">{t('store.cart')}</h1>
 	{#if !view}
 		<p class="empty">{t('store.closed')}</p>
 	{:else if view.lines.length === 0}
 		<div class="empty">
 			<p>{t('store.empty')}</p>
-			<a class="c-btn" href="/g/{gs.slug}/store">{t('store.shop')}</a>
+			{#if data.shared}
+				<a class="c-btn" href="/l/{data.shared.token}">{t('client.share.backToList', { name: data.shared.name || t('client.lists.default') })}</a>
+			{:else}
+				<a class="c-btn" href="/g/{gs.slug}/store">{t('store.shop')}</a>
+			{/if}
 		</div>
 	{:else}
 		<div class="layout">
@@ -172,7 +177,7 @@
 				{/if}
 			</section>
 
-			<form class="checkout" method="POST" action="?/checkout">
+			<form class="checkout" method="POST" action={gs.share ? `?/checkout&share=${encodeURIComponent(gs.share)}` : '?/checkout'}>
 				<h2 class="label">{t('store.checkout')}</h2>
 				<label class="field">
 					<span>{t('common.email')}</span>

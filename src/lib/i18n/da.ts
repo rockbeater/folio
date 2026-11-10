@@ -594,6 +594,7 @@ const da: Messages = {
 	'client.share.stop': 'Stop deling',
 	'client.share.stopped': 'Linket virker ikke længere.',
 	'client.share.viewGallery': 'Se hele galleriet',
+	'client.share.backToList': 'Tilbage til {name}',
 	'client.share.empty': 'Der er ingen billeder på listen endnu.',
 	'client.home.empty': 'Der er ingen gallerier her endnu.',
 	'admin.activity.scope.shared': 'Delt liste',

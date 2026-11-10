@@ -1,9 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { addShareGrant, isClient, isUnlocked } from '$lib/server/access';
-import { photosInOrder, sharedListFor, studioForClients } from '$lib/server/client';
+import { addShareGrant } from '$lib/server/access';
+import { isListLocked, photosInOrder, sharedListFor, sharedListName, studioForClients } from '$lib/server/client';
 import { getGalleryById, publicGallery } from '$lib/server/galleries';
 import { countShare, getListByToken, listPhotoIds } from '$lib/server/lists';
-import { normalizeAccess } from '$lib/types';
+import { getCart, priceCart, storeContext } from '$lib/server/store/cart';
 import type { PageServerLoad } from './$types';
 import { shouldTrack } from '$lib/server/visitors';
 
@@ -18,8 +18,7 @@ export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
 	if (!list || !gallery || !sharedListFor(gallery, params.token)) error(404, 'not-found');
 	locals.lang = gallery.language;
 
-	const isAdmin = Boolean(locals.admin);
-	const locked = !list.sharePrivate && !isAdmin && !isUnlocked(cookies, gallery) && !isClient(cookies, gallery);
+	const locked = isListLocked(cookies, gallery, list, Boolean(locals.admin));
 	if (!locked) {
 		addShareGrant(cookies, url, list.id);
 		const seen = `flv_${list.id}`;
@@ -29,14 +28,23 @@ export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
 		}
 	}
 
-	const preset = list.presetId ? normalizeAccess(gallery.access).lists.find((p) => p.id === list.presetId) : undefined;
+	// When the gallery has a store, the photos of the list can be bought from here (the cart takes ?share=).
+	const ctx = locked ? null : storeContext(gallery);
+	const cart = ctx ? getCart(cookies, gallery.id) : null;
 	return {
 		token: params.token,
 		locked,
 		open: !list.sharePrivate,
-		listName: preset?.name ?? list.name,
+		listName: sharedListName(gallery, list),
 		gallery: publicGallery(gallery, 'guest'),
 		studio: studioForClients(),
-		photos: locked ? [] : photosInOrder(gallery, listPhotoIds(list.id), 'guest')
+		photos: locked ? [] : photosInOrder(gallery, listPhotoIds(list.id), 'guest'),
+		store: ctx
+			? {
+					currency: ctx.store.currency,
+					products: ctx.products,
+					cartCount: cart ? (priceCart(gallery, 'guest', cart.items, cart.couponCode)?.count ?? 0) : 0
+				}
+			: null
 	};
 };

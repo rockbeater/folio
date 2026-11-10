@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { createI18n, provideI18n } from '$lib/i18n';
+	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
+	import BuyDialog from '$lib/components/client/BuyDialog.svelte';
 	import DownloadDialog from '$lib/components/client/DownloadDialog.svelte';
 	import EmailDialog from '$lib/components/client/EmailDialog.svelte';
 	import GalleryView from '$lib/components/client/GalleryView.svelte';
@@ -23,6 +25,11 @@
 			t
 		})
 	);
+	$effect(() => {
+		gs.canBuy = Boolean(data.store?.products.some((p) => !p.noPhoto && !(p.kind === 'digital' && p.digital?.scope === 'gallery')));
+		gs.cartCount = data.store?.cartCount ?? 0;
+	});
+	const cartHref = $derived(data.store ? `/g/${data.gallery.slug}/cart?share=${encodeURIComponent(data.token)}` : null);
 	const download = $derived(data.gallery.download);
 	const title = $derived(data.listName || t('client.lists.default'));
 </script>
@@ -50,6 +57,8 @@
 			galleryHref={data.open ? `/g/${data.gallery.slug}` : null}
 			canDownload={download.enabled && (download.highRes || download.web) && data.photos.length > 0}
 			ondownload={() => (gs.download = { scope: 'all' })}
+			{cartHref}
+			cartCount={gs.cartCount}
 		/>
 		<main class="content">
 			{#if data.photos.length === 0}
@@ -71,6 +80,15 @@
 		{#if gs.emailPrompt}
 			<EmailDialog />
 		{/if}
+		{#if gs.buy && data.store}
+			<BuyDialog products={data.store.products} currency={data.store.currency} />
+		{/if}
+		{#if cartHref && gs.cartCount > 0}
+			<!-- Always in reach once something is in the cart, wherever the visitor has scrolled to. -->
+			<a class="cart-fab c-btn solid" href={cartHref}>
+				<ShoppingBag size={18} strokeWidth={1.5} />{t('store.cart')} <span class="tabular">({gs.cartCount})</span>
+			</a>
+		{/if}
 	{/if}
 </div>
 
@@ -84,6 +102,14 @@
 
 	.content {
 		padding: 0 clamp(var(--space-4), 3vw, var(--space-7)) var(--space-8);
+	}
+
+	.cart-fab {
+		position: fixed;
+		right: var(--space-4);
+		bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+		z-index: 40;
+		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 	}
 
 	.empty {

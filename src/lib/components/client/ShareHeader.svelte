@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Download from '@lucide/svelte/icons/download';
+	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import { useI18n } from '$lib/i18n';
 
 	interface Props {
@@ -11,9 +12,12 @@
 		galleryHref: string | null;
 		canDownload: boolean;
 		ondownload: () => void;
+		/** The gallery's cart, when its store is on. */
+		cartHref?: string | null;
+		cartCount?: number;
 	}
 
-	let { title, subtitle, studio, count, galleryHref, canDownload, ondownload }: Props = $props();
+	let { title, subtitle, studio, count, galleryHref, canDownload, ondownload, cartHref = null, cartCount = 0 }: Props = $props();
 	const { t, plural } = useI18n();
 </script>
 
@@ -28,6 +32,11 @@
 	<div class="actions">
 		{#if canDownload}
 			<button class="c-btn" type="button" onclick={ondownload}><Download size={16} strokeWidth={1.5} />{t('client.download')}</button>
+		{/if}
+		{#if cartHref}
+			<a class="c-btn" href={cartHref}>
+				<ShoppingBag size={16} strokeWidth={1.5} />{t('store.cart')}{#if cartCount > 0}<span class="count tabular">{cartCount}</span>{/if}
+			</a>
 		{/if}
 		{#if galleryHref}
 			<a class="c-btn" href={galleryHref}>{t('client.share.viewGallery')}</a>
@@ -63,6 +72,18 @@
 	.meta {
 		margin: 0;
 		color: var(--color-text-muted);
+	}
+
+	.count {
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		border-radius: 9px;
+		background: var(--color-accent);
+		color: var(--color-bg);
+		font-size: 0.6875rem;
+		line-height: 18px;
+		letter-spacing: 0;
 	}
 
 	.actions {

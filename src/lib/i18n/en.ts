@@ -594,6 +594,7 @@ const en = {
 	'client.share.stop': 'Stop sharing',
 	'client.share.stopped': 'The link no longer works.',
 	'client.share.viewGallery': 'View the whole gallery',
+	'client.share.backToList': 'Back to {name}',
 	'client.share.empty': 'There are no photos in this list yet.',
 	'client.home.empty': 'There are no galleries here yet.',
 	'admin.activity.scope.shared': 'Shared list',
