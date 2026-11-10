@@ -7,15 +7,20 @@
 	/** Shown when a visitor tries to save a photo the hard way (long press, right-click, PrintScreen). */
 	let { ondownload, onclose }: { ondownload: () => void; onclose: () => void } = $props();
 	const { t } = useI18n();
-	let pos = $state<{ top: number; right: number; arrow: number } | null>(null);
+	let pos = $state<{ top: number; left: number; arrow: number } | null>(null);
 
 	onMount(() => {
 		// Point at the download button: the one in the lightbox if it is open, else the one in the header.
 		const target = document.querySelector('[data-save-target="lightbox"]') ?? document.querySelector('[data-save-target="header"]');
 		const rect = target?.getBoundingClientRect();
 		if (rect && rect.width > 0) {
-			const right = Math.max(12, window.innerWidth - rect.right - 8);
-			pos = { top: rect.bottom + 12, right, arrow: window.innerWidth - right - (rect.left + rect.width / 2) - 8 };
+			// Keep the whole box on screen (phones are narrow) and move the arrow instead.
+			const vw = document.documentElement.clientWidth || window.innerWidth;
+			const width = Math.min(320, vw - 24);
+			const center = rect.left + rect.width / 2;
+			const left = Math.min(Math.max(12, center - width + 28), vw - width - 12);
+			const arrow = Math.min(Math.max(12, center - left - 8), width - 28);
+			pos = { top: rect.bottom + 12, left, arrow };
 		}
 		const timer = setTimeout(onclose, 9000);
 		return () => clearTimeout(timer);
@@ -27,7 +32,7 @@
 	class:anchored={pos}
 	role="status"
 	style:top={pos ? `${pos.top}px` : undefined}
-	style:right={pos ? `${pos.right}px` : undefined}
+	style:left={pos ? `${pos.left}px` : undefined}
 	style:--arrow={pos ? `${pos.arrow}px` : undefined}
 >
 	<button class="close" type="button" onclick={onclose} aria-label={t('common.close')}><X size={16} /></button>
@@ -56,7 +61,6 @@
 	}
 
 	.hint.anchored {
-		left: auto;
 		bottom: auto;
 		transform: none;
 	}
@@ -66,7 +70,7 @@
 		content: '';
 		position: absolute;
 		top: -8px;
-		right: var(--arrow);
+		left: var(--arrow);
 		width: 16px;
 		height: 16px;
 		background: inherit;

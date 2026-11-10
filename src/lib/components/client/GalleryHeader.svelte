@@ -101,7 +101,7 @@
 
 		<div class="actions">
 			{#if showStore}
-				<a class="icon" class:text={withText} href="/g/{slug}/store" aria-current={storeActive ? 'page' : undefined} aria-label={t('store.shop')}>
+				<a class="icon secondary" class:text={withText} href="/g/{slug}/store" aria-current={storeActive ? 'page' : undefined} aria-label={t('store.shop')}>
 					<Store size={22} strokeWidth={1.5} />
 					{#if withText}<span class="label">{t('store.shop')}</span>{/if}
 				</a>
@@ -130,31 +130,37 @@
 					{#if withText}<span class="label">{t('client.download')}</span>{/if}
 				</button>
 			{/if}
-			<button type="button" class="icon" class:text={withText} onclick={onshare} aria-label={t('client.share')}>
+			<button type="button" class="icon secondary" class:text={withText} onclick={onshare} aria-label={t('client.share')}>
 				<Share size={22} strokeWidth={1.5} />
 				{#if withText}<span class="label">{t('client.share')}</span>{/if}
 			</button>
 			{#if showSlideshow}
-				<button type="button" class="icon" class:text={withText} onclick={onslideshow} aria-label={t('client.slideshow')}>
+				<button type="button" class="icon secondary" class:text={withText} onclick={onslideshow} aria-label={t('client.slideshow')}>
 					<Play size={22} strokeWidth={1.5} />
 					{#if withText}<span class="label">{t('client.slideshow')}</span>{/if}
 				</button>
 			{/if}
-			{#if hasMenu}
-				<details class="more" bind:this={menu}>
-					<summary class="icon" aria-label={t('client.menu')}><Ellipsis size={22} strokeWidth={1.5} /></summary>
-					<div class="menu" role="menu">
-						{#if canSelect}
-							<button type="button" role="menuitem" onclick={() => pick(onselect)}>{t('client.select.start')}</button>
-						{/if}
-						{#if clientLogin && !isClient}
-							<button type="button" role="menuitem" onclick={() => pick(onclientlogin)}>{t('client.clientLogin.title')}</button>
-						{:else if isClient}
-							<button type="button" role="menuitem" onclick={() => pick(onclientlogout)}>{t('client.clientLogin.logout')}</button>
-						{/if}
-					</div>
-				</details>
-			{/if}
+			<!-- On phones the shop, share and slideshow live in this menu, so the gallery name keeps its room. -->
+			<details class="more" class:phone-only={!hasMenu} bind:this={menu}>
+				<summary class="icon" aria-label={t('client.menu')}><Ellipsis size={22} strokeWidth={1.5} /></summary>
+				<div class="menu" role="menu">
+					{#if showStore}
+						<a class="phone-item" role="menuitem" href="/g/{slug}/store" onclick={() => menu && (menu.open = false)}><Store size={18} strokeWidth={1.5} />{t('store.shop')}</a>
+					{/if}
+					<button class="phone-item" type="button" role="menuitem" onclick={() => pick(onshare)}><Share size={18} strokeWidth={1.5} />{t('client.share')}</button>
+					{#if showSlideshow}
+						<button class="phone-item" type="button" role="menuitem" onclick={() => pick(onslideshow)}><Play size={18} strokeWidth={1.5} />{t('client.slideshow')}</button>
+					{/if}
+					{#if canSelect}
+						<button type="button" role="menuitem" onclick={() => pick(onselect)}>{t('client.select.start')}</button>
+					{/if}
+					{#if clientLogin && !isClient}
+						<button type="button" role="menuitem" onclick={() => pick(onclientlogin)}>{t('client.clientLogin.title')}</button>
+					{:else if isClient}
+						<button type="button" role="menuitem" onclick={() => pick(onclientlogout)}>{t('client.clientLogin.logout')}</button>
+					{/if}
+				</div>
+			</details>
 		</div>
 	</div>
 
@@ -322,6 +328,54 @@
 		}
 	}
 
+	/* Only in the menu on phones. */
+	.phone-item {
+		display: none !important;
+	}
+
+	.more.phone-only {
+		display: none;
+	}
+
+	@media (max-width: 640px) {
+		.secondary {
+			display: none;
+		}
+
+		.phone-item {
+			display: flex !important;
+			align-items: center;
+			gap: var(--space-3);
+		}
+
+		.more.phone-only {
+			display: block;
+		}
+
+		.bar {
+			gap: var(--space-2);
+			padding-right: var(--space-2);
+		}
+
+		.actions {
+			gap: 0;
+		}
+
+		.icon {
+			min-width: 40px;
+			padding: 0 6px;
+		}
+
+		.name {
+			font-size: 0.9375rem;
+			letter-spacing: 0.08em;
+		}
+
+		.studio {
+			letter-spacing: 0.12em;
+		}
+	}
+
 	.client-badge {
 		margin-left: var(--space-2);
 		padding: 1px 6px;
@@ -357,15 +411,19 @@
 		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 	}
 
-	.menu button {
+	.menu button,
+	.menu a {
 		padding: var(--space-3) var(--space-4);
 		border: 0;
 		background: none;
+		color: inherit;
 		text-align: left;
+		text-decoration: none;
 		font-size: 0.9375rem;
 	}
 
-	.menu button:hover {
+	.menu button:hover,
+	.menu a:hover {
 		background: var(--color-bg);
 	}
 </style>
