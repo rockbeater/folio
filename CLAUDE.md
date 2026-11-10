@@ -14,6 +14,7 @@ Projektet hedder **Folio**: et selvhostet alternativ til Pixieset med galleri og
 - [MISSION.md](MISSION.md): formål og arkitektur.
 - [FEATURES.md](FEATURES.md): alle funktioner, der skal implementeres. Kryds punkter af, når de er implementeret.
 - [DESIGN.md](DESIGN.md): design og visuel retning.
+- [README.md](README.md): den simple trin-for-trin-guide (server og Synology). Alt teknisk står i [docs/ADVANCED.md](docs/ADVANCED.md). Hold begge opdateret, når indstillinger eller opsætning ændres.
 
 ## Kode
 

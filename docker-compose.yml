@@ -1,26 +1,19 @@
-# Example Docker Compose setup for Folio (see README.md).
-# Change /path/to/photos and the environment values to match your server.
+# Folio with Docker Compose (see README.md for the step-by-step guide).
+# Settings are read from the .env file next to this file (copy .env.example to .env).
 services:
   folio:
     image: ghcr.io/rockbeater/folio:latest
     container_name: folio
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - "${PORT:-8080}:${PORT:-8080}"
-    environment:
-      # Port Folio listens on. Set PORT in a .env file next to this file to change it.
-      - PORT=${PORT:-8080}
-      # Public address of your galleries. Uncomment when Folio runs behind a
-      # reverse proxy with HTTPS; it is also used for links in emails.
-      # - BASE_URL=https://gallery.example.com
-      # User and group that own your photo folder (run `id` on the host to find them).
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Copenhagen
+      # Left side: the port on your server. Change it if 8080 is already in use.
+      - "8080:8080"
     volumes:
-      # Your photo library: one folder per gallery, one subfolder per section.
+      # Your photo folder: one folder per gallery, one subfolder per section.
       - /path/to/photos:/photos
       # Database and settings. Back this up.
       - ./data:/data
-      # Generated thumbnails. Can be deleted at any time.
+      # Thumbnails. Can be deleted at any time; Folio makes them again.
       - ./cache:/cache
