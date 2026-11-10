@@ -86,8 +86,10 @@
 				<option value="">{t('admin.orders.allTypes')}</option>
 				{#each ['physical', 'digital', 'mixed'] as k (k)}<option value={k}>{t(`admin.orders.kind.${k}` as MessageKey)}</option>{/each}
 			</select>
-			<button class="btn" type="submit">{t('admin.dashboard.search')}</button>
-			<a class="btn ghost" href="/admin/store/export/orders?{exportQuery}">CSV</a>
+			<div class="filter-actions">
+				<button class="btn" type="submit">{t('admin.dashboard.search')}</button>
+				<a class="btn ghost" href="/admin/store/export/orders?{exportQuery}">CSV</a>
+			</div>
 		</form>
 		{#if data.orders.rows.length === 0}
 			<p class="hint">{t('admin.orders.none')}</p>
@@ -314,8 +316,10 @@
 			<input type="hidden" name="tab" value="report" />
 			<label class="field"><span>{t('admin.report.from')}</span><input type="date" name="from" value={data.from} /></label>
 			<label class="field"><span>{t('admin.report.to')}</span><input type="date" name="to" value={data.to} /></label>
-			<button class="btn" type="submit">{t('admin.report.show')}</button>
-			<a class="btn ghost" href="/admin/store/export/vat?from={data.from}&to={data.to}&currency={data.currency}">CSV</a>
+			<div class="filter-actions">
+				<button class="btn" type="submit">{t('admin.report.show')}</button>
+				<a class="btn ghost" href="/admin/store/export/vat?from={data.from}&to={data.to}&currency={data.currency}">CSV</a>
+			</div>
 		</form>
 		<div class="card table-wrap">
 			<table class="data">
@@ -496,16 +500,32 @@
 	.filters {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 10px;
 		align-items: flex-end;
-		padding: 14px;
+		padding: 16px 20px;
 		margin-bottom: 16px;
 	}
 
-	.filters input,
-	.filters select {
+	.filters > input {
+		flex: 1 1 160px;
 		width: auto;
-		min-width: 140px;
+		min-width: 0;
+	}
+
+	.filters > select {
+		flex: 0 1 200px;
+		width: auto;
+		min-width: 150px;
+	}
+
+	.filters > .field {
+		flex: 0 1 200px;
+	}
+
+	.filter-actions {
+		display: flex;
+		gap: 8px;
+		margin-left: auto;
 	}
 
 	.pager {
