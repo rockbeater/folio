@@ -37,7 +37,17 @@ export const load: PageServerLoad = ({ url }) => {
 			expired: Boolean(g.expiresOn && g.expiresOn < date),
 			createdAt: g.createdAt,
 			warnings: g.warnings.length + s.failed,
-			cover: cover && cover.status === 'ready' ? { id: cover.id, key: String(cover.version), color: cover.color } : null,
+			cover:
+				cover && cover.status === 'ready'
+					? {
+							id: cover.id,
+							key: String(cover.version),
+							color: cover.color,
+							// The focal point belongs to the chosen cover, not to a fallback photo.
+							focalX: cover.id === g.coverPhotoId ? g.coverFocalX : 0.5,
+							focalY: cover.id === g.coverPhotoId ? g.coverFocalY : 0.5
+						}
+					: null,
 			stats: s
 		};
 	});

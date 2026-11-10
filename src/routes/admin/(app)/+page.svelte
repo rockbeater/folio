@@ -212,7 +212,7 @@
 					<a class="tile card" href="/admin/galleries/{g.id}">
 						<div class="thumb" style:background-color={g.cover?.color ?? 'var(--line)'}>
 							{#if g.cover}
-								<img src={displayUrl(g.cover, 480)} alt="" loading="lazy" />
+								<img src={displayUrl(g.cover, 480)} alt="" loading="lazy" style:object-position="{g.cover.focalX * 100}% {g.cover.focalY * 100}%" />
 							{:else}
 								<ImageIcon size={28} strokeWidth={1.25} />
 							{/if}
@@ -407,6 +407,7 @@
 	}
 
 	.thumb {
+		position: relative;
 		aspect-ratio: 3 / 2;
 		display: grid;
 		place-items: center;
@@ -414,7 +415,10 @@
 		overflow: hidden;
 	}
 
+	/* Absolute, so the photo fills the frame and the cover's focal point applies. */
 	.thumb img {
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

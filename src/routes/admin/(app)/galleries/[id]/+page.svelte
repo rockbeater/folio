@@ -57,7 +57,7 @@
 	<aside class="side">
 		<div class="cover" style:background-color={cover?.color ?? 'var(--line)'}>
 			{#if cover}
-				<img src={displayUrl(cover, 960)} alt="" />
+				<img src={displayUrl(cover, 960)} alt="" style:object-position="{data.gallery.coverFocalX * 100}% {data.gallery.coverFocalY * 100}%" />
 			{:else}
 				<ImageIcon size={28} strokeWidth={1.25} />
 			{/if}
@@ -143,7 +143,10 @@
 		color: var(--muted);
 	}
 
+	/* Absolute, so the photo fills the frame and the focal point (object-position) applies. */
 	.cover img {
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

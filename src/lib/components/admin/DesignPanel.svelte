@@ -44,7 +44,8 @@
 			x: Math.round(((event.clientX - rect.left) / rect.width) * 100) / 100,
 			y: Math.round(((event.clientY - rect.top) / rect.height) * 100) / 100
 		};
-		await callAction('focal', focal, { invalidate: false });
+		// Reload the page data so the cover thumbnail next to the editor follows the new point.
+		await callAction('focal', focal);
 		previewKey += 1;
 	}
 

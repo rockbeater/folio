@@ -553,11 +553,20 @@
 		overflow: hidden;
 	}
 
+	/* Fill the square box (in a grid cell a plain 100% height would follow the photo's own
+	   height and crop portrait photos), and show the whole photo inside it. */
 	.thumb img {
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
-		object-fit: contain;
 		padding: 8px;
+		box-sizing: border-box;
+		object-fit: contain;
+	}
+
+	.thumb > :not(img) {
+		z-index: 1;
 	}
 
 	.err {
