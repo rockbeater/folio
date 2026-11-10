@@ -1,6 +1,7 @@
 <script lang="ts">
 	import X from '@lucide/svelte/icons/x';
 	import CropDialog from '$lib/components/client/CropDialog.svelte';
+	import QuantityStepper from '$lib/components/client/QuantityStepper.svelte';
 	import { getGalleryState } from '$lib/components/client/gallery-state.svelte';
 	import { countryOptions } from '$lib/countries';
 	import { useI18n, type MessageKey } from '$lib/i18n';
@@ -140,17 +141,7 @@
 								{#if line.cropNeeded}<span class="error small">{t('store.crop.required')}</span>{/if}
 								<div class="row">
 									{#if line.kind === 'physical' && !line.maxOne}
-										<label class="qty">
-											<span class="visually-hidden">{t('store.quantity')}</span>
-											<input
-												class="c-input"
-												type="number"
-												min="1"
-												max="99"
-												value={line.quantity}
-												onchange={(e) => setQuantity(line, Number(e.currentTarget.value))}
-											/>
-										</label>
+										<QuantityStepper value={line.quantity} onchange={(n) => setQuantity(line, n)} />
 									{/if}
 									{#if line.aspect && line.photo && line.crop}
 										<button class="c-btn small" class:solid={line.cropNeeded} type="button" onclick={() => (cropping = line)}>
@@ -336,11 +327,6 @@
 		display: flex;
 		gap: var(--space-2);
 		margin-top: var(--space-2);
-	}
-
-	.qty input {
-		width: 76px;
-		height: 36px;
 	}
 
 	.amount {

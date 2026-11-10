@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { centeredCrop, computeTotals, printAspect, syncVariants, variantKey, type ProductData } from './store';
+import { availableValues, centeredCrop, computeTotals, printAspect, settleValues, syncVariants, variantKey, type ProductData } from './store';
 import { encode, signatureHeader, verifySignature } from './server/store/stripe';
 
 const product = (over: Partial<ProductData> = {}): ProductData => ({
@@ -62,6 +62,29 @@ describe('store totals', () => {
 		const variants = syncVariants(options, existing, 100);
 		expect(variants.map((v) => v.key)).toEqual(['s1|g', 's2|g']);
 		expect(variants[1]).toEqual(existing[0]);
+	});
+
+	it('offers only option values that belong to a visible combination', () => {
+		const p = product({
+			options: [
+				{ id: 'size', name: 'Size', values: [{ id: 's', name: '10x15' }, { id: 'm', name: '20x30' }, { id: 'l', name: '30x40' }] },
+				{ id: 'paper', name: 'Paper', values: [{ id: 'g', name: 'Glossy' }, { id: 'sg', name: 'Semi glossy' }] }
+			],
+			variants: [
+				{ key: 's|g', price: 100, extraShipping: 0, visible: true },
+				{ key: 's|sg', price: 120, extraShipping: 0, visible: true },
+				{ key: 'm|g', price: 200, extraShipping: 0, visible: false },
+				{ key: 'm|sg', price: 220, extraShipping: 0, visible: true },
+				{ key: 'l|g', price: 300, extraShipping: 0, visible: false },
+				{ key: 'l|sg', price: 320, extraShipping: 0, visible: false }
+			]
+		});
+		expect(availableValues(p, [], 0).map((v) => v.id)).toEqual(['s', 'm']);
+		expect(availableValues(p, ['m'], 1).map((v) => v.id)).toEqual(['sg']);
+		expect(settleValues(p, [])).toEqual(['s', 'g']);
+		// Picking 20x30 while Glossy is chosen moves the paper to the only one that exists.
+		expect(settleValues(p, ['m', 'g'])).toEqual(['m', 'sg']);
+		expect(settleValues(p, ['s', 'sg'])).toEqual(['s', 'sg']);
 	});
 
 	it('finds print aspect ratios and centered crops', () => {

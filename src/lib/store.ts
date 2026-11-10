@@ -92,6 +92,30 @@ export function visibleVariants(product: ProductData): Variant[] {
 	return product.variants.filter((v) => v.visible);
 }
 
+/**
+ * The values of option `index` the buyer can pick, given the values picked for the options before it.
+ * Values that only appear in hidden combinations are left out, so the buyer never sees a dead end.
+ */
+export function availableValues(product: ProductData, chosen: string[], index: number): ProductOption['values'] {
+	const ids = new Set(
+		visibleVariants(product)
+			.map((v) => v.key.split('|'))
+			.filter((ids) => ids.slice(0, index).every((id, i) => id === chosen[i]))
+			.map((ids) => ids[index])
+	);
+	return product.options[index].values.filter((v) => ids.has(v.id));
+}
+
+/** Keep the picked values that still fit and replace the others with the first value that does. */
+export function settleValues(product: ProductData, chosen: string[]): string[] {
+	const out: string[] = [];
+	product.options.forEach((_, i) => {
+		const values = availableValues(product, out, i);
+		out.push(values.some((v) => v.id === chosen[i]) ? chosen[i] : (values[0]?.id ?? ''));
+	});
+	return out;
+}
+
 /** The lowest price the buyer can choose ("From …"). */
 export function fromPrice(product: ProductData): number | null {
 	if (product.options.length === 0) return product.price;

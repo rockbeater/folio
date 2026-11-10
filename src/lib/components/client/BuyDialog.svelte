@@ -4,9 +4,10 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import { useI18n } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
-	import { formatMoney, fromPrice, priceOf, richText, variantKey, visibleVariants, type ProductData } from '$lib/store';
+	import { availableValues, formatMoney, fromPrice, isBuyable, priceOf, richText, settleValues, variantKey, type ProductData } from '$lib/store';
 	import { displayUrl, type PhotoView } from '$lib/types';
 	import { getGalleryState } from './gallery-state.svelte';
+	import QuantityStepper from './QuantityStepper.svelte';
 
 	let { products, currency }: { products: ProductData[]; currency: string } = $props();
 	const { t, lang } = useI18n();
@@ -17,7 +18,7 @@
 
 	const needsPhoto = (p: ProductData) => !p.noPhoto && !(p.kind === 'digital' && p.digital?.scope === 'gallery');
 	// svelte-ignore state_referenced_locally
-	const choices = products.filter((p) => (request.photo ? needsPhoto(p) : !needsPhoto(p)));
+	const choices = products.filter((p) => isBuyable(p) && (request.photo ? needsPhoto(p) : !needsPhoto(p)));
 	const categories = [...new Set(choices.map((p) => p.category))];
 
 	// svelte-ignore state_referenced_locally
@@ -29,10 +30,17 @@
 
 	$effect(() => {
 		// Start with the first combination the buyer can choose.
-		const first = product ? visibleVariants(product)[0] : undefined;
-		values = first ? first.key.split('|') : [];
+		values = product ? settleValues(product, []) : [];
 		quantity = 1;
 	});
+
+	// Only the values that lead to a visible combination; picking one moves later options to a value that fits.
+	const offered = $derived(product ? product.options.map((_, i) => availableValues(product!, values, i)) : []);
+	function choose(index: number, id: string) {
+		if (product) values = settleValues(product, values.map((v, i) => (i === index ? id : v)));
+	}
+	/** Buttons read best; a long list becomes a dropdown. */
+	const MAX_BUTTONS = 12;
 
 	const key = $derived(product && product.options.length ? variantKey(values) : '');
 	const price = $derived(product ? priceOf(product, key) : null);
@@ -106,19 +114,37 @@
 				{#if product.description}<div class="desc">{@html richText(product.description)}</div>{/if}
 
 				{#each product.options as option, i (option.id)}
-					<label class="field">
-						<span class="label">{option.name}</span>
-						<select class="c-input" bind:value={values[i]}>
-							{#each option.values as value (value.id)}<option value={value.id}>{value.name}</option>{/each}
-						</select>
-					</label>
+					{@const available = offered[i] ?? []}
+					{#if available.length > MAX_BUTTONS}
+						<label class="field">
+							<span class="label">{option.name}</span>
+							<select class="c-input" value={values[i]} onchange={(e) => choose(i, e.currentTarget.value)}>
+								{#each available as value (value.id)}<option value={value.id}>{value.name}</option>{/each}
+							</select>
+						</label>
+					{:else}
+						<fieldset class="field">
+							<legend class="label">{option.name}</legend>
+							<div class="choices">
+								{#each available as value (value.id)}
+									<button
+										type="button"
+										class="choice"
+										class:on={values[i] === value.id}
+										aria-pressed={values[i] === value.id}
+										onclick={() => choose(i, value.id)}>{value.name}</button
+									>
+								{/each}
+							</div>
+						</fieldset>
+					{/if}
 				{/each}
 
 				{#if canQuantity}
-					<label class="field qty">
+					<div class="field">
 						<span class="label">{t('store.quantity')}</span>
-						<input class="c-input" type="number" min="1" max="99" bind:value={quantity} />
-					</label>
+						<QuantityStepper bind:value={quantity} />
+					</div>
 				{/if}
 
 				{#if product.multiPhoto && request.photo && request.photos.length > 1}
@@ -139,7 +165,7 @@
 
 				<div class="footer">
 					<span class="price tabular">
-						{#if price}{money(price.price * (canQuantity ? quantity || 1 : 1) * Math.max(1, photoCount))}{:else}{t('store.unavailable')}{/if}
+						{#if price}{money(price.price * (canQuantity ? quantity || 1 : 1) * Math.max(1, photoCount))}{/if}
 					</span>
 					<button class="c-btn solid" type="button" disabled={!price || busy} onclick={add}>{t('store.addToCart')}</button>
 				</div>
@@ -156,8 +182,11 @@
 	}
 
 	.photo {
+		flex-shrink: 0;
+		max-width: 100%;
 		max-height: 180px;
 		width: auto;
+		object-fit: contain;
 		align-self: center;
 	}
 
@@ -236,8 +265,42 @@
 		gap: var(--space-2);
 	}
 
-	.qty {
-		max-width: 140px;
+	fieldset.field {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		min-width: 0;
+	}
+
+	fieldset.field legend {
+		padding: 0;
+		margin-bottom: var(--space-2);
+	}
+
+	.choices {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+		gap: var(--space-2);
+	}
+
+	.choice {
+		min-height: 44px;
+		padding: var(--space-2);
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+		color: var(--color-text);
+		font-size: 0.9375rem;
+		line-height: 1.25;
+		transition: border-color var(--dur-micro) var(--ease-out);
+	}
+
+	.choice:hover {
+		border-color: var(--color-text-muted);
+	}
+
+	.choice.on {
+		border-color: var(--color-text);
+		box-shadow: inset 0 0 0 1px var(--color-text);
 	}
 
 	.more summary {
