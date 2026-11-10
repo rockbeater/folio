@@ -17,7 +17,8 @@ const config = {
 				'connect-src': ['self'],
 				'frame-src': ['self'],
 				'frame-ancestors': ['self'],
-				'form-action': ['self'],
+				// The checkout form redirects to Stripe Checkout; browsers apply form-action to that redirect too.
+				'form-action': ['self', 'https://checkout.stripe.com'],
 				'base-uri': ['self'],
 				'object-src': ['none']
 			}
