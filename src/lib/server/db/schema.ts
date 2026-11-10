@@ -65,6 +65,8 @@ export const galleries = sqliteTable(
 		storeEnabled: integer('store_enabled', { mode: 'boolean' }).notNull().default(false),
 		priceListId: text('price_list_id'),
 		tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+		/** How new sections are sorted; follows the last order chosen for a section, and presets carry it. */
+		sortMode: text('sort_mode').$type<GallerySort>().notNull().default('filename'),
 		watermarkId: text('watermark_id'),
 		/** Last day the gallery is visible (YYYY-MM-DD); it is hidden after that day. */
 		expiresOn: text('expires_on'),
@@ -81,6 +83,8 @@ export const galleries = sqliteTable(
 );
 
 export type SortMode = 'filename' | 'date' | 'manual';
+/** A gallery's sort for new sections: a manual order belongs to one section's photos. */
+export type GallerySort = Exclude<SortMode, 'manual'>;
 
 export const sections = sqliteTable(
 	'sections',
@@ -332,6 +336,8 @@ export interface PresetSettings {
 	access?: GalleryAccess;
 	storeEnabled?: boolean;
 	priceListId?: string | null;
+	/** Photo order of the sections (by file name or capture date). */
+	sortMode?: GallerySort;
 }
 
 /** Saved gallery settings that can be applied to galleries; the default is used for new galleries. */

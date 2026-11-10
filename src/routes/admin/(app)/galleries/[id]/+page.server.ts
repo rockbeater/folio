@@ -3,7 +3,7 @@ import { and, asc, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
 import type { ActivityDetail, Gallery } from '$lib/server/db/schema';
-import { getGalleryById, getPhotosBySection, getSection, getSections, processingStats, toPhotoView, touchGallery } from '$lib/server/galleries';
+import { getGalleryById, getPhotosBySection, getSection, getSections, processingStats, sortGallery, toPhotoView, touchGallery } from '$lib/server/galleries';
 import {
 	copyPhotos,
 	createSection,
@@ -468,6 +468,8 @@ export const actions: Actions = {
 			.set({ sortMode: mode as 'filename' | 'date' | 'manual' })
 			.where(eq(schema.sections.id, section.id))
 			.run();
+		// New sections (and presets saved from this gallery) follow the order chosen last.
+		if (mode !== 'manual') db.update(schema.galleries).set({ sortMode: mode as 'filename' | 'date' }).where(eq(schema.galleries.id, gallery.id)).run();
 		return { ok: true };
 	},
 
@@ -717,6 +719,7 @@ export const actions: Actions = {
 		if (!preset) return fail(404);
 		const values = galleryValuesFromSettings(preset.settings);
 		touchGallery(gallery.id, { ...values, access: keepClientAccess(values.access, gallery), reminderSentAt: null });
+		if (values.sortMode) sortGallery(gallery.id, values.sortMode);
 		return { ok: true };
 	},
 
@@ -737,6 +740,7 @@ export const actions: Actions = {
 		const values = galleryValuesFromSettings(settingsFromGallery(source));
 		// Keep this gallery's own expiry date; only copy how things look and work.
 		touchGallery(gallery.id, { ...values, access: keepClientAccess(values.access, gallery), expiresOn: gallery.expiresOn, reminderSentAt: null });
+		if (values.sortMode) sortGallery(gallery.id, values.sortMode);
 		return { ok: true };
 	},
 

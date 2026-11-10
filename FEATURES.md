@@ -85,6 +85,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `v1` **Grid-afstand:** Normal / Stor.
 - [x] `v1` **Navigationsstil:** Kun ikon / Ikon og tekst.
 - [x] `v1` Design-presets: gem et design og brug det som standard for nye gallerier.
+- [x] `v1` Presets husker sorteringen af billeder (filnavn eller optagelsesdato). Nye gallerier og sektioner, der kommer til senere, får samme sortering. Ellers følger nye sektioner den sortering, der sidst blev valgt i galleriet.
 
 De konkrete layouts, skrifttyper og farver beskrives i [DESIGN.md](DESIGN.md).
 

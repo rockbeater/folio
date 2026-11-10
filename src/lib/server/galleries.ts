@@ -1,6 +1,6 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import { getDb, schema } from './db';
-import type { Gallery, Photo, Section } from './db/schema';
+import type { Gallery, GallerySort, Photo, Section } from './db/schema';
 import { naturalCompare } from '$lib/slug';
 import { sharpenKey } from './images/render';
 import {
@@ -143,6 +143,17 @@ export function publicGallery(g: Gallery, role: Role = 'guest') {
 }
 
 export type PublicGallery = ReturnType<typeof publicGallery>;
+
+/** Sort the gallery's sections (and the ones added later) this way. Sections in a custom order keep it. */
+export function sortGallery(galleryId: string, mode: GallerySort): void {
+	getDb().transaction((tx) => {
+		tx.update(schema.galleries).set({ sortMode: mode }).where(eq(schema.galleries.id, galleryId)).run();
+		tx.update(schema.sections)
+			.set({ sortMode: mode })
+			.where(and(eq(schema.sections.galleryId, galleryId), ne(schema.sections.sortMode, 'manual')))
+			.run();
+	});
+}
 
 export function touchGallery(id: string, update: Partial<typeof schema.galleries.$inferInsert>): void {
 	getDb()

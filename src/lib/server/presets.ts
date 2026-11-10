@@ -30,7 +30,8 @@ export function settingsFromGallery(g: Gallery): PresetSettings {
 		reminderDays: g.reminderDays,
 		access: { ...normalizeAccess(g.access), clientPassword: null, clientSections: [] },
 		storeEnabled: g.storeEnabled,
-		priceListId: g.priceListId
+		priceListId: g.priceListId,
+		sortMode: g.sortMode
 	};
 }
 
@@ -79,7 +80,9 @@ export function galleryValuesFromSettings(settings: PresetSettings) {
 		reminderDays: settings.reminderDays ?? null,
 		access: { ...normalizeAccess(settings.access ?? DEFAULT_ACCESS), clientPassword: null, clientSections: [] as string[] },
 		storeEnabled: settings.storeEnabled ?? false,
-		priceListId: settings.priceListId ?? null
+		priceListId: settings.priceListId ?? null,
+		// Presets saved before they carried the order leave it as it is.
+		sortMode: settings.sortMode === 'date' || settings.sortMode === 'filename' ? settings.sortMode : undefined
 	};
 }
 

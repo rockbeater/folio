@@ -120,12 +120,15 @@ export function insertSection(galleryId: string, folder: string): Section {
 	const db = getDb();
 	const existing = db.select().from(schema.sections).where(eq(schema.sections.galleryId, galleryId)).all();
 	const slugs = new Set(existing.map((s) => s.slug));
+	// New sections follow the gallery's order (from its preset, or the last order chosen for a section).
+	const gallery = db.select({ sortMode: schema.galleries.sortMode }).from(schema.galleries).where(eq(schema.galleries.id, galleryId)).get();
 	const section = {
 		id: crypto.randomUUID(),
 		galleryId,
 		folder,
 		slug: uniqueSlug(slugify(folder), (s) => slugs.has(s)),
-		position: existing.reduce((max, s) => Math.max(max, s.position + 1), 0)
+		position: existing.reduce((max, s) => Math.max(max, s.position + 1), 0),
+		sortMode: gallery?.sortMode ?? 'filename'
 	};
 	db.insert(schema.sections).values(section).run();
 	return db.select().from(schema.sections).where(eq(schema.sections.id, section.id)).get()!;
