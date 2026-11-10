@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { config } from '$lib/server/config';
 import { getDb, schema } from '$lib/server/db';
 import type { ActivityDetail, Gallery } from '$lib/server/db/schema';
@@ -160,10 +160,62 @@ function activityFor(gallery: Gallery, sectionNames: Map<string, string>, photoN
 		createdAt: l.createdAt
 	}));
 
+	// Visits per day for the last 30 days (server time zone), with empty days as 0.
+	const DAY = 24 * 60 * 60 * 1000;
+	const perDay = new Map(
+		db
+			.select({ day: sql<string>`date(${schema.activity.createdAt} / 1000, 'unixepoch', 'localtime')`, count: sql<number>`count(*)` })
+			.from(schema.activity)
+			.where(and(eq(schema.activity.galleryId, galleryId), eq(schema.activity.kind, 'visit'), gte(schema.activity.createdAt, Date.now() - 31 * DAY)))
+			.groupBy(sql`1`)
+			.all()
+			.map((r) => [r.day, r.count])
+	);
+	const daily = Array.from({ length: 30 }, (_, i) => {
+		const day = new Date(Date.now() - (29 - i) * DAY).toLocaleDateString('sv-SE');
+		return { day, count: perDay.get(day) ?? 0 };
+	});
+
+	// The photos most visitors put in a list.
+	const topPhotos = db
+		.select({ photo: schema.photos, people: sql<number>`count(distinct ${schema.favorites.visitorId})` })
+		.from(schema.favorites)
+		.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
+		.where(eq(schema.photos.galleryId, galleryId))
+		.groupBy(schema.favorites.photoId)
+		.orderBy(desc(sql`2`))
+		.limit(12)
+		.all()
+		.map((r) => ({ photo: toPhotoView(r.photo), filename: r.photo.filename, people: r.people }));
+
+	// Latest events: visits, registrations, downloads, lists sent to the photographer.
+	const feed = [
+		...db
+			.select()
+			.from(schema.activity)
+			.where(eq(schema.activity.galleryId, galleryId))
+			.orderBy(desc(schema.activity.createdAt))
+			.limit(40)
+			.all()
+			.map((a) => ({ kind: a.kind as string, email: a.email, at: a.createdAt, detail: (a.detail?.scope as string | undefined) ?? '' })),
+		...lists.filter((l) => l.submittedAt).map((l) => ({ kind: 'submitted', email: l.email, at: l.submittedAt!, detail: (l.presetId && presetNames.get(l.presetId)) || l.name }))
+	]
+		.sort((a, b) => b.at - a.at)
+		.slice(0, 40);
+
 	return {
 		visits: count('visit'),
 		downloadCount: count('download'),
 		registrations: count('registration'),
+		daily,
+		topPhotos,
+		feed,
+		favoritedPhotos: db
+			.select({ n: sql<number>`count(distinct ${schema.favorites.photoId})` })
+			.from(schema.favorites)
+			.innerJoin(schema.photos, eq(schema.photos.id, schema.favorites.photoId))
+			.where(eq(schema.photos.galleryId, galleryId))
+			.get()!.n,
 		downloads,
 		visitors: visitors.map((v) => ({ ...v, downloads: downloadsByEmail.get(v.email) ?? 0 })),
 		favoriteLists,

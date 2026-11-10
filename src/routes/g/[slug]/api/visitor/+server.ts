@@ -6,6 +6,7 @@ import { loadClientGallery, recordActivity, sharedListFor, visitorInfo } from '$
 import { getDb, schema } from '$lib/server/db';
 import { rateLimit } from '$lib/server/ratelimit';
 import type { RequestHandler } from './$types';
+import { shouldTrack } from '$lib/server/visitors';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,7 +36,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals, u
 		db.insert(schema.visitors).values({ id, galleryId: gallery.id, email }).run();
 		visitor = db.select().from(schema.visitors).where(eq(schema.visitors.id, id)).get()!;
 	}
-	if (body.registration === true) recordActivity(gallery.id, 'registration', email);
+	if (body.registration === true && shouldTrack(locals)) recordActivity(gallery.id, 'registration', email);
 	setVisitorId(cookies, url, gallery.id, visitor.id);
 
 	// cookies.get sees the cookie set above, so this already reads the new visitor.

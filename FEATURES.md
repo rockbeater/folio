@@ -236,6 +236,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` "Maks. én per køb" per produkt.
 - [x] `v1` "Køb til flere billeder": kunden kan vælge flere billeder til samme produkt i ét trin.
 - [x] `v1` Beskæringsværktøj: kunden vælger et udsnit, når billedets format ikke passer til printformatet.
+- [x] `v1` Passer billedet ikke til printformatet, skal kunden vælge udsnittet, før der kan bestilles. Printfilen downloades i fuld opløsning med udsnittet lagt på.
 
 ## 12. Butik: kurv og checkout
 
@@ -254,6 +255,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` Ordreoversigt med kolonnerne ordrenummer, status, kunde, galleri, type (fysisk/digital), dato og beløb.
 - [x] `v1` Filtrering per kolonne (nummer, status, kunde, galleri og type) og paginering.
 - [x] `v1` Ordrestatus: Afventer betaling, Behandles, Afsendt, Fuldført, Annulleret og Refunderet.
+- [x] `v1` Ubetalte checkouts tæller ikke som ordrer: de vises ikke i admin, får først ordrenummer ved betaling (uden huller) og ryddes op efter tre dage. Ordrer kan slettes fra admin.
 - [x] `v1` Ordredetalje: produkter med billede og filnavn, adresse, fragt, rabat, moms og betalingsstatus fra Stripe.
 - [x] `v1` Download ordrens filer samlet til print som en ZIP, hvor filerne er navngivet efter produkt, størrelse og antal.
 - [x] `v1` Markér som afsendt med trackingnummer, hvilket sender en mail til kunden.

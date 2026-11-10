@@ -7,6 +7,7 @@ import { countLink, getShareLinkByToken, isLinkOpen } from '$lib/server/shares';
 import { getWatermark } from '$lib/server/watermarks';
 import { normalizeDownload, type DownloadChoice } from '$lib/types';
 import type { RequestHandler } from './$types';
+import { shouldTrack } from '$lib/server/visitors';
 
 /** GET /q/<token>/download?scope=all|photo&size=highres|web[&photo=][&part=][&info=1] */
 export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
@@ -39,7 +40,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 	const variant = resolveVariant(settings, size);
 	if (!variant) error(403, 'size-not-allowed');
 	if (items.length === 0) error(404);
-	if (!isAdmin) countLink(link.id, 'downloads');
+	if (shouldTrack(locals)) countLink(link.id, 'downloads');
 	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
 	if (scope === 'photo') return singleDownload(gallery, items[0], variant, watermark);
 

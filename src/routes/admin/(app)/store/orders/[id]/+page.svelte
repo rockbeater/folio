@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import FileDown from '@lucide/svelte/icons/file-down';
+	import Trash from '@lucide/svelte/icons/trash-2';
 	import { countryName } from '$lib/countries';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
@@ -30,7 +31,18 @@
 	<a class="back" href="/admin/store?tab=orders"><ChevronLeft size={16} />{t('admin.store.tab.orders')}</a>
 	<div class="row between">
 		<h1>{t('store.orderNumber', { number: String(o.number) })}</h1>
-		{#if data.hasPrint}<a class="btn" href="/admin/store/orders/{o.id}/print"><FileDown size={14} />{t('admin.orders.printZip')}</a>{/if}
+		<div class="row">
+			{#if data.hasPrint}<a class="btn" href="/admin/store/orders/{o.id}/print"><FileDown size={14} />{t('admin.orders.printZip')}</a>{/if}
+			<form
+				method="POST"
+				action="?/delete"
+				onsubmit={(e) => {
+					if (!confirm(t('admin.orders.deleteConfirm', { number: String(o.number) }))) e.preventDefault();
+				}}
+			>
+				<button class="btn ghost danger" type="submit"><Trash size={14} />{t('admin.orders.delete')}</button>
+			</form>
+		</div>
 	</div>
 	<p class="hint">
 		{dateTime.format(o.createdAt)} · {t(`store.payment.${o.paymentStatus}` as MessageKey)}

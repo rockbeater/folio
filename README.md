@@ -120,6 +120,7 @@ New folders show up in the admin as drafts within a minute. Folio writes a small
 | `UPLOAD_MAX_MB` | `500` | Maximum size of one uploaded file. |
 | `TRASH_RETENTION_DAYS` | `30` | Days before deleted photos are removed from `/photos/.trash`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` | – | Optional. Email settings can also be entered in the admin; environment variables win. `SMTP_SECURITY` is `starttls`, `tls` or `none`. |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. Folio logs form posts, uploads, orders, Stripe events and errors to the container log (`docker logs -f folio`). |
 | `STRIPE_SIMULATOR` | `0` in Docker | `1` turns on a simulated payment page when no Stripe key is set, so the whole order flow can be tried without Stripe. Never use it for real sales. |
 
 ### Store and Stripe

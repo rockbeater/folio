@@ -14,6 +14,7 @@ import { countShare, getList, listPhotoIds } from '$lib/server/lists';
 import { getWatermark } from '$lib/server/watermarks';
 import { effectiveDownload, normalizeAccess, normalizeDownload, type DownloadChoice } from '$lib/types';
 import type { RequestHandler } from './$types';
+import { shouldTrack } from '$lib/server/visitors';
 
 /**
  * GET /g/<slug>/download?scope=all|section|favorites|list|photo&size=highres|web[&section=][&photo=][&part=][&share=]
@@ -87,7 +88,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 
 	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
 
-	if (!isAdmin) {
+	if (shouldTrack(locals)) {
 		recordActivity(gallery.id, 'download', visitor.email, {
 			scope: list ? 'shared' : scope,
 			size,

@@ -2,6 +2,7 @@ import { bannerFor, galleryShell, gateCover, loadClientGallery, recordActivity, 
 import { publicGallery } from '$lib/server/galleries';
 import { getCart, priceCart, storeContext } from '$lib/server/store/cart';
 import type { LayoutServerLoad } from './$types';
+import { shouldTrack } from '$lib/server/visitors';
 
 export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 	const isAdmin = Boolean(locals.admin);
@@ -34,7 +35,7 @@ export const load: LayoutServerLoad = ({ params, cookies, locals, url }) => {
 
 	// Count one visit per browser session.
 	const visitCookie = `fs_${gallery.id}`;
-	if (!isAdmin && !cookies.get(visitCookie)) {
+	if (shouldTrack(locals) && !cookies.get(visitCookie)) {
 		recordActivity(gallery.id, 'visit', shell.visitor.email);
 		cookies.set(visitCookie, '1', { path: '/', httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:' });
 	}

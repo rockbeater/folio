@@ -83,6 +83,8 @@ export interface CartLineView {
 	crop: Crop | null;
 	/** Print aspect ratio, when the variant names a print size (for the crop tool). */
 	aspect: number | null;
+	/** The photo does not fit the print, and the buyer has not chosen the crop yet. */
+	cropNeeded: boolean;
 }
 
 export interface CartView {
@@ -96,6 +98,8 @@ export interface CartView {
 	countries: string[];
 	methods: ShippingMethod[];
 	count: number;
+	/** Lines where the buyer still has to choose the crop. */
+	cropsMissing: number;
 }
 
 /** Whether a product line needs a photo, and whether the photo may be bought by this role. */
@@ -166,7 +170,8 @@ export function priceCart(
 			gross: priced.gross,
 			discount: priced.discount,
 			crop: i.crop,
-			aspect: product.kind === 'physical' && photo ? printAspect(label) : null
+			aspect: product.kind === 'physical' && photo ? printAspect(label) : null,
+			cropNeeded: Boolean(i.crop && !i.cropConfirmed)
 		};
 	});
 
@@ -181,6 +186,7 @@ export function priceCart(
 		belowMinimum: ctx.priceList.minOrder > 0 && totals.subtotal < ctx.priceList.minOrder,
 		countries,
 		methods: available,
-		count: lines.reduce((sum, l) => sum + l.quantity, 0)
+		count: lines.reduce((sum, l) => sum + l.quantity, 0),
+		cropsMissing: lines.filter((l) => l.cropNeeded).length
 	};
 }

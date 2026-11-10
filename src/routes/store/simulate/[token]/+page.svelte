@@ -12,7 +12,7 @@
 <main class="sim">
 	<p class="label badge">{t('store.sim.badge')}</p>
 	<h1>{data.storeName || t('store.sim.title')}</h1>
-	<p>{t('store.orderNumber', { number: String(data.number) })} · {data.email}</p>
+	<p>{data.number > 0 ? t('store.orderNumber', { number: String(data.number) }) : t('store.yourOrder')} · {data.email}</p>
 	<p class="total">{formatMoney(data.total, data.currency, data.language)}</p>
 	<p class="hint">{t('store.sim.hint')}</p>
 	{#if data.status === 'unpaid'}

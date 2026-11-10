@@ -8,6 +8,7 @@ import { startLibraryWatcher } from './library/watcher';
 import { ensureDefaultTemplates } from './mail/templates';
 import { startMailQueue } from './mail/send';
 import { getStudio } from './settings';
+import { purgeAbandonedCheckouts } from './store/orders';
 
 let started = false;
 
@@ -30,4 +31,6 @@ export function startServices(): void {
 	void scanLibrary().then(() => console.log('[folio] library scan complete'));
 	startLibraryWatcher();
 	startMailQueue();
+	purgeAbandonedCheckouts();
+	setInterval(purgeAbandonedCheckouts, 6 * 60 * 60 * 1000).unref();
 }

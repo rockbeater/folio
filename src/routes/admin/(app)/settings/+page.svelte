@@ -269,8 +269,21 @@
 				</select>
 				<p class="hint">{t('admin.privacy.searchHint')}</p>
 			</label>
+			<h3>{t('admin.privacy.statistics')}</h3>
+			<label class="switch"><input type="checkbox" name="ignoreAdminIps" checked={data.preferences.ignoreAdminIps} /><span>{t('admin.privacy.ignoreAdmin')}</span></label>
+			<p class="hint">{t('admin.privacy.ignoreAdminHint')}</p>
 			<div><button class="btn primary" type="submit">{t('common.save')}</button></div>
 		</form>
+		<section class="card block">
+			<h3>{t('admin.privacy.adminIps')}</h3>
+			<p class="hint">{t('admin.privacy.adminIpsHint', { ip: data.currentIp || '?' })}</p>
+			{#if data.adminIps.length > 0}
+				<ul class="ips">
+					{#each data.adminIps as entry (entry.ip)}<li><code>{entry.ip}</code> <span class="hint">{new Date(entry.lastSeen).toLocaleString()}</span></li>{/each}
+				</ul>
+			{/if}
+			<form method="POST" action="?/forgetAdminIps" use:enhance={saved}><button class="btn ghost" type="submit">{t('admin.privacy.forgetIps')}</button></form>
+		</section>
 		<section class="card block">
 			<h3>{t('admin.privacy.gdpr')}</h3>
 			<p class="hint">{t('admin.privacy.gdprHint')}</p>
@@ -483,6 +496,12 @@
 
 	.card + .card {
 		margin-top: 16px;
+	}
+
+	.ips {
+		margin: 0;
+		padding-left: 18px;
+		line-height: 1.8;
 	}
 
 	.totp-setup {

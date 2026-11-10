@@ -15,6 +15,9 @@ import { formatMoney } from '$lib/store';
 import { createI18n } from '$lib/i18n';
 import { mergeFields, renderGalleryEmail, type MergeValues } from './render';
 import { builtInTemplate, pickTemplate } from './templates';
+import { logger } from '../log';
+
+const log = logger('mail');
 
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000];
 
@@ -360,6 +363,7 @@ export async function processQueue(): Promise<void> {
 					await mailer.sendMail({ ...sender(smtp), to: entry.recipient, subject: entry.payload.subject, text: entry.payload.body });
 					db.update(schema.emailLog).set({ status: 'sent', sentAt: Date.now(), error: null, attempts: entry.attempts + 1 }).where(eq(schema.emailLog.id, entry.id)).run();
 				} catch (err) {
+					log.warn(`email to ${entry.recipient} failed`, (err as Error).message);
 					db.update(schema.emailLog)
 						.set({ status: 'failed', attempts: entry.attempts + 1, error: (err as Error).message?.slice(0, 500) ?? String(err) })
 						.where(eq(schema.emailLog.id, entry.id))
@@ -372,6 +376,7 @@ export async function processQueue(): Promise<void> {
 					await mailer.sendMail({ ...sender(smtp), to: entry.recipient, ...composeStoreEmail(entry.payload) });
 					db.update(schema.emailLog).set({ status: 'sent', sentAt: Date.now(), error: null, attempts: entry.attempts + 1 }).where(eq(schema.emailLog.id, entry.id)).run();
 				} catch (err) {
+					log.warn(`email to ${entry.recipient} failed`, (err as Error).message);
 					const attempts = entry.attempts + 1;
 					const retry = isTransient(err) && attempts <= RETRY_DELAYS_MS.length;
 					db.update(schema.emailLog)
@@ -399,6 +404,7 @@ export async function processQueue(): Promise<void> {
 					.where(eq(schema.emailLog.id, entry.id))
 					.run();
 			} catch (err) {
+				log.warn(`email to ${entry.recipient} failed`, (err as Error).message);
 				const attempts = entry.attempts + 1;
 				const retry = isTransient(err) && attempts <= RETRY_DELAYS_MS.length;
 				db.update(schema.emailLog)

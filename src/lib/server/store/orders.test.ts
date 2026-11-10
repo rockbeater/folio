@@ -52,6 +52,9 @@ describe('order flow', () => {
 		expect(order.total).toBe(25000);
 		expect(order.tax).toBe(5000);
 		expect(order.paymentStatus).toBe('unpaid');
+		// Not an order yet: no real number, and not listed in the admin.
+		expect(order.number).toBeLessThan(0);
+		expect(orders.listOrders().total).toBe(0);
 
 		const payload = JSON.stringify({ type: 'checkout.session.completed', data: { object: { client_reference_id: order.id, payment_status: 'paid', payment_intent: 'pi_1' } } });
 		expect(stripe.verifySignature(payload, stripe.signatureHeader(payload, 'wrong'), stripe.simulatorSecret())).toBe(false);
@@ -59,9 +62,21 @@ describe('order flow', () => {
 		const paid = orders.getOrder(order.id)!;
 		expect(paid.paymentStatus).toBe('paid');
 		expect(paid.status).toBe('processing');
+		expect(paid.number).toBe(1001);
+		expect(orders.listOrders().total).toBe(1);
 
 		await orders.refundOrder({ ...paid, stripeMode: 'simulated' }, 5000);
 		expect(orders.getOrder(order.id)!.paymentStatus).toBe('partially_refunded');
+	});
+
+	it('refuses to order a print until the buyer has chosen the crop', async () => {
+		const gallery = (await import('../galleries')).getGalleryById('g1')!;
+		const crop = { x: 0, y: 0.1, w: 1, h: 0.8 };
+		const unconfirmed = { items: [{ ...cart('p1').items[0], crop, cropConfirmed: false }], couponCode: null };
+		expect(await orders.placeOrder(gallery, 'guest', unconfirmed, input, 'http://localhost', true)).toEqual({ error: 'crop' });
+		const confirmed = { items: [{ ...cart('p1').items[0], crop, cropConfirmed: true }], couponCode: null };
+		const result = await orders.placeOrder(gallery, 'guest', confirmed, input, 'http://localhost', true);
+		expect('redirect' in result).toBe(true);
 	});
 
 	it('does not let a guest buy a private photo', async () => {

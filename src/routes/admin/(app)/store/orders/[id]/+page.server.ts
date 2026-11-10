@@ -1,7 +1,7 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { photosByIds } from '$lib/server/client';
 import { toPhotoView } from '$lib/server/galleries';
-import { getOrder, orderItems, refundOrder, shipOrder, updateOrder } from '$lib/server/store/orders';
+import { deleteOrder, getOrder, orderItems, refundOrder, shipOrder, updateOrder } from '$lib/server/store/orders';
 import { ORDER_STATUSES, toMinor, type OrderStatus } from '$lib/store';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -45,6 +45,11 @@ export const actions: Actions = {
 		const result = await refundOrder(order, amount);
 		return result.ok ? { saved: true } : fail(400, { refundError: result.error });
 	},
+	delete: async ({ params }) => {
+		deleteOrder(requireOrder(params.id));
+		redirect(303, '/admin/store?tab=orders');
+	},
+
 	notes: async ({ params, request }) => {
 		const order = requireOrder(params.id);
 		updateOrder(order, { notes: String((await request.formData()).get('notes') ?? '').slice(0, 5000) });

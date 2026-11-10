@@ -17,6 +17,18 @@
 	let view = $state<CartView | null>(data.cart);
 	// svelte-ignore state_referenced_locally
 	const values = form?.values;
+	// The checkout fields are bound to state: plain value={…} inputs would be reset to their
+	// first value whenever the totals above them update (e.g. after choosing the country).
+	// svelte-ignore state_referenced_locally
+	const buyer = $state({
+		email: values?.email ?? data.email,
+		name: values?.name ?? '',
+		phone: values?.phone ?? '',
+		line1: values?.address?.line1 ?? '',
+		line2: values?.address?.line2 ?? '',
+		postalCode: values?.address?.postalCode ?? '',
+		city: values?.address?.city ?? ''
+	});
 	let country = $state(values?.country ?? '');
 	let methodId = $state(values?.methodId ?? '');
 	let coupon = $state('');
@@ -28,6 +40,16 @@
 	const method = $derived(view?.methods.find((m) => m.id === methodId) ?? null);
 	const hasDigital = $derived(Boolean(view?.lines.some((l) => l.kind === 'digital')));
 	const needsAddress = $derived(Boolean(view?.totals.needsShipping && method && !method.pickup));
+
+	// Shipping and VAT depend on the country and the method: price the cart again when they change.
+	// (Read here, not in the change handlers, so the request always has the new value.)
+	let priced = '';
+	$effect(() => {
+		const key = `${country}|${methodId}`;
+		if (key === priced) return;
+		priced = key;
+		void call('GET');
+	});
 
 	async function call(method: 'GET' | 'POST', body?: Record<string, unknown>) {
 		const query = new URLSearchParams();
@@ -45,10 +67,7 @@
 		view = (await res.json()) as CartView;
 		gs.cartCount = view.count;
 		if (methodId && !view.methods.some((m) => m.id === methodId)) methodId = '';
-		if (!methodId && view.methods.length === 1) {
-			methodId = view.methods[0].id;
-			void call('GET');
-		}
+		if (!methodId && view.methods.length === 1) methodId = view.methods[0].id;
 	}
 
 	function setQuantity(line: CartLineView, value: number) {
@@ -75,6 +94,17 @@
 		const py = c.h < 1 ? (c.y / (1 - c.h)) * 100 : 0;
 		return `background-image:url(${displayUrl(line.photo, 480)});background-size:${100 / c.w}% ${100 / c.h}%;background-position:${px}% ${py}%;aspect-ratio:${(c.w * line.photo.width) / (c.h * line.photo.height)}`;
 	}
+
+	/** Why the order cannot be placed yet; the pay button is never disabled without saying why. */
+	const blocker = $derived.by(() => {
+		if (!view) return '';
+		if (view.cropsMissing > 0) return t('store.crop.missing', { count: view.cropsMissing });
+		if (view.belowMinimum) return t('store.minimum', { amount: money(view.minOrder) });
+		if (view.totals.needsShipping && !country) return t('store.chooseCountryFirst');
+		if (view.totals.needsShipping && view.methods.length === 0) return t('store.noShipping');
+		if (view.totals.needsShipping && !method) return t('store.chooseMethod');
+		return '';
+	});
 
 	const errorText = $derived(form?.error ? t(`store.err.${form.error}` as MessageKey) + (form.message ? ` (${form.message})` : '') : '');
 </script>
@@ -107,6 +137,7 @@
 								<strong>{line.productName}</strong>
 								{#if line.label}<span class="muted">{line.label}</span>{/if}
 								{#if line.photo}<span class="muted small">{line.photo.filename}</span>{/if}
+								{#if line.cropNeeded}<span class="error small">{t('store.crop.required')}</span>{/if}
 								<div class="row">
 									{#if line.kind === 'physical' && !line.maxOne}
 										<label class="qty">
@@ -121,8 +152,10 @@
 											/>
 										</label>
 									{/if}
-									{#if line.aspect && line.photo}
-										<button class="c-btn small" type="button" onclick={() => (cropping = line)}>{t('store.crop.adjust')}</button>
+									{#if line.aspect && line.photo && line.crop}
+										<button class="c-btn small" class:solid={line.cropNeeded} type="button" onclick={() => (cropping = line)}>
+											{line.cropNeeded ? t('store.crop.choose') : t('store.crop.adjust')}
+										</button>
 									{/if}
 								</div>
 							</div>
@@ -152,19 +185,19 @@
 				<h2 class="label">{t('store.checkout')}</h2>
 				<label class="field">
 					<span>{t('common.email')}</span>
-					<input class="c-input" type="email" name="email" required autocomplete="email" value={values?.email ?? data.email} />
+					<input class="c-input" type="email" name="email" required autocomplete="email" bind:value={buyer.email} />
 				</label>
 				<label class="field">
 					<span>{t('common.name')}</span>
-					<input class="c-input" name="name" required autocomplete="name" value={values?.name ?? ''} />
+					<input class="c-input" name="name" required autocomplete="name" bind:value={buyer.name} />
 				</label>
 				<label class="field">
 					<span>{t('store.phone')} <small class="muted">({t('common.optional')})</small></span>
-					<input class="c-input" name="phone" type="tel" autocomplete="tel" value={values?.phone ?? ''} />
+					<input class="c-input" name="phone" type="tel" autocomplete="tel" bind:value={buyer.phone} />
 				</label>
 				<label class="field">
 					<span>{t('store.country')}</span>
-					<select class="c-input" name="country" required bind:value={country} onchange={() => call('GET')} autocomplete="country">
+					<select class="c-input" name="country" required bind:value={country} autocomplete="country">
 						<option value="">{t('store.chooseCountry')}</option>
 						{#each countries as c (c.code)}<option value={c.code}>{c.name}</option>{/each}
 					</select>
@@ -178,7 +211,7 @@
 						{/if}
 						{#each view.methods as m (m.id)}
 							<label class="method">
-								<input type="radio" name="methodId" value={m.id} bind:group={methodId} onchange={() => call('GET')} />
+								<input type="radio" name="methodId" value={m.id} bind:group={methodId} />
 								<span>{m.name}{#if m.deliveryTime} <small class="muted">· {m.deliveryTime}</small>{/if}</span>
 								<span class="tabular">{m.fee ? money(m.fee) : t('store.free')}</span>
 							</label>
@@ -187,11 +220,11 @@
 				{/if}
 
 				{#if needsAddress}
-					<label class="field"><span>{t('store.address')}</span><input class="c-input" name="line1" required autocomplete="address-line1" value={values?.address?.line1 ?? ''} /></label>
-					<label class="field"><span class="visually-hidden">{t('store.address2')}</span><input class="c-input" name="line2" autocomplete="address-line2" placeholder={t('store.address2')} value={values?.address?.line2 ?? ''} /></label>
+					<label class="field"><span>{t('store.address')}</span><input class="c-input" name="line1" required autocomplete="address-line1" bind:value={buyer.line1} /></label>
+					<label class="field"><span class="visually-hidden">{t('store.address2')}</span><input class="c-input" name="line2" autocomplete="address-line2" placeholder={t('store.address2')} bind:value={buyer.line2} /></label>
 					<div class="two">
-						<label class="field"><span>{t('store.postalCode')}</span><input class="c-input" name="postalCode" required autocomplete="postal-code" value={values?.address?.postalCode ?? ''} /></label>
-						<label class="field"><span>{t('store.city')}</span><input class="c-input" name="city" required autocomplete="address-level2" value={values?.address?.city ?? ''} /></label>
+						<label class="field"><span>{t('store.postalCode')}</span><input class="c-input" name="postalCode" required autocomplete="postal-code" bind:value={buyer.postalCode} /></label>
+						<label class="field"><span>{t('store.city')}</span><input class="c-input" name="city" required autocomplete="address-level2" bind:value={buyer.city} /></label>
 					</div>
 				{/if}
 
@@ -205,9 +238,6 @@
 					{#if country && view.totals.tax}<div class="muted small"><dt>{t('store.vatIncluded')}</dt><dd>{money(view.totals.tax)}</dd></div>{/if}
 				</dl>
 
-				{#if view.belowMinimum}
-					<p class="error">{t('store.minimum', { amount: money(view.minOrder) })}</p>
-				{/if}
 
 				{#if data.terms}
 					<label class="accept">
@@ -225,7 +255,8 @@
 				{/if}
 
 				{#if errorText}<p class="error" role="alert">{errorText}</p>{/if}
-				<button class="c-btn solid pay" type="submit" disabled={view.belowMinimum || (view.totals.needsShipping && !method)}>
+				{#if blocker}<p class="blocker">{blocker}</p>{/if}
+				<button class="c-btn solid pay" type="submit" disabled={Boolean(blocker)}>
 					{view.totals.total === 0 ? t('store.placeOrder') : t('store.pay', { amount: money(view.totals.total) })}
 				</button>
 			</form>
@@ -419,6 +450,14 @@
 		margin: 0;
 		color: var(--color-danger);
 		font-size: 0.875rem;
+	}
+
+	.blocker {
+		margin: 0;
+		padding: var(--space-3);
+		border-left: 3px solid var(--color-danger);
+		background: var(--color-bg);
+		font-size: 0.9375rem;
 	}
 
 	.pay {

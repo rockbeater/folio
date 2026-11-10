@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { changeEmail, changePassword, checkPassword, clearSetupSecret, setTotp, setupSecret, totpSecretOf } from '$lib/server/auth';
 import { restoreBackup } from '$lib/server/backup';
+import { forgetAdminIps, noteAdminIp, recentAdminIps } from '$lib/server/visitors';
 import { deletePersonalData, summary } from '$lib/server/gdpr';
 import { generateSecret, otpauthUri, recoveryCodes, verifyTotp } from '$lib/server/totp';
 import { config } from '$lib/server/config';
@@ -89,7 +90,9 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 					qr: await QRCode.toString(otpauthUri(pending, admin.email, getStudio().name || 'Folio'), { type: 'svg', margin: 1, width: 200 })
 				}
 			: null,
-		gdpr: EMAIL.test(gdprEmail) ? { email: gdprEmail, summary: summary(gdprEmail) } : null
+		gdpr: EMAIL.test(gdprEmail) ? { email: gdprEmail, summary: summary(gdprEmail) } : null,
+		adminIps: recentAdminIps(),
+		currentIp: locals.ip
 	};
 };
 
@@ -312,7 +315,17 @@ export const actions: Actions = {
 
 	privacy: async ({ request }) => {
 		const form = await request.formData();
-		savePreferences({ searchVisibility: form.get('searchVisibility') === 'homepage' ? 'homepage' : 'none' });
+		savePreferences({
+			searchVisibility: form.get('searchVisibility') === 'homepage' ? 'homepage' : 'none',
+			ignoreAdminIps: form.get('ignoreAdminIps') === 'on'
+		});
+		return { tab: 'privacy', saved: true };
+	},
+
+	forgetAdminIps: async ({ locals }) => {
+		forgetAdminIps();
+		// Keep the address in use right now, so this visit is still left out.
+		noteAdminIp(locals.ip);
 		return { tab: 'privacy', saved: true };
 	},
 

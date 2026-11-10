@@ -13,6 +13,10 @@
 		visits: number;
 		downloadCount: number;
 		registrations: number;
+		daily: { day: string; count: number }[];
+		topPhotos: { photo: PhotoView; filename: string; people: number }[];
+		feed: { kind: string; email: string | null; at: number; detail: string }[];
+		favoritedPhotos: number;
 		downloads: { id: string; email: string | null; scope: string; size: string; count: number; target: string; createdAt: number }[];
 		visitors: { id: string; email: string; createdAt: number; favorites: number; downloads: number }[];
 		favoriteLists: {
@@ -61,6 +65,8 @@
 	}
 	const { t, plural, lang } = useI18n();
 	const dateTime = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' });
+	const dayLabel = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short' });
+	const maxDaily = $derived(Math.max(1, ...activity.daily.map((d) => d.count)));
 
 	async function copyFiles(files: string[]) {
 		await navigator.clipboard.writeText(files.join(', '));
@@ -89,7 +95,58 @@
 		<div class="card stat"><span class="value tabular">{activity.visits}</span><span class="hint">{t('admin.activity.visits')}</span></div>
 		<div class="card stat"><span class="value tabular">{activity.downloadCount}</span><span class="hint">{t('admin.activity.downloads')}</span></div>
 		<div class="card stat"><span class="value tabular">{activity.visitors.length}</span><span class="hint">{t('admin.activity.visitors')}</span></div>
+		<div class="card stat"><span class="value tabular">{activity.favoritedPhotos}</span><span class="hint">{t('admin.activity.favoritedPhotos')}</span></div>
 	</div>
+
+	<section class="card block">
+		<h3>{t('admin.activity.visitsChart')}</h3>
+		<div
+			class="chart"
+			role="img"
+			aria-label={t('admin.activity.visitsChartLabel', { total: activity.daily.reduce((sum, d) => sum + d.count, 0) })}
+		>
+			{#each activity.daily as d (d.day)}
+				<div class="col" data-tip="{dayLabel.format(new Date(`${d.day}T12:00:00`))}: {d.count}">
+					<span class="bar" style:height="{(d.count / maxDaily) * 100}%" class:zero={d.count === 0}></span>
+				</div>
+			{/each}
+		</div>
+		<div class="axis hint">
+			<span>{dayLabel.format(new Date(`${activity.daily[0].day}T12:00:00`))}</span>
+			<span>{t('admin.activity.max', { count: maxDaily })}</span>
+			<span>{dayLabel.format(new Date(`${activity.daily[activity.daily.length - 1].day}T12:00:00`))}</span>
+		</div>
+		<p class="hint">{t('admin.activity.adminIgnored')}</p>
+	</section>
+
+	{#if activity.topPhotos.length > 0}
+		<section class="card block">
+			<h3>{t('admin.activity.topPhotos')}</h3>
+			<ul class="liked">
+				{#each activity.topPhotos as item (item.photo.id)}
+					<li>
+						<img src={displayUrl(item.photo, 480)} alt={item.filename} loading="lazy" style:background-color={item.photo.color} />
+						<span class="file">{item.filename}</span>
+						<span class="note">{t('admin.activity.people', { count: item.people })}</span>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
+	{#if activity.feed.length > 0}
+		<section class="card block">
+			<h3>{t('admin.activity.feed')}</h3>
+			<ul class="feed">
+				{#each activity.feed as e, i (i)}
+					<li>
+						<span>{t(`admin.activity.event.${e.kind}` as MessageKey, { who: e.email ?? t('admin.activity.anonymous'), detail: e.detail })}</span>
+						<span class="hint">{dateTime.format(e.at)}</span>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
 	{#if store.orders.length > 0}
 		<section class="card block">
@@ -304,7 +361,7 @@
 
 	.stats {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 		gap: 12px;
 	}
 
@@ -389,7 +446,7 @@
 
 	@media (max-width: 640px) {
 		.stats {
-			grid-template-columns: 1fr 1fr 1fr;
+			grid-template-columns: 1fr 1fr;
 			gap: 8px;
 		}
 
@@ -457,5 +514,80 @@
 	.liked .note {
 		font-size: 0.8125rem;
 		color: var(--muted);
+	}
+
+	/* Visits per day: one series, thin bars on a quiet baseline. */
+	.chart {
+		display: flex;
+		align-items: flex-end;
+		gap: 2px;
+		height: 120px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.col {
+		position: relative;
+		flex: 1;
+		display: flex;
+		align-items: flex-end;
+		height: 100%;
+	}
+
+	.bar {
+		width: 100%;
+		min-height: 2px;
+		border-radius: 4px 4px 0 0;
+		background: var(--accent);
+	}
+
+	.bar.zero {
+		background: var(--line);
+	}
+
+	.col:hover .bar {
+		background: var(--accent-hover);
+	}
+
+	.col[data-tip]:hover::after {
+		content: attr(data-tip);
+		position: absolute;
+		bottom: calc(100% + 6px);
+		left: 50%;
+		z-index: 2;
+		transform: translateX(-50%);
+		padding: 4px 8px;
+		border-radius: 4px;
+		background: var(--text);
+		color: #fff;
+		font-size: 0.75rem;
+		white-space: nowrap;
+		pointer-events: none;
+	}
+
+	.axis {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.75rem;
+	}
+
+	.feed {
+		display: flex;
+		flex-direction: column;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.875rem;
+	}
+
+	.feed li {
+		display: flex;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 7px 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.feed li:last-child {
+		border-bottom: 0;
 	}
 </style>

@@ -26,6 +26,10 @@
 	let filter = $state<'all' | 'visible' | 'hidden'>('all');
 	let removed = $state<string[]>([]);
 	let description = $state(p.description);
+	// Bound fields: plain value={…} inputs would be reset when the option matrix re-renders.
+	let name = $state(p.name);
+	let category = $state(p.category);
+	let extraShipping = $state(p.extraShipping ? fromMinor(p.extraShipping, currency) : '');
 	let preview = $state(false);
 
 	const matrix = $derived(syncVariants(options.filter((o) => o.name.trim() && o.values.some((v) => v.name.trim())), [], 0));
@@ -86,10 +90,10 @@
 	<form class="stack" method="POST" action="?/save" enctype="multipart/form-data" use:enhance={saved}>
 		<section class="card block">
 			<div class="grid2">
-				<label class="field"><span>{t('common.name')}</span><input name="name" value={p.name} required maxlength="120" /></label>
+				<label class="field"><span>{t('common.name')}</span><input name="name" bind:value={name} required maxlength="120" /></label>
 				<label class="field">
 					<span>{t('admin.products.category')}</span>
-					<input name="category" value={p.category} list="categories" maxlength="60" />
+					<input name="category" bind:value={category} list="categories" maxlength="60" />
 					<datalist id="categories">{#each data.categories as c (c)}<option value={c}></option>{/each}</datalist>
 				</label>
 				<label class="field">
@@ -232,7 +236,7 @@
 				<div class="grid2">
 					<label class="field"><span>{t('admin.products.price')} ({currency})</span><input name="price" inputmode="decimal" bind:value={defaultPrice} required /></label>
 					{#if kind === 'physical'}
-						<label class="field"><span>{t('admin.products.extraShipping')} ({currency})</span><input name="extraShipping" inputmode="decimal" value={p.extraShipping ? fromMinor(p.extraShipping, currency) : ''} placeholder="0" /></label>
+						<label class="field"><span>{t('admin.products.extraShipping')} ({currency})</span><input name="extraShipping" inputmode="decimal" bind:value={extraShipping} placeholder="0" /></label>
 					{/if}
 				</div>
 			</section>

@@ -16,6 +16,8 @@
 	const order = $derived(data.order);
 	const money = (amount: number) => formatMoney(amount, order.currency, lang);
 	const paid = $derived(['paid', 'partially_refunded'].includes(order.paymentStatus));
+	// Unpaid checkouts have no order number yet.
+	const heading = $derived(order.number > 0 ? t('store.orderNumber', { number: String(order.number) }) : t('store.yourOrder'));
 
 	// The webhook usually arrives within seconds after Stripe sends the buyer back.
 	onMount(() => {
@@ -29,13 +31,13 @@
 </script>
 
 <svelte:head>
-	<title>{t('store.orderNumber', { number: String(order.number) })}{data.storeName ? ` · ${data.storeName}` : ''}</title>
+	<title>{heading}{data.storeName ? ` · ${data.storeName}` : ''}</title>
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <main class="receipt">
 	<p class="label muted">{data.storeName}</p>
-	<h1>{t('store.orderNumber', { number: String(order.number) })}</h1>
+	<h1>{heading}</h1>
 	<p class="status">
 		{#if order.waiting}
 			{t('store.receipt.waiting')}

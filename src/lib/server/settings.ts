@@ -107,6 +107,8 @@ export interface Preferences {
 	searchVisibility: 'none' | 'homepage';
 	/** Sharpening of display copies; originals are never changed. */
 	sharpening: 'none' | 'standard' | 'optimal';
+	/** Leave out visits and downloads from IP addresses the admin has used. */
+	ignoreAdminIps: boolean;
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -114,7 +116,8 @@ const DEFAULT_PREFERENCES: Preferences = {
 	banner: { enabled: false, text: '', code: '' },
 	homepage: { enabled: false, title: '', intro: '', links: [] },
 	searchVisibility: 'none',
-	sharpening: 'none'
+	sharpening: 'standard',
+	ignoreAdminIps: true
 };
 
 export function getPreferences(): Preferences {
@@ -204,4 +207,13 @@ export function saveStore(update: Partial<Omit<StoreSettings, 'stripe'>> & { str
 	const next = { ...current, ...update, stripe: { ...current.stripe, ...update.stripe } };
 	write('store', next);
 	return next;
+}
+
+/** IP addresses the admin has been seen on, with the time last seen (ms). */
+export function getAdminIps(): Record<string, number> {
+	return read<Record<string, number>>('adminIps', {});
+}
+
+export function saveAdminIps(ips: Record<string, number>): void {
+	write('adminIps', ips);
 }

@@ -3,6 +3,9 @@ import { authenticate, clearPendingLogin, pendingLogin, startPendingLogin, start
 import { rateLimit, resetRateLimit } from '$lib/server/ratelimit';
 import { getStudio } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/server/log';
+
+const log = logger('auth');
 
 function safeNext(value: string | null): string {
 	return value && value.startsWith('/admin') && !value.startsWith('//') ? value : '/admin';
@@ -15,14 +18,17 @@ export const load: PageServerLoad = ({ locals, url }) => {
 };
 
 export const actions: Actions = {
-	login: async ({ request, cookies, url, getClientAddress }) => {
+	login: async ({ request, cookies, url, getClientAddress, locals }) => {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '');
 		const password = String(form.get('password') ?? '');
 		const key = `login:${getClientAddress()}`;
 		if (!rateLimit(key, 10, 15 * 60 * 1000)) return fail(429, { email, error: 'admin.login.tooMany' });
 		const user = await authenticate(email, password);
-		if (!user) return fail(400, { email, error: 'admin.login.wrong' });
+		if (!user) {
+			log.warn(`failed admin login for "${email}" from ${locals.ip}`);
+			return fail(400, { email, error: 'admin.login.wrong' });
+		}
 		resetRateLimit(key);
 		if (totpSecretOf(user.id)) {
 			startPendingLogin(cookies, url, user.id);

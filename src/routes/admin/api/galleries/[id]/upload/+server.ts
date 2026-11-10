@@ -3,6 +3,9 @@ import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 import { getGalleryById, getSection } from '$lib/server/galleries';
 import { createSection, LibraryError, receiveChunk, scheduleRescan, type DuplicatePolicy } from '$lib/server/library/ops';
 import type { RequestHandler } from './$types';
+import { logger } from '$lib/server/log';
+
+const log = logger('upload');
 
 const MAX_MB = Number(process.env.UPLOAD_MAX_MB) || 500;
 const POLICIES: DuplicatePolicy[] = ['skip', 'replace', 'rename'];
@@ -18,7 +21,10 @@ export const PUT: RequestHandler = async ({ params, url, request, locals }) => {
 	if (!locals.admin) error(401);
 	const gallery = getGalleryById(params.id);
 	if (!gallery) error(404);
-	if (!request.body) error(400, 'Missing body');
+	if (!request.body) {
+		log.warn('upload chunk without body (missing content-type header?)');
+		error(400, 'Missing body');
+	}
 
 	const q = url.searchParams;
 	let section = q.get('section') ? getSection(gallery.id, q.get('section')!) : undefined;
@@ -42,6 +48,7 @@ export const PUT: RequestHandler = async ({ params, url, request, locals }) => {
 			maxBytes: MAX_MB * 1024 * 1024,
 			duplicate
 		});
+		if (result.done) log.info(`uploaded ${result.skipped ? '(skipped, exists) ' : ''}${gallery.folder}/${section.folder}/${result.filename}`);
 		if (!result.done) {
 			// On an offset mismatch, tell the browser where to continue.
 			return json({ done: false, received: result.received, sectionId: section.id }, { status: result.mismatch ? 409 : 200 });
@@ -49,6 +56,7 @@ export const PUT: RequestHandler = async ({ params, url, request, locals }) => {
 		scheduleRescan();
 		return json({ ...result, sectionId: section.id });
 	} catch (err) {
+		log.warn(`upload of "${q.get('name')}" to ${gallery.folder}/${section.folder} failed`, (err as Error).message);
 		if (err instanceof LibraryError) error(err.code === 'unsupported' ? 415 : 400, err.message);
 		error(400, (err as Error).message);
 	}

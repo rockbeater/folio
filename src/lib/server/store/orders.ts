@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import yazl from 'yazl';
 import { randomToken } from '../crypto';
@@ -20,6 +20,9 @@ import { createCheckoutSession, createRefund } from './stripe';
 import { formatMoney, type Crop } from '$lib/store';
 import type { Role } from '$lib/types';
 import type { CartItem } from '../db/schema';
+import { logger } from '../log';
+
+const log = logger('store');
 
 export interface CheckoutInput {
 	email: string;
@@ -43,8 +46,22 @@ export type CheckoutError =
 	| 'terms'
 	| 'license'
 	| 'coupon'
+	| 'crop'
 	| 'payments'
 	| 'stripe';
+
+/**
+ * Checkouts that are not paid yet are not orders: they get a temporary negative number,
+ * and the real, gap-free order number is given when the payment is confirmed.
+ */
+function temporaryNumber(): number {
+	return -(Date.now() * 100 + Math.floor(Math.random() * 100));
+}
+
+/** Paid (or refunded) orders; unpaid checkouts are left out everywhere in the admin. */
+export function isPlacedOrder(o: Pick<Order, 'paymentStatus'>): boolean {
+	return o.paymentStatus === 'paid' || o.paymentStatus === 'partially_refunded' || o.paymentStatus === 'refunded';
+}
 
 function nextOrderNumber(): number {
 	const row = getDb().select({ max: sql<number | null>`max(${schema.orders.number})` }).from(schema.orders).get();
@@ -73,6 +90,7 @@ function checkInput(view: CartView, input: CheckoutInput, needsLicense: boolean)
 	const store = getStore();
 	if (view.lines.length === 0) return 'empty';
 	if (view.belowMinimum) return 'minimum';
+	if (view.cropsMissing > 0) return 'crop';
 	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) return 'email';
 	if (!input.name) return 'name';
 	if (!/^[A-Z]{2}$/.test(input.country)) return 'country';
@@ -100,9 +118,15 @@ export async function placeOrder(
 	simulator: boolean
 ): Promise<{ redirect: string } | { error: CheckoutError; message?: string }> {
 	const view = priceCart(gallery, role, cart.items, cart.couponCode, { country: input.country, methodId: input.methodId });
-	if (!view) return { error: 'empty' };
+	if (!view) {
+		log.warn(`checkout refused in "${gallery.name}": the store is closed or has no products`);
+		return { error: 'empty' };
+	}
 	const error = checkInput(view, input, view.lines.some((l) => l.kind === 'digital'));
-	if (error) return { error };
+	if (error) {
+		log.warn(`checkout refused in "${gallery.name}": ${error}`, { lines: view.lines.length, country: input.country, method: input.methodId || null });
+		return { error };
+	}
 
 	if (getStore().siteUrl !== baseUrl) saveStore({ siteUrl: baseUrl });
 	const store = getStore();
@@ -119,7 +143,7 @@ export async function placeOrder(
 		tx.insert(schema.orders)
 			.values({
 				id,
-				number: nextOrderNumber(),
+				number: temporaryNumber(),
 				token,
 				galleryId: gallery.id,
 				galleryName: gallery.name,
@@ -169,6 +193,7 @@ export async function placeOrder(
 		}
 	});
 
+	log.info(`checkout ${id.slice(0, 8)} started in "${gallery.name}"`, { total: totals.total, currency: store.currency, kind: totals.kind });
 	if (totals.total === 0) {
 		markPaid(id, null, 'free');
 		return { redirect: `/order/${token}` };
@@ -180,7 +205,7 @@ export async function placeOrder(
 			const discounted = totals.discount > 0;
 			// With a discount the order is sent as one line with the final amount, so Stripe charges exactly the total.
 			const lines = discounted
-				? [{ name: createI18n(gallery.language).t('store.orderNumber', { number: String(getOrder(id)!.number) }), amount: totals.total, quantity: 1 }]
+				? [{ name: createI18n(gallery.language).t('store.orderFrom', { gallery: gallery.name }), amount: totals.total, quantity: 1 }]
 				: totals.lines.map((l) => {
 						const v = viewLines.get(l.id)!;
 						return { name: [v.productName, v.label, v.photo?.filename].filter(Boolean).join(' · '), amount: l.unitPrice, quantity: l.quantity };
@@ -196,8 +221,10 @@ export async function placeOrder(
 				locale: gallery.language === 'da' ? 'da' : 'auto'
 			});
 			touch(id, { stripeSessionId: session.id, stripeMode: store.stripe.mode ?? 'test' });
+			log.info(`checkout ${id.slice(0, 8)}: sent to Stripe Checkout`, { session: session.id });
 			return { redirect: session.url };
 		} catch (err) {
+			log.error(`checkout ${id.slice(0, 8)}: Stripe Checkout could not be created`, (err as Error).message);
 			touch(id, { status: 'cancelled', notes: `Stripe: ${(err as Error).message}` });
 			return { error: 'stripe', message: (err as Error).message };
 		}
@@ -207,6 +234,7 @@ export async function placeOrder(
 		return { redirect: `/store/simulate/${token}` };
 	}
 	touch(id, { status: 'cancelled' });
+	log.warn('checkout refused: no Stripe key is set up (Store → Settings), and the payment simulator is off');
 	return { error: 'payments' };
 }
 
@@ -220,6 +248,7 @@ export function markPaid(orderId: string, paymentIntent: string | null, mode?: O
 	const order = getOrder(orderId);
 	if (!order || order.paymentStatus === 'paid' || order.paymentStatus === 'refunded' || order.paymentStatus === 'partially_refunded') return;
 	touch(order.id, {
+		number: order.number > 0 ? order.number : nextOrderNumber(),
 		paymentStatus: 'paid',
 		status: order.kind === 'digital' ? 'completed' : 'processing',
 		paidAt: Date.now(),
@@ -234,6 +263,7 @@ export function markPaid(orderId: string, paymentIntent: string | null, mode?: O
 			.run();
 	}
 	const paid = getOrder(order.id)!;
+	log.info(`order #${paid.number} paid`, { total: paid.total, currency: paid.currency, mode: paid.stripeMode });
 	queueStoreEmail(paid, 'order');
 	if (paid.kind !== 'physical') queueStoreEmail(paid, 'digital');
 	notifyPhotographer(paid);
@@ -292,6 +322,7 @@ export async function refundOrder(order: Order, amount: number): Promise<{ ok: t
 		}
 	}
 	recordRefund(order, order.refunded + value, true);
+	log.info(`order #${order.number} refunded`, { amount: value, currency: order.currency });
 	return { ok: true };
 }
 
@@ -307,6 +338,7 @@ export function updateOrder(order: Order, values: Partial<Pick<Order, 'status' |
 /** Handle a verified Stripe event. Unknown events are ignored. */
 export function handleStripeEvent(event: { type: string; data: { object: Record<string, unknown> } }): void {
 	saveStore({ stripe: { lastWebhookAt: Date.now() } });
+	log.info(`Stripe event ${event.type}`);
 	const obj = event.data.object;
 	const orderId = (obj.client_reference_id as string) || ((obj.metadata as Record<string, string> | undefined)?.order_id ?? '');
 	switch (event.type) {
@@ -345,7 +377,7 @@ export interface OrderFilter {
 export const PAGE_SIZE = 25;
 
 export function listOrders(filter: OrderFilter = {}) {
-	const all = getDb().select().from(schema.orders).orderBy(desc(schema.orders.createdAt)).all();
+	const all = getDb().select().from(schema.orders).orderBy(desc(schema.orders.createdAt)).all().filter(isPlacedOrder);
 	const q = (v?: string) => (v ?? '').trim().toLowerCase();
 	const rows = all.filter(
 		(o) =>
@@ -360,7 +392,29 @@ export function listOrders(filter: OrderFilter = {}) {
 }
 
 export function ordersForGallery(galleryId: string) {
-	return getDb().select().from(schema.orders).where(eq(schema.orders.galleryId, galleryId)).orderBy(desc(schema.orders.createdAt)).all();
+	return getDb()
+		.select()
+		.from(schema.orders)
+		.where(eq(schema.orders.galleryId, galleryId))
+		.orderBy(desc(schema.orders.createdAt))
+		.all()
+		.filter(isPlacedOrder);
+}
+
+/** Delete an order and its lines (from the admin). */
+export function deleteOrder(order: Order): void {
+	getDb().delete(schema.orders).where(eq(schema.orders.id, order.id)).run();
+	log.info(`order ${order.number > 0 ? `#${order.number}` : order.id.slice(0, 8)} deleted`);
+}
+
+/** Checkouts that were never paid are removed after three days (Stripe sessions expire after one). */
+export function purgeAbandonedCheckouts(): void {
+	const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
+	const removed = getDb()
+		.delete(schema.orders)
+		.where(and(inArray(schema.orders.paymentStatus, ['unpaid', 'failed']), lt(schema.orders.createdAt, cutoff)))
+		.run().changes;
+	if (removed) log.info(`removed ${removed} unpaid checkouts older than three days`);
 }
 
 /** Customers derived from paid orders, grouped by email. */
@@ -389,7 +443,7 @@ export function photosInOpenOrders(photoIds: string[]): string[] {
 		.select({ photoId: schema.orderItems.photoId })
 		.from(schema.orderItems)
 		.innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
-		.where(and(inArray(schema.orderItems.photoId, photoIds), inArray(schema.orders.status, ['pending', 'processing'])))
+		.where(and(inArray(schema.orderItems.photoId, photoIds), eq(schema.orders.status, 'processing')))
 		.all()
 		.map((r) => r.photoId!)
 		.filter(Boolean);
@@ -459,7 +513,7 @@ export function printZip(order: Order): Response | null {
 				.join('-')
 		);
 		const file = originalFile(gallery.folder, section.folder, photo.filename);
-		zip.addReadStreamLazy(`${name}${item.crop ? '.jpg' : ext}`, { compress: false }, (cb) => {
+		zip.addReadStreamLazy(`${name}${item.crop ? croppedExt(photo.filename) : ext}`, { compress: false }, (cb) => {
 			if (!item.crop) return cb(null, fs.createReadStream(file));
 			cropped(file, item.crop)
 				.then((buffer) => cb(null, Readable.from(buffer)))
@@ -488,23 +542,40 @@ export async function printFile(order: Order, itemId: string): Promise<Response 
 	const ext = path.extname(photo.filename) || '.jpg';
 	const base = safe([`order-${order.number}`, item.productName, item.variantLabel, `${item.quantity}x`, photo.filename.slice(0, photo.filename.length - ext.length)].filter(Boolean).join('-'));
 	const data = item.crop ? await cropped(file, item.crop) : await fs.promises.readFile(file);
-	const name = `${base}${item.crop ? '.jpg' : ext}`;
+	const name = `${base}${item.crop ? croppedExt(photo.filename) : ext}`;
 	return new Response(new Uint8Array(data), {
 		headers: {
-			'content-type': item.crop || /\.jpe?g$/i.test(ext) ? 'image/jpeg' : 'application/octet-stream',
+			'content-type': /\.jpe?g$/i.test(name) ? 'image/jpeg' : /\.png$/i.test(name) ? 'image/png' : /\.webp$/i.test(name) ? 'image/webp' : 'application/octet-stream',
 			'content-disposition': `attachment; filename="${name.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '')}"; filename*=UTF-8''${encodeURIComponent(name)}`,
 			'cache-control': 'private, no-store'
 		}
 	});
 }
 
+/**
+ * The crop for print, at full resolution: one decode and one encode, no resizing and no
+ * sharpening. The colour profile and metadata are kept. JPEGs are written at quality 100
+ * without chroma subsampling; PNG and WebP stay lossless.
+ */
 async function cropped(file: string, crop: Crop): Promise<Buffer> {
-	const image = sharp(file).rotate();
-	const { data, info } = await image.toBuffer({ resolveWithObject: true });
-	const left = Math.round(crop.x * info.width);
-	const top = Math.round(crop.y * info.height);
-	const width = Math.min(info.width - left, Math.round(crop.w * info.width));
-	const height = Math.min(info.height - top, Math.round(crop.h * info.height));
-	return sharp(data).extract({ left, top, width, height }).jpeg({ quality: 95, mozjpeg: true }).toBuffer();
+	const meta = await sharp(file).metadata();
+	const turned = (meta.orientation ?? 1) >= 5;
+	const fullW = (turned ? meta.height : meta.width) ?? 0;
+	const fullH = (turned ? meta.width : meta.height) ?? 0;
+	const left = Math.round(crop.x * fullW);
+	const top = Math.round(crop.y * fullH);
+	const width = Math.max(1, Math.min(fullW - left, Math.round(crop.w * fullW)));
+	const height = Math.max(1, Math.min(fullH - top, Math.round(crop.h * fullH)));
+	// rotate() first, so the crop is taken from the upright photo the buyer saw.
+	const image = sharp(file).rotate().extract({ left, top, width, height }).keepMetadata();
+	if (meta.format === 'png') return image.png({ compressionLevel: 6 }).toBuffer();
+	if (meta.format === 'webp') return image.webp({ lossless: true }).toBuffer();
+	return image.jpeg({ quality: 100, chromaSubsampling: '4:4:4' }).toBuffer();
+}
+
+/** File extension of a crop of this original (PNG and WebP keep their format). */
+function croppedExt(filename: string): string {
+	const ext = path.extname(filename).toLowerCase();
+	return ext === '.png' || ext === '.webp' ? ext : '.jpg';
 }
 

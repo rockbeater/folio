@@ -18,10 +18,13 @@ import {
 	setDefaultPriceList,
 	updatePriceList
 } from '$lib/server/store/catalog';
-import { listCustomers, listOrders, vatReport } from '$lib/server/store/orders';
+import { deleteOrder, getOrder, listCustomers, listOrders, vatReport } from '$lib/server/store/orders';
 import { ensureWebhook, keyMode, removeWebhook, verifyKey } from '$lib/server/store/stripe';
 import { toMinor } from '$lib/store';
 import type { Actions, PageServerLoad } from './$types';
+import { logger } from '$lib/server/log';
+
+const log = logger('stripe');
 
 const TABS = ['orders', 'customers', 'pricelists', 'coupons', 'taxes', 'shipping', 'report', 'settings'] as const;
 type Tab = (typeof TABS)[number];
@@ -35,10 +38,23 @@ function currencies(): string[] {
 	}
 }
 
+/** What stops customers from ordering, shown at the top of the store pages. */
+function setupProblems(): string[] {
+	const store = getStore();
+	const products = listPriceLists().flatMap((l) => listProducts(l.id));
+	const problems: string[] = [];
+	if (!store.enabled) problems.push('closed');
+	if (products.length === 0) problems.push('noProducts');
+	if (products.some((p) => p.kind === 'physical') && listShippingMethods().length === 0) problems.push('noShipping');
+	if (!store.stripe.secretKey && !config.stripeSimulator) problems.push('noPayments');
+	if (store.stripe.secretKey && !store.stripe.webhookSecret) problems.push('noWebhook');
+	return problems;
+}
+
 export const load: PageServerLoad = ({ url }) => {
 	const tab = ((TABS as readonly string[]).includes(url.searchParams.get('tab') ?? '') ? url.searchParams.get('tab') : 'orders') as Tab;
 	const store = getStore();
-	const base = { tab, currency: store.currency, enabled: store.enabled };
+	const base = { tab, currency: store.currency, enabled: store.enabled, problems: setupProblems() };
 	const q = (name: string) => url.searchParams.get(name) ?? '';
 
 	switch (tab) {
@@ -165,9 +181,11 @@ export const actions: Actions = {
 			const previous = getStore().stripe;
 			if (previous.secretKey && previous.secretKey !== key) await removeWebhook();
 			saveStore({ stripe: { secretKey: key, mode, accountName, error: '' } });
+			log.info(`Stripe key saved (${mode} mode${accountName ? `, ${accountName}` : ''})`);
 			await ensureWebhook(config.baseUrl || url.origin);
 			return { saved: true };
 		} catch (err) {
+			log.error('Stripe setup failed', (err as Error).message);
 			saveStore({ stripe: { error: (err as Error).message } });
 			return fail(400, { stripeError: 'admin.stripe.errVerify', message: (err as Error).message });
 		}
@@ -289,6 +307,12 @@ export const actions: Actions = {
 		};
 		if (id) db.update(schema.coupons).set(values).where(eq(schema.coupons.id, id)).run();
 		else db.insert(schema.coupons).values({ id: crypto.randomUUID(), ...values }).run();
+		return { saved: true };
+	},
+
+	deleteOrder: async ({ request }) => {
+		const order = getOrder((await formOf(request)).str('id'));
+		if (order) deleteOrder(order);
 		return { saved: true };
 	},
 

@@ -432,6 +432,8 @@ export interface CartItem {
 	photoId: string | null;
 	quantity: number;
 	crop: Crop | null;
+	/** The buyer has looked at the crop and saved it (required when the photo does not fit the print). */
+	cropConfirmed?: boolean;
 }
 
 /** A visitor's cart in one gallery, remembered by a cookie across visits. */

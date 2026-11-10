@@ -6,6 +6,8 @@ declare global {
 			admin: AdminUser | null;
 			/** Language of the page being rendered (sets <html lang>). */
 			lang: string;
+			/** The visitor's IP address (the real one when behind a local reverse proxy). */
+			ip: string;
 		}
 		interface PageState {
 			/** Photo open in the lightbox (shallow routing). */

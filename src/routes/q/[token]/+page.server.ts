@@ -6,6 +6,7 @@ import { rateLimit, resetRateLimit } from '$lib/server/ratelimit';
 import { countLink, getShareLinkByToken, isLinkOpen } from '$lib/server/shares';
 import { normalizeDownload, type DownloadSettings } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
+import { shouldTrack } from '$lib/server/visitors';
 
 function find(token: string) {
 	const link = getShareLinkByToken(token);
@@ -26,7 +27,7 @@ export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
 
 	addShareGrant(cookies, url, link.id);
 	const seen = `fqv_${link.id}`;
-	if (!isAdmin && !cookies.get(seen)) {
+	if (shouldTrack(locals) && !cookies.get(seen)) {
 		countLink(link.id, 'views');
 		cookies.set(seen, '1', { path: '/', httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:' });
 	}

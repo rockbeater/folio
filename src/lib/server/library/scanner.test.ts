@@ -75,7 +75,7 @@ describe('library scanner', () => {
 		expect(portrait.color).toMatch(/^#[0-9a-f]{6}$/);
 		expect(portrait.placeholder).toMatch(/^data:image\/webp;base64,/);
 		const cacheDir = path.join(process.env.CACHE_DIR!, 'photos', portrait.id.slice(0, 2), portrait.id);
-		expect(fs.readdirSync(cacheDir).sort()).toEqual(['v1-w1600.webp', 'v1-w2400.webp', 'v1-w480.webp', 'v1-w960.webp']);
+		expect(fs.readdirSync(cacheDir).sort()).toEqual(['v1s1-w1600.webp', 'v1s1-w2400.webp', 'v1s1-w480.webp', 'v1s1-w960.webp']);
 	});
 
 	it('keeps settings when the folder is renamed on disk', async () => {

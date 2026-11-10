@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import Plus from '@lucide/svelte/icons/plus';
+	import Trash from '@lucide/svelte/icons/trash-2';
 	import Modal from '$lib/components/Modal.svelte';
 	import { COUNTRY_CODES, countryName, countryOptions } from '$lib/countries';
 	import { useI18n, type MessageKey } from '$lib/i18n';
@@ -57,6 +58,14 @@
 		<h1>{t('admin.store.title')}</h1>
 		<span class="badge" class:on={data.enabled}>{data.enabled ? t('admin.store.open') : t('admin.store.closedBadge')}</span>
 	</div>
+	{#if data.problems.length > 0}
+		<div class="alert error problems">
+			<p><strong>{t('admin.store.problemsTitle')}</strong></p>
+			<ul>
+				{#each data.problems as problem (problem)}<li>{t(`admin.store.problem.${problem}` as MessageKey)}</li>{/each}
+			</ul>
+		</div>
+	{/if}
 	<nav class="tabs">
 		{#each TABS as item (item)}
 			<a href="?tab={item}" aria-current={data.tab === item ? 'page' : undefined} data-sveltekit-noscroll>{t(`admin.store.tab.${item}` as MessageKey)}</a>
@@ -94,6 +103,7 @@
 							<th>{t('admin.orders.type')}</th>
 							<th>{t('admin.activity.when')}</th>
 							<th class="right">{t('store.total')}</th>
+							<th></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -106,6 +116,12 @@
 								<td>{t(`admin.orders.kind.${o.kind}` as MessageKey)}</td>
 								<td>{dateTime.format(o.createdAt)}</td>
 								<td class="right tabular">{money(o.total, o.currency)}</td>
+								<td class="right">
+									<form method="POST" action="?/deleteOrder" use:enhance={saved} onsubmit={confirmSubmit(t('admin.orders.deleteConfirm', { number: String(o.number) }))}>
+										<input type="hidden" name="id" value={o.id} />
+										<button class="icon-btn" type="submit" title={t('admin.orders.delete')} aria-label={t('admin.orders.delete')}><Trash size={14} /></button>
+									</form>
+								</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -456,6 +472,15 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
+	}
+
+	.problems {
+		margin-bottom: 16px;
+	}
+
+	.problems ul {
+		margin: 6px 0 0;
+		padding-left: 18px;
 	}
 
 	.head h1 {

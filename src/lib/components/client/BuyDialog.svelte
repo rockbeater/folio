@@ -64,9 +64,9 @@
 			toast(t('common.error'), 'error');
 			return;
 		}
-		const view = (await res.json()) as { count: number };
+		const view = (await res.json()) as { count: number; cropsMissing: number };
 		gs.cartCount = view.count;
-		toast(t('store.added'));
+		toast(view.cropsMissing > 0 ? t('store.addedChooseCrop') : t('store.added'), 'info', view.cropsMissing > 0 ? 7000 : 4000);
 		gs.buy = null;
 	}
 </script>

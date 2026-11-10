@@ -5,6 +5,7 @@ import { getGalleryById, publicGallery } from '$lib/server/galleries';
 import { countShare, getListByToken, listPhotoIds } from '$lib/server/lists';
 import { normalizeAccess } from '$lib/types';
 import type { PageServerLoad } from './$types';
+import { shouldTrack } from '$lib/server/visitors';
 
 /**
  * A shared favorite list. Private shares show only the list (no gallery password needed);
@@ -22,7 +23,7 @@ export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
 	if (!locked) {
 		addShareGrant(cookies, url, list.id);
 		const seen = `flv_${list.id}`;
-		if (!isAdmin && !cookies.get(seen)) {
+		if (shouldTrack(locals) && !cookies.get(seen)) {
 			countShare(list.id, 'shareViews');
 			cookies.set(seen, '1', { path: '/', httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:' });
 		}

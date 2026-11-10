@@ -1,6 +1,9 @@
 import crypto from 'node:crypto';
 import { sign } from '../crypto';
 import { getStore, saveStore } from '../settings';
+import { logger } from '../log';
+
+const log = logger('stripe');
 
 /**
  * Minimal Stripe client over the REST API (no SDK). Folio uses Checkout Sessions,
@@ -58,6 +61,7 @@ async function call<T>(key: string, method: 'GET' | 'POST' | 'DELETE', path: str
 		body
 	});
 	const data = (await res.json().catch(() => ({}))) as { error?: { message?: string; code?: string; type?: string } };
+	if (!res.ok) log.warn(`Stripe ${method} ${path} failed (${res.status})`, data.error?.message ?? '');
 	if (!res.ok) throw new StripeError(data.error?.message ?? `Stripe error ${res.status}`, res.status, data.error?.code ?? data.error?.type ?? '');
 	return data as T;
 }
@@ -99,8 +103,12 @@ export async function ensureWebhook(baseUrl: string): Promise<void> {
 		url,
 		enabled_events: [...WEBHOOK_EVENTS],
 		description: 'Folio'
+	}).catch((err: Error) => {
+		log.error(`webhook endpoint for ${url} could not be created`, err.message);
+		throw err;
 	});
 	saveStore({ stripe: { webhookId: endpoint.id, webhookSecret: endpoint.secret, webhookUrl: url } });
+	log.info(`webhook endpoint created: ${url}`);
 }
 
 export async function removeWebhook(): Promise<void> {

@@ -67,7 +67,8 @@ export const POST: RequestHandler = async ({ params, cookies, locals, url, reque
 				if (product.maxOne) items = items.filter((i) => i.productId !== product.id);
 				const same = items.find((i) => i.productId === product.id && i.variantKey === key && i.photoId === photoId);
 				if (same && !product.maxOne && product.kind === 'physical') same.quantity = Math.min(99, same.quantity + quantity);
-				else if (!same) items.push({ id: crypto.randomUUID(), productId: product.id, variantKey: key, photoId, quantity: product.kind === 'physical' && !product.maxOne ? quantity : 1, crop });
+				// A suggested crop must still be looked at and saved by the buyer before ordering.
+				else if (!same) items.push({ id: crypto.randomUUID(), productId: product.id, variantKey: key, photoId, quantity: product.kind === 'physical' && !product.maxOne ? quantity : 1, crop, cropConfirmed: false });
 			};
 			if (needsPhoto) {
 				for (const photo of photos) {
@@ -81,7 +82,13 @@ export const POST: RequestHandler = async ({ params, cookies, locals, url, reque
 			const item = items.find((i) => i.id === body.itemId);
 			if (!item) error(404);
 			if (body.quantity !== undefined) item.quantity = quantity;
-			if (body.crop !== undefined) item.crop = validCrop(body.crop);
+			if (body.crop !== undefined) {
+				const crop = validCrop(body.crop);
+				if (crop) {
+					item.crop = crop;
+					item.cropConfirmed = true;
+				}
+			}
 			break;
 		}
 		case 'remove':
