@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { availableValues, centeredCrop, computeTotals, printAspect, settleValues, syncVariants, variantKey, type ProductData } from './store';
 import { encode, signatureHeader, verifySignature } from './server/store/stripe';
+import { guessCountry, preferredLanguages } from './server/geo';
 
 const product = (over: Partial<ProductData> = {}): ProductData => ({
 	id: 'p1',
@@ -96,6 +97,20 @@ describe('store totals', () => {
 		const square = centeredCrop(2000, 2000, 1.5);
 		expect(square.w).toBe(1);
 		expect(square.h).toBeCloseTo(2 / 3);
+	});
+});
+
+describe('country guess', () => {
+	const headers = (h: Record<string, string>) => new Headers(h);
+	it('prefers the proxy country, then the browser language', () => {
+		expect(guessCountry(headers({ 'cf-ipcountry': 'se', 'accept-language': 'da-DK' }), ['DK', 'SE'])).toBe('SE');
+		// Cloudflare's "unknown" and countries without shipping are skipped.
+		expect(guessCountry(headers({ 'cf-ipcountry': 'XX', 'accept-language': 'da-DK,da;q=0.9' }), ['DK'])).toBe('DK');
+		expect(guessCountry(headers({ 'accept-language': 'de;q=0.5, fr-CA' }), ['CA', 'DE'])).toBe('CA');
+		expect(guessCountry(headers({ 'accept-language': 'da' }), ['DK'])).toBe('DK');
+		expect(guessCountry(headers({ 'accept-language': 'en-US' }), ['DK'])).toBeNull();
+		expect(guessCountry(headers({}), ['DK'])).toBeNull();
+		expect(preferredLanguages('en;q=0.8, nb-NO, *;q=0.1')).toEqual(['nb-NO', 'en']);
 	});
 });
 

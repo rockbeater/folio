@@ -245,6 +245,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` "Køb"-knap på billedet: vælg produkt og variant, og læg i kurven.
 - [x] `v1` Kurven huskes på tværs af besøg.
 - [x] `v1` Ret antal, fjern varer og se samlet pris inkl. moms og fragt før betaling.
+- [x] `v1` Kunden får sit land valgt på forhånd: ud fra IP-adressen, når en proxy eller CDN sender landet (fx Cloudflare), ellers ud fra browserens sprog og region. Kunden kan altid ændre det.
 - [x] `v1` Felt til rabatkode i kurven.
 - [x] `v1` Valg af leveringsadresse og fragtmetode. Rene digitale ordrer kræver ingen adresse.
 - [x] `v1` Tydelig besked, hvis kurven ikke når prislistens minimumsbeløb.

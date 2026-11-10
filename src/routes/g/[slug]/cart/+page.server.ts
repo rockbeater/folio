@@ -6,12 +6,13 @@ import { listShippingMethods } from '$lib/server/store/catalog';
 import { getCart, priceCart } from '$lib/server/store/cart';
 import { placeOrder } from '$lib/server/store/orders';
 import { COUNTRY_CODES } from '$lib/countries';
+import { guessCountry } from '$lib/server/geo';
 import type { Actions, PageServerLoad } from './$types';
 
 // People a favorite list was shared with shop here too (?share=), without seeing the gallery.
-export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
+export const load: PageServerLoad = ({ params, cookies, locals, url, request }) => {
 	const access = shopAccess(params.slug, { cookies, isAdmin: Boolean(locals.admin) }, url.searchParams.get('share'));
-	if (!access) return { cart: null, terms: '', license: '', countries: [] as string[], email: '' };
+	if (!access) return { cart: null, terms: '', license: '', countries: [] as string[], country: null, email: '' };
 	const { gallery, role } = access;
 	const cart = getCart(cookies, gallery.id);
 	const view = priceCart(gallery, role, cart?.items ?? [], cart?.couponCode ?? null);
@@ -19,11 +20,14 @@ export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
 	const store = getStore();
 	// With an international method every country can order; otherwise only the countries with their own methods.
 	const countries = methods.some((m) => m.country === '*') ? COUNTRY_CODES : (view?.countries ?? []);
+	const allowed = countries.length ? countries : COUNTRY_CODES;
 	return {
 		cart: view,
 		terms: store.terms,
 		license: store.license,
-		countries: countries.length ? countries : COUNTRY_CODES,
+		countries: allowed,
+		// Preselected from the visitor's location or browser language; they can change it.
+		country: guessCountry(request.headers, allowed),
 		email: visitorInfo(cookies, gallery).email ?? ''
 	};
 };

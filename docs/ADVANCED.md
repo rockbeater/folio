@@ -133,6 +133,8 @@ The top of the store pages lists what still stops customers from ordering.
 
 **Prints and crops.** When a photo does not have the shape of the print size (e.g. `13x18` or `A4` in the option name), the customer must choose the crop in the cart before ordering. In the order, **Download with crop** gives the photo at full resolution with the crop applied (JPEG quality 100 without chroma subsampling, colour profile kept, no resizing or sharpening). Prints without a crop are downloaded as the original file. **Download print files** gives all prints of an order as one ZIP, named by product, size and quantity.
 
+**Country in the checkout.** The cart starts with the customer's likely country chosen, among the countries you ship to; they can always change it. Folio makes no outside lookups for this. Behind Cloudflare (or CloudFront, Vercel, Google App Engine, or a proxy that sets `X-Country-Code`, e.g. nginx with a GeoIP module) it uses the country of the visitor's IP address from that header; otherwise the browser's language and region (`Accept-Language`).
+
 **Orders.** A checkout only becomes an order when the payment is confirmed: unpaid checkouts are not shown, get their order number only when paid (so numbers have no gaps) and are removed after three days.
 
 ### Connecting Stripe

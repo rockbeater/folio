@@ -30,7 +30,8 @@
 		postalCode: values?.address?.postalCode ?? '',
 		city: values?.address?.city ?? ''
 	});
-	let country = $state(values?.country ?? '');
+	// svelte-ignore state_referenced_locally
+	let country = $state(values?.country ?? data.country ?? '');
 	let methodId = $state(values?.methodId ?? '');
 	let coupon = $state('');
 	let cropping = $state<CartLineView | null>(null);
