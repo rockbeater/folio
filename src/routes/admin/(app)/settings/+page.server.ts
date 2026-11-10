@@ -28,6 +28,7 @@ import {
 } from '$lib/server/settings';
 import { getWatermark, listWatermarks, removeWatermarkFile, saveWatermarkImage } from '$lib/server/watermarks';
 import { SUPPORTED_LANGUAGES, WATERMARK_POSITIONS, type WatermarkPosition } from '$lib/types';
+import { DEVICE_KINDS, normalizeDownloadPrefs } from '$lib/smart-download';
 import type { Actions, PageServerLoad } from './$types';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -146,7 +147,10 @@ export const actions: Actions = {
 		const adminLanguage = String(form.get('adminLanguage') ?? '');
 		const defaultLanguage = String(form.get('defaultLanguage') ?? '');
 		if (isLanguage(adminLanguage)) saveStudio({ language: adminLanguage });
+		const methods: Record<string, string> = {};
+		for (const kind of DEVICE_KINDS) methods[kind] = String(form.get(`dl_${kind}`) ?? '');
 		savePreferences({
+			downloads: normalizeDownloadPrefs({ methods, batch: Number(form.get('dlBatch')) }),
 			sharpening: sharpen === 'standard' || sharpen === 'optimal' ? sharpen : 'none',
 			defaultLanguage: isLanguage(defaultLanguage) ? defaultLanguage : getPreferences().defaultLanguage,
 			banner: {

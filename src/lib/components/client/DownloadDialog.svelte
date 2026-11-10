@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/Modal.svelte';
+	import SmartDownloader from './SmartDownloader.svelte';
 	import { useI18n } from '$lib/i18n';
-	import { toast } from '$lib/toast.svelte';
 	import type { DownloadChoice, DownloadSettings } from '$lib/types';
 	import { getGalleryState, type DownloadScope } from './gallery-state.svelte';
 
@@ -122,34 +122,6 @@
 		else emailError = t('common.error');
 	}
 
-	async function start(part = 1) {
-		const url = `${base}?${query(parts > 1 ? { part: String(part) } : {})}`;
-		// On phones a single photo can go straight to the photo library via the share sheet.
-		if (scope === 'photo' && navigator.canShare && matchMedia('(pointer: coarse)').matches) {
-			try {
-				const res = await fetch(url);
-				const blob = await res.blob();
-				const name = /filename\*=UTF-8''([^;]+)/.exec(res.headers.get('content-disposition') ?? '')?.[1];
-				const file = new File([blob], decodeURIComponent(name ?? 'photo.jpg'), { type: blob.type });
-				if (navigator.canShare({ files: [file] })) {
-					await navigator.share({ files: [file] });
-					gs.download = null;
-					return;
-				}
-			} catch (err) {
-				if ((err as Error).name === 'AbortError') return;
-			}
-		}
-		const a = document.createElement('a');
-		a.href = url;
-		a.rel = 'noopener';
-		document.body.appendChild(a);
-		a.click();
-		a.remove();
-		toast(t('client.dl.started'));
-		if (parts <= 1) gs.download = null;
-	}
-
 	const scopeLabel: Record<DownloadScope, string> = {
 		all: t('client.dl.all'),
 		section: t('client.dl.section'),
@@ -225,21 +197,16 @@
 			</div>
 		</fieldset>
 
-		{#if parts > 1}
-			<p class="hint">{t('client.dl.parts', { count: parts })}</p>
-			<div class="parts">
-				{#each Array.from({ length: parts }, (_, i) => i + 1) as part (part)}
-					<button class="primary label" type="button" onclick={() => start(part)}>
-						{t('client.dl.part', { part, total: parts })}
-					</button>
-				{/each}
-			</div>
-		{:else}
-			<button class="primary label" type="button" onclick={() => start()} disabled={!info || info.count === 0}>
-				{t('client.dl.start')}
-				{#if info && info.count > 1}· {plural('common.photos', info.count)}{/if}
-			</button>
-		{/if}
+		{#key `${scope}|${size}`}
+			<SmartDownloader
+				manifestUrl={`${base}?${query({ manifest: '1' })}`}
+				zipUrls={Array.from({ length: parts }, (_, i) => `${base}?${query(parts > 1 ? { part: String(i + 1) } : {})}`)}
+				count={info?.count ?? 0}
+				disabled={!info || info.count === 0}
+				onfinished={() => (gs.download = null)}
+			/>
+		{/key}
+		{#if info && info.count > 1}<p class="hint count">{plural('common.photos', info.count)}</p>{/if}
 		{#if info?.count === 0 && scope === 'favorites'}<p class="hint">{t('client.dl.noFavorites')}</p>{/if}
 	{/if}
 </Modal>
@@ -342,9 +309,10 @@
 		opacity: 0.4;
 	}
 
-	.parts {
-		display: grid;
-		gap: var(--space-2);
+
+	.count {
+		margin-top: var(--space-3);
+		text-align: center;
 	}
 
 	.hint {

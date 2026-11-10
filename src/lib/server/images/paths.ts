@@ -13,7 +13,8 @@ export function displayFile(photoId: string, version: number, width: DisplayWidt
 }
 
 export function downloadFile(photoId: string, version: number, variant: DownloadVariant, wmKey: string | null = null): string {
-	return path.join(photoCacheDir(photoId), `v${version}-d${variant}${wmKey ? `-wm${wmKey}` : ''}.jpg`);
+	// "x": copies with EXIF kept (older copies without it are made again).
+	return path.join(photoCacheDir(photoId), `v${version}-d${variant}x${wmKey ? `-wm${wmKey}` : ''}.jpg`);
 }
 
 export function emailCoverFile(photoId: string, version: number): string {

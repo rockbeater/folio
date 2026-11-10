@@ -205,6 +205,8 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `MVP` På mobil kan et enkelt billede gemmes direkte i fotoappen via den indbyggede delingsfunktion.
 - [x] `v1` Download-PIN og e-mailkrav håndteres i samme flow uden at forlade siden.
 - [x] `v1` Meget store downloads kan deles op i flere ZIP-filer.
+- [x] `v1` Smart download pr. enhed: del-menu i omgange på iPhone/iPad (direkte i Fotos), én fil pr. billede på Android, gem i mappe i Chrome/Edge og ZIP ellers. Kan vælges pr. enhed i indstillingerne med anbefalede standarder og justerbar omgangsstørrelse. Gælder alle downloads, også delte lister, hurtige links og købte billeder. Downloads bevarer optagelsesdatoen.
+- [x] `v1` Langt tryk, højreklik eller PrintScreen på et billede viser en boks, der peger på download-knappen (fuld kvalitet i stedet for screenshot).
 
 ## 10. Forside
 

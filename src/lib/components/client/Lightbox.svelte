@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { longPress } from '$lib/long-press';
 	import { onMount } from 'svelte';
 	import X from '@lucide/svelte/icons/x';
 	import Heart from '@lucide/svelte/icons/heart';
@@ -32,6 +33,7 @@
 		onprivate?: (id: string, value: boolean) => void;
 		canBuy?: boolean;
 		onbuy?: (id: string) => void;
+		onsavehint?: (id: string) => void;
 	}
 
 	let {
@@ -51,7 +53,8 @@
 		isPrivate = () => false,
 		onprivate = () => undefined,
 		canBuy = false,
-		onbuy = () => undefined
+		onbuy = () => undefined,
+		onsavehint = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -267,7 +270,14 @@
 					</button>
 				{/if}
 				{#if canDownload}
-					<button type="button" class="icon" onclick={() => ondownload(photo.id)} aria-label={t('client.downloadPhoto')} data-tip={t('client.downloadPhoto')}>
+					<button
+						type="button"
+						class="icon"
+						onclick={() => ondownload(photo.id)}
+						aria-label={t('client.downloadPhoto')}
+						data-tip={t('client.downloadPhoto')}
+						data-save-target="lightbox"
+					>
 						<Download size={22} strokeWidth={1.5} />
 					</button>
 				{/if}
@@ -325,6 +335,7 @@
 						style:background-color={photo.color}
 						style:transform="translate({panX}px, {panY}px) scale({scale})"
 						class:zoomed={scale > 1}
+						{@attach longPress(() => onsavehint(photo.id))}
 					/>
 				{/key}
 			</div>
@@ -466,6 +477,10 @@
 	}
 
 	.track img {
+		/* No system "save image" menu: a long press shows the download hint instead. */
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
 		/* Fit inside the stage while keeping the photo's aspect ratio, even before it has loaded. */
 		width: min(100cqw, calc(100cqh * var(--ar)));
 		height: auto;

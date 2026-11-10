@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import { isLinkUnlocked } from '$lib/server/access';
 import { linkPhotoFilter } from '$lib/server/client';
-import { estimateBytes, resolveVariant, singleDownload, splitIntoParts, zipDownload, type DownloadItem } from '$lib/server/download';
+import { estimateBytes, manifestFor, resolveVariant, singleDownload, splitIntoParts, zipDownload, type DownloadItem } from '$lib/server/download';
 import { getGalleryById, getPhotosBySection, getSections } from '$lib/server/galleries';
 import { countLink, getShareLinkByToken, isLinkOpen } from '$lib/server/shares';
 import { getWatermark } from '$lib/server/watermarks';
@@ -25,7 +25,12 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 		(bySection.get(section.id) ?? []).filter((p) => ids.has(p.id) && linkPhotoFilter(p)).map((photo) => ({ photo, section }))
 	);
 	const scope = url.searchParams.get('scope') === 'photo' ? 'photo' : 'all';
-	const items = scope === 'photo' ? available.filter((i) => i.photo.id === url.searchParams.get('photo')) : available;
+	const fileId = url.searchParams.get('file');
+	const items = fileId
+		? available.filter((i) => i.photo.id === fileId)
+		: scope === 'photo'
+			? available.filter((i) => i.photo.id === url.searchParams.get('photo'))
+			: available;
 	const size = (url.searchParams.get('size') === 'web' ? 'web' : 'highres') as DownloadChoice;
 
 	if (url.searchParams.has('info')) {
@@ -40,8 +45,10 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 	const variant = resolveVariant(settings, size);
 	if (!variant) error(403, 'size-not-allowed');
 	if (items.length === 0) error(404);
-	if (shouldTrack(locals)) countLink(link.id, 'downloads');
 	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
+	if (fileId) return singleDownload(gallery, items[0], variant, watermark);
+	if (shouldTrack(locals)) countLink(link.id, 'downloads');
+	if (url.searchParams.has('manifest')) return json({ files: manifestFor(items, variant, url) });
 	if (scope === 'photo') return singleDownload(gallery, items[0], variant, watermark);
 
 	const parts = splitIntoParts(items, variant);

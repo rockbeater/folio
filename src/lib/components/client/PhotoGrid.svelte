@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { longPress } from '$lib/long-press';
 	import Heart from '@lucide/svelte/icons/heart';
 	import Download from '@lucide/svelte/icons/download';
 	import Check from '@lucide/svelte/icons/check';
@@ -29,6 +30,8 @@
 		/** The client may hide photos from guests. */
 		canMarkPrivate?: boolean;
 		onprivate?: (id: string, value: boolean) => void;
+		/** Long press / right-click on a photo: point the visitor to the download button. */
+		onsavehint?: (id: string) => void;
 	}
 
 	let {
@@ -49,7 +52,8 @@
 		canBuy = false,
 		onbuy = () => undefined,
 		canMarkPrivate = false,
-		onprivate = () => undefined
+		onprivate = () => undefined,
+		onsavehint = () => undefined
 	}: Props = $props();
 	const { t } = useI18n();
 
@@ -127,7 +131,9 @@
 				alt=""
 				loading={index < 8 ? 'eager' : 'lazy'}
 				decoding="async"
+				draggable="false"
 				{@attach fadeIn}
+				{@attach longPress(() => onsavehint(photo.id))}
 			/>
 		</button>
 		{#if selection}
@@ -298,6 +304,10 @@
 	}
 
 	.open img {
+		/* No system "save image" menu: a long press shows the download hint instead. */
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

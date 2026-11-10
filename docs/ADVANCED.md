@@ -8,6 +8,7 @@ The step-by-step installation is in the [README](../README.md). This page has th
 - [Folders and the photo library](#folders-and-the-photo-library)
 - [HTTPS and reverse proxies](#https-and-reverse-proxies)
 - [Store and Stripe](#store-and-stripe)
+- [Downloads on phones and computers](#downloads-on-phones-and-computers)
 - [Email](#email)
 - [Backups and restore](#backups-and-restore)
 - [Logging](#logging)
@@ -147,6 +148,21 @@ The top of the store pages lists what still stops customers from ordering.
 Orders are only marked as paid when the signed webhook arrives. If the signing secret is lost, **Set up webhook again** deletes the endpoint and creates a new one. Payment methods (cards, Apple Pay, Google Pay, MobilePay and more) are turned on in the Stripe dashboard; Checkout shows the ones that fit the currency and country. Refunds can be made from the order page in the admin.
 
 ---
+
+## Downloads on phones and computers
+
+Folio picks the best way to save photos for each kind of device. The defaults are marked "recommended" under **Settings → Preferences → Downloads on phones and computers**, where each device can be changed:
+
+| Device | Recommended | What happens |
+|---|---|---|
+| iPhone, iPad | Save to Photos | The share sheet opens with the photos; "Save images" puts them straight into the photo library in full quality. Large selections go in batches (default 20 photos, adjustable), because the phone holds a whole batch in memory. |
+| Android | One download per photo | Each photo is downloaded on its own and shows up in the gallery app. The browser may ask once to allow several downloads. |
+| Chrome and Edge on a computer | Save into a folder | The visitor picks a folder and the photos are written into it, with progress. Starting again skips photos that are already there. |
+| Safari on a Mac, Firefox and others | ZIP file | One ZIP (split into parts when very large). |
+
+This works for every download: the whole gallery, a section, favorites and lists, single photos, shared lists, quick share links and purchased digital photos. When a method is not supported in a browser, Folio falls back to the next best; there is always a "Download as one ZIP file instead" link. Downloaded copies keep the capture date, so they are sorted correctly in the photo library.
+
+**Screenshots** cannot be blocked or detected on a website (streaming services do it with DRM video, which does not exist for photos). Instead, Folio turns off the phone's own "save image" menu on gallery photos and, on a long press, a right-click or the PrintScreen key, shows a small box pointing at the download button. It is only shown when downloads are allowed.
 
 ## Email
 

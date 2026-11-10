@@ -169,13 +169,15 @@ export async function ensureDownload(
 			.rotate()
 			.resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
 			.toColourspace('srgb')
+			// Keep the EXIF data (capture date, camera), so the photo is sorted by its date in the photo library.
+			.keepExif()
 			.jpeg({ quality: 90, mozjpeg: true })
 			.toFile(tmp)
 	);
 	if (!watermark) return plain;
 	return once(downloadFile(photoId, version, variant, watermarkKey(watermark)), async (tmp) => {
-		const marked = await withWatermark(await sharp(plain).toBuffer(), watermark);
-		await marked.jpeg({ quality: 90, mozjpeg: true }).toFile(tmp);
+		const marked = await withWatermark(await sharp(plain).keepExif().toBuffer(), watermark);
+		await marked.keepExif().jpeg({ quality: 90, mozjpeg: true }).toFile(tmp);
 	});
 }
 

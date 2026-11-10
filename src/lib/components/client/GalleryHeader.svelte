@@ -125,7 +125,7 @@
 				</a>
 			{/if}
 			{#if showDownload}
-				<button type="button" class="icon" class:text={withText} onclick={ondownload} aria-label={t('client.download')}>
+				<button type="button" class="icon" class:text={withText} onclick={ondownload} aria-label={t('client.download')} data-save-target="header">
 					<Download size={22} strokeWidth={1.5} />
 					{#if withText}<span class="label">{t('client.download')}</span>{/if}
 				</button>

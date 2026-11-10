@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SaveHint from './SaveHint.svelte';
 	import { page } from '$app/state';
 	import { pushState, replaceState } from '$app/navigation';
 	import PhotoGrid from './PhotoGrid.svelte';
@@ -24,6 +25,18 @@
 	function toggleSelect(id: string) {
 		if (gs.selection.has(id)) gs.selection.delete(id);
 		else gs.selection.add(id);
+	}
+
+	// Long press, right-click or a screenshot key: suggest the download button (full quality) instead.
+	let hintFor = $state<string | null>(null);
+	function showHint(photoId: string) {
+		if (canDownload) hintFor = photoId;
+	}
+	function onKey(event: KeyboardEvent) {
+		const screenshot = event.key === 'PrintScreen' || (event.metaKey && event.shiftKey && ['3', '4', '5'].includes(event.key));
+		if (screenshot && event.type === (event.key === 'PrintScreen' ? 'keyup' : 'keydown')) {
+			showHint(page.state.photo ?? photos[0]?.id ?? '');
+		}
 	}
 
 	function buy(photoId: string) {
@@ -85,6 +98,7 @@
 	onbuy={buy}
 	canMarkPrivate={gs.canMarkPrivate}
 	onprivate={(id, value) => gs.setPrivate([id], value)}
+	onsavehint={showHint}
 />
 
 {#if gs.selecting}
@@ -121,8 +135,15 @@
 		onprivate={(id, value) => gs.setPrivate([id], value)}
 		canBuy={gs.canBuy}
 		onbuy={buy}
+		onsavehint={showHint}
 	/>
 {/if}
+
+{#if hintFor}
+	<SaveHint ondownload={() => ((hintFor ? download(hintFor) : undefined), (hintFor = null))} onclose={() => (hintFor = null)} />
+{/if}
+
+<svelte:window onkeyup={onKey} onkeydown={onKey} />
 
 <style>
 	.select-bar {

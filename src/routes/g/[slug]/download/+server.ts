@@ -3,6 +3,7 @@ import { isPinUnlocked } from '$lib/server/access';
 import { photoFilter, recordActivity, requireGalleryOrShare, visitorInfo } from '$lib/server/client';
 import {
 	estimateBytes,
+	manifestFor,
 	resolveVariant,
 	singleDownload,
 	splitIntoParts,
@@ -68,6 +69,10 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 		items = available;
 	}
 
+	// Smart downloads fetch the photos of a scope one by one: file=<photo id>.
+	const fileId = url.searchParams.get('file');
+	if (fileId) items = items.filter((i) => i.photo.id === fileId);
+
 	const needsPin = !isAdmin && !isPinUnlocked(cookies, gallery.id, settings.pin);
 	const needsEmail = !isAdmin && settings.requireEmail && !visitor.email;
 
@@ -88,6 +93,10 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 
 	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
 
+	// Single files of a smart download are counted once, when the list is asked for.
+	if (fileId) return singleDownload(gallery, items[0], variant, watermark);
+	const manifest = url.searchParams.has('manifest');
+
 	if (shouldTrack(locals)) {
 		recordActivity(gallery.id, 'download', visitor.email, {
 			scope: list ? 'shared' : scope,
@@ -99,6 +108,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 		if (list) countShare(list.id, 'shareDownloads');
 	}
 
+	if (manifest) return json({ files: manifestFor(items, variant, url) });
 	if (scope === 'photo') return singleDownload(gallery, items[0], variant, watermark);
 
 	const parts = splitIntoParts(items, variant);

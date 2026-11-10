@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DEFAULT_BATCH, DEVICE_KINDS, METHODS_FOR, RECOMMENDED_METHODS } from '$lib/smart-download';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -151,6 +152,27 @@
 					<option value="optimal">{t('admin.prefs.sharpening.optimal')}</option>
 				</select>
 				<p class="hint">{t('admin.prefs.sharpeningHint')}</p>
+			</label>
+			<h3>{t('admin.downloads.title')}</h3>
+			<p class="hint">{t('admin.downloads.intro')}</p>
+			<div class="devices">
+				{#each DEVICE_KINDS as kind (kind)}
+					<label class="device">
+						<span>{t(`admin.downloads.device.${kind}` as MessageKey)}</span>
+						<select name="dl_{kind}" value={data.preferences.downloads.methods[kind]}>
+							{#each METHODS_FOR[kind] as method (method)}
+								<option value={method}>
+									{t(`admin.downloads.method.${method}` as MessageKey)}{method === RECOMMENDED_METHODS[kind] ? ` (${t('admin.downloads.recommended')})` : ''}
+								</option>
+							{/each}
+						</select>
+					</label>
+				{/each}
+			</div>
+			<label class="field">
+				<span>{t('admin.downloads.batch')}</span>
+				<input type="number" name="dlBatch" min="1" max="200" value={data.preferences.downloads.batch} style="max-width: 120px" />
+				<p class="hint">{t('admin.downloads.batchHint', { count: DEFAULT_BATCH })}</p>
 			</label>
 			<h3>{t('admin.prefs.banner')}</h3>
 			<p class="hint">{t('admin.prefs.bannerHint')}</p>
@@ -496,6 +518,19 @@
 
 	.card + .card {
 		margin-top: 16px;
+	}
+
+	.devices {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: 10px 16px;
+	}
+
+	.device {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 0.9375rem;
 	}
 
 	.ips {

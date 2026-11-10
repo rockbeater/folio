@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import Download from '@lucide/svelte/icons/download';
 	import { countryName } from '$lib/countries';
+	import SmartDownloader from '$lib/components/client/SmartDownloader.svelte';
 	import { createI18n, provideI18n, type MessageKey } from '$lib/i18n';
 	import { formatMoney } from '$lib/store';
 	import { displayUrl } from '$lib/types';
@@ -60,15 +60,11 @@
 					{#if item.kind === 'physical'}<span class="muted small">{t('store.quantity')}: {item.quantity}</span>{/if}
 					{#if item.kind === 'digital' && paid && item.files > 0}
 						<div class="downloads">
-							{#if item.parts > 1}
-								{#each Array.from({ length: item.parts }, (_, i) => i + 1) as part (part)}
-									<a class="c-btn small" href="{page.url.pathname}/download/{item.id}?part={part}" download
-										><Download size={14} />{t('client.dl.part', { part, total: item.parts })}</a
-									>
-								{/each}
-							{:else}
-								<a class="c-btn small solid" href="{page.url.pathname}/download/{item.id}" download><Download size={14} />{t('client.download')}</a>
-							{/if}
+							<SmartDownloader
+								manifestUrl="{page.url.pathname}/download/{item.id}?manifest=1"
+								zipUrls={Array.from({ length: item.parts }, (_, i) => `${page.url.pathname}/download/${item.id}${item.parts > 1 ? `?part=${i + 1}` : ''}`)}
+								count={item.files}
+							/>
 						</div>
 					{/if}
 				</div>
@@ -164,9 +160,7 @@
 	}
 
 	.downloads {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
+		max-width: 360px;
 		margin-top: var(--space-2);
 	}
 

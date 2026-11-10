@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import { config } from './config';
+import { DEFAULT_DOWNLOAD_PREFS, normalizeDownloadPrefs, type DownloadPrefs } from '$lib/smart-download';
 
 export interface StudioSettings {
 	name: string;
@@ -109,6 +110,8 @@ export interface Preferences {
 	sharpening: 'none' | 'standard' | 'optimal';
 	/** Leave out visits and downloads from IP addresses the admin has used. */
 	ignoreAdminIps: boolean;
+	/** How photos are saved on each kind of device (smart downloads). */
+	downloads: DownloadPrefs;
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -117,7 +120,8 @@ const DEFAULT_PREFERENCES: Preferences = {
 	homepage: { enabled: false, title: '', intro: '', links: [] },
 	searchVisibility: 'none',
 	sharpening: 'standard',
-	ignoreAdminIps: true
+	ignoreAdminIps: true,
+	downloads: DEFAULT_DOWNLOAD_PREFS
 };
 
 export function getPreferences(): Preferences {
@@ -126,7 +130,8 @@ export function getPreferences(): Preferences {
 		...DEFAULT_PREFERENCES,
 		...stored,
 		banner: { ...DEFAULT_PREFERENCES.banner, ...stored.banner },
-		homepage: { ...DEFAULT_PREFERENCES.homepage, ...stored.homepage }
+		homepage: { ...DEFAULT_PREFERENCES.homepage, ...stored.homepage },
+		downloads: normalizeDownloadPrefs(stored.downloads)
 	};
 }
 

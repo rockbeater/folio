@@ -31,7 +31,7 @@ async function fileFor(gallery: Gallery, item: DownloadItem, variant: Variant, w
 	return ensureDownload(original, item.photo.id, item.photo.version, variant, watermark);
 }
 
-function entryName(item: DownloadItem, variant: Variant, withFolder: boolean): string {
+export function entryName(item: DownloadItem, variant: Variant, withFolder: boolean): string {
 	let name = item.photo.filename;
 	if (variant !== 'original') name = `${name.slice(0, name.length - path.extname(name).length)}.jpg`;
 	return withFolder ? `${item.section.folder}/${name}` : name;
@@ -130,4 +130,24 @@ export function splitIntoParts(items: DownloadItem[], variant: Variant, maxBytes
 	}
 	if (current.length > 0) parts.push(current);
 	return parts;
+}
+
+/**
+ * The files of a download, one URL each, for smart downloads (share sheet, folder, one by one).
+ * Each URL is the same request with `file=<photo id>` instead of `manifest`.
+ */
+export function manifestFor(items: DownloadItem[], variant: Variant, url: URL): { url: string; name: string; bytes: number }[] {
+	const used = new Set<string>();
+	return items.map((item) => {
+		let name = entryName(item, variant, false);
+		for (let i = 2; used.has(name.toLowerCase()); i++) {
+			const ext = path.extname(name);
+			name = `${name.slice(0, name.length - ext.length)} (${i})${ext}`;
+		}
+		used.add(name.toLowerCase());
+		const params = new URLSearchParams(url.searchParams);
+		for (const key of ['manifest', 'info', 'part']) params.delete(key);
+		params.set('file', item.photo.id);
+		return { url: `${url.pathname}?${params}`, name, bytes: Math.round(estimatePhotoBytes(item.photo, variant)) };
+	});
 }
