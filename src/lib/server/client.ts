@@ -179,8 +179,14 @@ export function visitorInfo(cookies: Cookies, gallery: Gallery): VisitorInfo {
 	};
 }
 
-export function recordActivity(galleryId: string, kind: ActivityKind, email: string | null, detail: ActivityDetail | null = null): void {
-	getDb().insert(schema.activity).values({ id: crypto.randomUUID(), galleryId, kind, email, detail }).run();
+export function recordActivity(
+	galleryId: string,
+	kind: ActivityKind,
+	email: string | null,
+	detail: ActivityDetail | null = null,
+	ip: string | null = null
+): void {
+	getDb().insert(schema.activity).values({ id: crypto.randomUUID(), galleryId, kind, email, detail, ip }).run();
 }
 
 /** The watermark key clients see for this gallery (null: no watermark). */

@@ -206,6 +206,8 @@ The **bell** at the top of the admin shows what happened in all galleries: paid 
 
 Each gallery's **Activity** tab shows visits per day, downloads, registrations, favorite lists with notes and thumbnails, the most favorited photos, share links and orders. Folio counts visits on your own server; there is no third-party tracking.
 
+The download log also shows the visitor's IP address (as your reverse proxy passes it on, see [HTTPS and reverse proxies](#https-and-reverse-proxies)), and a downloaded single photo opens with a click. IP addresses are personal data: mention them in your privacy policy. They are deleted with the gallery, and with the visitor's other data when you delete an email address under **Settings → Privacy**.
+
 Your own visits are not counted: not while you are logged in, and not from IP addresses you have used while logged in during the last 30 days (so also not from a private window on the same network). The list of addresses and the switch are under **Settings → Privacy**.
 
 If your reverse proxy does not forward the visitor's address, every visitor has the proxy's address, and Folio would leave everyone out. Add the forwarding headers (see [HTTPS and reverse proxies](#https-and-reverse-proxies)) or turn the switch off.

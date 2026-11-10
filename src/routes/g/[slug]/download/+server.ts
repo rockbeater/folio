@@ -104,7 +104,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 			count: items.length,
 			sectionId: scope === 'section' ? (items[0]?.section.id ?? undefined) : undefined,
 			photoId: scope === 'photo' ? items[0]?.photo.id : undefined
-		});
+		}, locals.ip || null);
 		if (list) countShare(list.id, 'shareDownloads');
 	}
 

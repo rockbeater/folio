@@ -448,6 +448,8 @@ const da: Messages = {
 	'admin.activity.size': 'Størrelse',
 	'admin.activity.when': 'Hvornår',
 	'admin.activity.anonymous': 'Anonym',
+	'admin.activity.ip': 'IP-adresse',
+	'admin.activity.openPhoto': 'Vis billedet',
 	'admin.activity.visitorList': 'Besøgende',
 	'admin.activity.visitorHint': 'Alle der har skrevet en e-mail, til registrering, favoritter eller download.',
 	'admin.activity.noVisitors': 'Ingen besøgende har skrevet en e-mail endnu.',

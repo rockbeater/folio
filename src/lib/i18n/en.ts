@@ -448,6 +448,8 @@ const en = {
 	'admin.activity.size': 'Size',
 	'admin.activity.when': 'When',
 	'admin.activity.anonymous': 'Anonymous',
+	'admin.activity.ip': 'IP address',
+	'admin.activity.openPhoto': 'Show the photo',
 	'admin.activity.visitorList': 'Visitors',
 	'admin.activity.visitorHint': 'Everyone who entered an email, for registration, favorites or downloads.',
 	'admin.activity.noVisitors': 'No visitors have entered an email yet.',

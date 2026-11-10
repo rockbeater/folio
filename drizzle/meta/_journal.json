@@ -50,6 +50,13 @@
       "when": 1794317956938,
       "tag": "0006_low_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794318702949,
+      "tag": "0007_early_dark_beast",
+      "breakpoints": true
     }
   ]
 }

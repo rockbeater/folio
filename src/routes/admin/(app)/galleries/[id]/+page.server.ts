@@ -35,6 +35,7 @@ import {
 	type GalleryAccess,
 	type GalleryStatus,
 	type HighResSize,
+	type PhotoView,
 	type WebSize
 } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
@@ -58,7 +59,7 @@ function baseUrlFor(url: URL): string {
 	return config.baseUrl || url.origin;
 }
 
-function activityFor(gallery: Gallery, sectionNames: Map<string, string>, photoNames: Map<string, string>) {
+function activityFor(gallery: Gallery, sectionNames: Map<string, string>, photoNames: Map<string, string>, photoViews: Map<string, PhotoView>) {
 	const db = getDb();
 	const galleryId = gallery.id;
 	const counts = db
@@ -85,6 +86,9 @@ function activityFor(gallery: Gallery, sectionNames: Map<string, string>, photoN
 				size: d.size ?? 'highres',
 				count: d.count ?? 0,
 				target: d.photoId ? (photoNames.get(d.photoId) ?? '') : d.sectionId ? (sectionNames.get(d.sectionId) ?? '') : '',
+				// The downloaded photo, to open it from the log (while it still exists).
+				photo: d.photoId ? (photoViews.get(d.photoId) ?? null) : null,
+				ip: a.ip,
 				createdAt: a.createdAt
 			};
 		});
@@ -238,6 +242,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 	}));
 	const sectionNames = new Map(sectionList.map((s) => [s.id, s.folder]));
 	const photoNames = new Map([...bySection.values()].flat().map((p) => [p.id, p.filename]));
+	const photoViews = new Map([...bySection.values()].flat().filter((p) => p.status === 'ready').map((p) => [p.id, toPhotoView(p)]));
 
 	const emailLog = db
 		.select({
@@ -291,7 +296,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 		},
 		sections,
 		stats: processingStats(gallery.id).get(gallery.id) ?? { total: 0, ready: 0, pending: 0, failed: 0 },
-		activity: activityFor(gallery, sectionNames, photoNames),
+		activity: activityFor(gallery, sectionNames, photoNames, photoViews),
 		templates: listTemplates('delivery').map((t) => ({
 			id: t.id,
 			name: t.name,

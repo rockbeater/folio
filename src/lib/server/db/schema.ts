@@ -296,6 +296,8 @@ export const activity = sqliteTable(
 		kind: text('kind').$type<ActivityKind>().notNull(),
 		email: text('email'),
 		detail: text('detail', { mode: 'json' }).$type<ActivityDetail>(),
+		/** IP address of the visitor, logged for downloads. */
+		ip: text('ip'),
 		createdAt: integer('created_at').notNull().default(now)
 	},
 	(t) => [index('activity_gallery_kind_idx').on(t.galleryId, t.kind), index('activity_created_idx').on(t.createdAt)]

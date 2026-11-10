@@ -4,6 +4,7 @@
 	import { callAction } from '$lib/admin-actions';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import ShareLinkDialog from './ShareLinkDialog.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import { formatMoney } from '$lib/store';
 	import { displayUrl, type PhotoView } from '$lib/types';
 	import Download from '@lucide/svelte/icons/download';
@@ -17,7 +18,17 @@
 		topPhotos: { photo: PhotoView; filename: string; people: number }[];
 		feed: { kind: string; email: string | null; at: number; detail: string }[];
 		favoritedPhotos: number;
-		downloads: { id: string; email: string | null; scope: string; size: string; count: number; target: string; createdAt: number }[];
+		downloads: {
+			id: string;
+			email: string | null;
+			scope: string;
+			size: string;
+			count: number;
+			target: string;
+			photo: PhotoView | null;
+			ip: string | null;
+			createdAt: number;
+		}[];
 		visitors: { id: string; email: string; createdAt: number; favorites: number; downloads: number }[];
 		favoriteLists: {
 			id: string;
@@ -49,6 +60,8 @@
 
 	let { activity, galleryName, galleryId, baseUrl, store }: { activity: Activity; galleryName: string; galleryId: string; baseUrl: string; store: StoreOrders } = $props();
 	let openList = $state<string | null>(null);
+	/** A downloaded photo opened from the download log. */
+	let viewing = $state<{ photo: PhotoView; filename: string } | null>(null);
 	const originals = (ids: string[], name = '') => `/admin/api/galleries/${galleryId}/download?ids=${ids.join(',')}${name ? `&name=${encodeURIComponent(name)}` : ''}`;
 	let editing = $state<Activity['shareLinks'][number] | null>(null);
 	const today = new Date().toLocaleDateString('sv-SE');
@@ -300,6 +313,7 @@
 							<th>{t('admin.activity.who')}</th>
 							<th>{t('admin.activity.what')}</th>
 							<th>{t('admin.activity.size')}</th>
+							<th>{t('admin.activity.ip')}</th>
 							<th>{t('admin.activity.when')}</th>
 						</tr>
 					</thead>
@@ -307,8 +321,17 @@
 						{#each activity.downloads as d (d.id)}
 							<tr>
 								<td>{d.email ?? t('admin.activity.anonymous')}</td>
-								<td>{scopeText(d)} <span class="hint">({plural('common.photos', d.count)})</span></td>
+								<td>
+									{#if d.photo}
+										{@const photo = d.photo}
+										<button class="link" type="button" onclick={() => (viewing = { photo, filename: d.target })} title={t('admin.activity.openPhoto')}>{scopeText(d)}</button>
+									{:else}
+										{scopeText(d)}
+									{/if}
+									<span class="hint">({plural('common.photos', d.count)})</span>
+								</td>
 								<td>{d.size === 'web' ? t('client.dl.web') : t('client.dl.highRes')}</td>
+								<td class="ip">{d.ip ?? '–'}</td>
 								<td class="hint">{dateTime.format(d.createdAt)}</td>
 							</tr>
 						{/each}
@@ -354,9 +377,50 @@
 	<ShareLinkDialog link={editing} {baseUrl} onclose={() => (editing = null)} />
 {/if}
 
+
+{#if viewing}
+	<Modal title={viewing.filename} onclose={() => (viewing = null)} wide>
+		<div class="preview">
+			<img src={displayUrl(viewing.photo, 1600)} alt={viewing.filename} style:background-color={viewing.photo.color} />
+			<a class="btn" href={originals([viewing.photo.id], viewing.filename)} download><Download size={16} />{t('admin.lists.downloadOriginal')}</a>
+		</div>
+	</Modal>
+{/if}
 <style>
 	.activity {
 		max-width: 900px;
+	}
+
+	.link {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		cursor: pointer;
+	}
+
+	.ip {
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	.preview {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.preview img {
+		max-width: 100%;
+		max-height: 70vh;
+		width: auto;
+		height: auto;
+		border-radius: 4px;
 	}
 
 	.stats {

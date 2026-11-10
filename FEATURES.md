@@ -165,7 +165,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 
 ## 6. Galleri-editor: aktivitet
 
-- [x] `v1` Download-aktivitet: hvem (e-mail), hvad (galleri, sektion eller billede), hvilken størrelse og hvornår.
+- [x] `v1` Download-aktivitet: hvem (e-mail), hvad (galleri, sektion eller billede), hvilken størrelse, IP-adresse og hvornår. Et downloadet enkeltbillede kan åbnes direkte fra loggen.
 - [x] `v1` Favorit-aktivitet: lister per e-mail med noter og mulighed for eksport.
 - [x] `v1` E-mailregistreringer.
 - [x] `v1` Private billeder: de billeder, kunden har markeret som private, med mulighed for at fjerne markeringen.
