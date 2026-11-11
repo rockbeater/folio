@@ -280,7 +280,7 @@ Then:
 
 1. **Design:** choose the cover, fonts, colors and grid.
 2. **Settings:** password, downloads, favorites, client access, expiry and more.
-3. **Publish:** change the status from **Draft** to **Published**.
+3. **Publish:** change the status from **Draft** to **Published**. Not ready yet but already sharing the link (for example at the wedding)? Choose **Pre-release**: the link shows a "coming soon" page where guests leave their email, and they get an email when you publish.
 4. **Share:** set up email under **Settings → Email sending** once, then send the gallery from the **Email** tab, or copy the link.
 
 The store is optional. Open it under **Store → Settings**, add a price list with products, shipping and VAT, and connect Stripe. The store page tells you what is missing before customers can order. See [docs/ADVANCED.md](docs/ADVANCED.md#store-and-stripe).

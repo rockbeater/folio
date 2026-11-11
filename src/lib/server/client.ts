@@ -39,7 +39,7 @@ export { isExpired, today };
  * - `register`: the visitor must enter an email first
  * - `open`: the gallery itself
  */
-export type ClientState = 'expired' | 'choose' | 'locked' | 'register' | 'open';
+export type ClientState = 'expired' | 'prerelease' | 'choose' | 'locked' | 'register' | 'open';
 
 export function roleFor(gallery: Gallery, cookies: Cookies, isAdmin: boolean): Role {
 	if (isAdmin) return 'owner';
@@ -52,7 +52,9 @@ export function loadClientGallery(slug: string, { cookies, isAdmin }: ViewerCont
 	if (!gallery) error(404, 'not-found');
 	const role = roleFor(gallery, cookies, isAdmin);
 	if (isAdmin) return { gallery, state: 'open', role };
-	if (gallery.status !== 'published' || gallery.missing) error(404, 'not-found');
+	if (gallery.missing || (gallery.status !== 'published' && gallery.status !== 'prerelease')) error(404, 'not-found');
+	// Not released yet: only the "coming soon" page, where visitors can sign up for the release email.
+	if (gallery.status === 'prerelease') return { gallery, state: 'prerelease', role };
 	if (isExpired(gallery)) return { gallery, state: 'expired', role };
 	if (role !== 'client' && clientPasswordOf(gallery) && !hasChosenGuest(cookies, gallery.id)) return { gallery, state: 'choose', role };
 	// A logged-in client has entered the client password, which also opens the gallery.

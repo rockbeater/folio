@@ -47,9 +47,11 @@
 
 <svelte:head><title>{data.gallery.name} · Folio</title></svelte:head>
 
-<EditorHeader gallery={data.gallery} baseUrl={data.baseUrl} presets={data.presets} otherGalleries={data.otherGalleries} />
+<EditorHeader gallery={data.gallery} baseUrl={data.baseUrl} presets={data.presets} otherGalleries={data.otherGalleries} releaseWaiting={data.releaseWaiting} />
 
-{#if data.gallery.status !== 'published' && tab !== 'email'}
+{#if data.gallery.status === 'prerelease'}
+	<div class="notice">{t('admin.prerelease.notice', { count: data.releaseWaiting })}</div>
+{:else if data.gallery.status !== 'published' && tab !== 'email'}
 	<div class="notice">{t('admin.editor.notPublished')}</div>
 {/if}
 

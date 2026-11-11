@@ -167,6 +167,7 @@
 			<select bind:value={status} aria-label={t('admin.dashboard.filterStatus')}>
 				<option value="all">{t('admin.dashboard.allStatuses')}</option>
 				<option value="published">{t('status.published')}</option>
+				<option value="prerelease">{t('status.prerelease')}</option>
 				<option value="draft">{t('status.draft')}</option>
 				<option value="hidden">{t('status.hidden')}</option>
 				<option value="expired">{t('admin.settings.expired')}</option>

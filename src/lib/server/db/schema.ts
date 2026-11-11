@@ -148,6 +148,8 @@ export const visitors = sqliteTable(
 			.notNull()
 			.references(() => galleries.id, { onDelete: 'cascade' }),
 		email: text('email').notNull(),
+		/** Signed up on the pre-release page: email them when the gallery is published. */
+		notifyOnRelease: integer('notify_on_release', { mode: 'boolean' }).notNull().default(false),
 		createdAt: integer('created_at').notNull().default(now)
 	},
 	(t) => [uniqueIndex('visitors_gallery_email_idx').on(t.galleryId, t.email)]
@@ -224,7 +226,7 @@ export const shareLinks = sqliteTable(
 	(t) => [index('share_links_gallery_idx').on(t.galleryId)]
 );
 
-export type TemplateKind = 'delivery' | 'reminder' | 'order' | 'digital' | 'shipped' | 'refunded';
+export type TemplateKind = 'delivery' | 'reminder' | 'release' | 'order' | 'digital' | 'shipped' | 'refunded';
 
 export const emailTemplates = sqliteTable('email_templates', {
 	id: text('id').primaryKey(),

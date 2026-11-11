@@ -64,6 +64,10 @@ const en = {
 
 	// Email registration
 	'client.register.prompt': 'Enter your email to view the gallery.',
+	'client.prerelease.title': 'Coming soon.',
+	'client.prerelease.prompt': 'The photos are not ready yet. Leave your email and you will get a message as soon as the gallery is released.',
+	'client.prerelease.submit': 'Notify me',
+	'client.prerelease.thanks': 'Thank you. We will email {email} when the gallery is ready.',
 	'client.register.submit': 'View gallery',
 
 	// Gallery assist (intro cards)
@@ -177,6 +181,8 @@ const en = {
 	'status.draft.hint': 'Only visible to you',
 	'status.published.hint': 'Visible to anyone with the link',
 	'status.hidden.hint': 'Not visible to clients',
+	'status.prerelease': 'Pre-release',
+	'status.prerelease.hint': 'Visitors see a coming-soon page and can sign up',
 
 	// Admin: gallery editor
 	'admin.editor.addDate': 'Add event date',
@@ -219,6 +225,9 @@ const en = {
 	'admin.editor.sendEmail': 'Send by email',
 	'admin.editor.linkCopied': 'Link copied',
 	'admin.editor.notPublished': 'This gallery is not published yet. Clients can only see it once it is published.',
+	'admin.prerelease.notice': 'Pre-release: visitors see a coming-soon page and can leave their email. {count} have signed up so far; they get an email when you publish the gallery.',
+	'admin.prerelease.publishConfirm': 'Publish the gallery and email the {count} people who signed up?',
+	'admin.prerelease.released': 'Published. {count} people who signed up get an email.',
 
 	// Warnings from the scanner
 	'warning.rootImages': '{count} photos lie directly in the gallery folder and are ignored. Move them into a section folder.',
@@ -531,6 +540,8 @@ const en = {
 	'admin.templates.kind.reminder': 'Expiry reminder',
 	'admin.templates.kindHint.delivery': 'Used when you share a gallery by email.',
 	'admin.templates.kindHint.reminder': 'Sent automatically before a gallery expires, if a reminder is set for the gallery.',
+	'admin.templates.kind.release': 'Gallery released',
+	'admin.templates.kindHint.release': 'Sent when you publish a gallery that was in pre-release, to everyone who signed up for it.',
 	'admin.templates.expiryField': 'Expiry date',
 	'admin.setup.language': 'Language',
 	'admin.dashboard.expiring': 'Expiring soon',
@@ -1140,7 +1151,10 @@ const en = {
 	'email.defaultTemplate.body': 'Hi {client_name},\n\nYour photos are ready. I hope you enjoy them as much as I enjoyed taking them.\n\nOpen your gallery with the button below.\n\nBest wishes,\n{studio_name}',
 	'email.reminderTemplate.name': 'Expiry reminder',
 	'email.reminderTemplate.subject': 'Your gallery expires on {expiry_date}',
-	'email.reminderTemplate.body': 'Hi {client_name},\n\nA friendly reminder that your gallery {gallery_name} is available until {expiry_date}. Remember to download your photos and save your favorites before then.\n\nBest wishes,\n{studio_name}'
+	'email.reminderTemplate.body': 'Hi {client_name},\n\nA friendly reminder that your gallery {gallery_name} is available until {expiry_date}. Remember to download your photos and save your favorites before then.\n\nBest wishes,\n{studio_name}',
+	'email.releaseTemplate.name': 'Gallery released',
+	'email.releaseTemplate.subject': 'The photos are ready: {gallery_name}',
+	'email.releaseTemplate.body': 'Hi,\n\nThe photos from {gallery_name} are ready. You asked to hear when they were, so here they are.\n\nOpen the gallery with the button below.\n\nBest wishes,\n{studio_name}',
 } as const;
 
 export type Messages = { [K in keyof typeof en]: string };

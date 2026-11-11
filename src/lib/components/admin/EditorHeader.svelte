@@ -18,9 +18,11 @@
 		baseUrl: string;
 		presets: { id: string; name: string; isDefault: boolean }[];
 		otherGalleries: { id: string; name: string }[];
+		/** Sign-ups from the pre-release page, emailed when the gallery is published. */
+		releaseWaiting?: number;
 	}
 
-	let { gallery, baseUrl, presets, otherGalleries }: Props = $props();
+	let { gallery, baseUrl, presets, otherGalleries, releaseWaiting = 0 }: Props = $props();
 	const { t } = useI18n();
 
 	const link = $derived(`${baseUrl}/g/${gallery.slug}`);
@@ -42,8 +44,15 @@
 	}
 
 	async function saveStatus(event: Event) {
-		await callAction('status', { status: (event.currentTarget as HTMLSelectElement).value });
-		toast(t('common.saved'));
+		const select = event.currentTarget as HTMLSelectElement;
+		const status = select.value;
+		if (status === 'published' && releaseWaiting > 0 && !confirm(t('admin.prerelease.publishConfirm', { count: releaseWaiting }))) {
+			select.value = gallery.status;
+			return;
+		}
+		const result = await callAction('status', { status });
+		const released = result.type === 'success' ? Number((result.data as { released?: number } | undefined)?.released ?? 0) : 0;
+		toast(released > 0 ? t('admin.prerelease.released', { count: released }) : t('common.saved'));
 	}
 
 	async function copyLink() {
@@ -73,7 +82,7 @@
 		else toast(t('common.error'), 'error');
 	}
 
-	const statuses: GalleryStatus[] = ['draft', 'published', 'hidden'];
+	const statuses: GalleryStatus[] = ['draft', 'prerelease', 'published', 'hidden'];
 </script>
 
 <svelte:window onclick={() => (menuOpen = false)} />
@@ -252,6 +261,12 @@
 	.status-published select {
 		background-color: var(--success-soft);
 		color: var(--success);
+		border-color: transparent;
+	}
+
+	.status-prerelease select {
+		background-color: var(--accent-soft);
+		color: var(--accent);
 		border-color: transparent;
 	}
 

@@ -263,6 +263,11 @@
 	color: var(--success);
 }
 
+.admin .badge.prerelease {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
 .admin .badge.draft,
 .admin .badge.queued {
 	background: var(--warning-soft);

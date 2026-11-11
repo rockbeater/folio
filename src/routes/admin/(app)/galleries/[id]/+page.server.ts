@@ -15,7 +15,7 @@ import {
 	trashPhotos,
 	trashSection
 } from '$lib/server/library/ops';
-import { cancelScheduledEmail, queueGalleryEmail, resendEmail, sendGalleryTest } from '$lib/server/mail/send';
+import { cancelScheduledEmail, queueGalleryEmail, queueReleaseEmails, resendEmail, sendGalleryTest } from '$lib/server/mail/send';
 import { listTemplates, pickTemplate } from '$lib/server/mail/templates';
 import { galleryValuesFromSettings, getPreset, listPresets, savePreset, settingsFromGallery } from '$lib/server/presets';
 import { getStore, getStudio, isSmtpConfigured } from '$lib/server/settings';
@@ -297,6 +297,12 @@ export const load: PageServerLoad = ({ params, url }) => {
 		sections,
 		stats: processingStats(gallery.id).get(gallery.id) ?? { total: 0, ready: 0, pending: 0, failed: 0 },
 		activity: activityFor(gallery, sectionNames, photoNames, photoViews),
+		// Visitors who signed up on the pre-release page and get an email on publishing.
+		releaseWaiting: getDb()
+			.select({ n: sql<number>`count(*)` })
+			.from(schema.visitors)
+			.where(and(eq(schema.visitors.galleryId, gallery.id), eq(schema.visitors.notifyOnRelease, true)))
+			.get()!.n,
 		templates: listTemplates('delivery').map((t) => ({
 			id: t.id,
 			name: t.name,
@@ -373,16 +379,18 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
-	status: async ({ params, request }) => {
+	status: async ({ params, request, url }) => {
 		const gallery = requireGallery(params.id);
 		const f = await formOf(request);
 		const status = f.str('status') as GalleryStatus;
-		if (!['draft', 'published', 'hidden'].includes(status)) return fail(400);
+		if (!['draft', 'prerelease', 'published', 'hidden'].includes(status)) return fail(400);
 		touchGallery(gallery.id, {
 			status,
 			publishedAt: status === 'published' && !gallery.publishedAt ? Date.now() : gallery.publishedAt
 		});
-		return { ok: true };
+		// Published after a pre-release: tell everyone who signed up.
+		const released = status === 'published' ? queueReleaseEmails(getGalleryById(gallery.id)!, config.baseUrl || url.origin) : 0;
+		return { ok: true, released };
 	},
 
 	cover: async ({ params, request }) => {
@@ -781,6 +789,7 @@ export const actions: Actions = {
 
 		if (f.bool('publish') && gallery.status !== 'published') {
 			touchGallery(gallery.id, { status: 'published', publishedAt: gallery.publishedAt ?? Date.now() });
+			queueReleaseEmails(getGalleryById(gallery.id)!, config.baseUrl || url.origin);
 		}
 		// Remember the client's email for next time.
 		if (!gallery.clientEmail && recipients.length === 1) touchGallery(gallery.id, { clientEmail: recipients[0] });

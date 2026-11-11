@@ -1,0 +1,1 @@
+ALTER TABLE `visitors` ADD `notify_on_release` integer DEFAULT false NOT NULL;

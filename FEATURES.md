@@ -61,7 +61,8 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 
 ## 3. Galleri-editor: billeder og sektioner
 
-- [x] `MVP` Topbar med redigerbart galleri-navn, event-dato, statusvælger (Kladde / Publiceret / Skjult), søgning i galleriet, Preview og Del.
+- [x] `MVP` Topbar med redigerbart galleri-navn, event-dato, statusvælger (Kladde / Prerelease / Publiceret / Skjult), søgning i galleriet, Preview og Del.
+- [x] `v1` Prerelease: linket viser en "kommer snart"-side med cover, hvor gæster kan skrive deres e-mail. Når galleriet udgives, får de tilmeldte automatisk en mail (redigerbar skabelon "Galleri udgivet"). Admin viser antallet af tilmeldte og spørger før udsendelsen.
 - [x] `MVP` Venstre panel med cover-billede og fanerne **Billeder**, **Design**, **Indstillinger** og **E-mail**. Fanen **Aktivitet** kommer med afsnit 6.
 - [x] `MVP` Sektionsliste med antal billeder. Tilføj sektion (opretter en undermappe), omdøb (omdøber mappen) og slet.
 - [x] `MVP` Træk og slip for at ændre sektionernes rækkefølge.

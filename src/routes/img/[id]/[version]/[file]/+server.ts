@@ -36,7 +36,9 @@ export const GET: RequestHandler = async ({ params, cookies, locals, request }) 
 	const role = roleFor(row.gallery, cookies, isAdmin);
 	const inGallery = ((role === 'client' && isPubliclyVisible(row.gallery)) || canViewGallery(row.gallery, cookies, false)) && photoFilter(row.gallery, role)(row.photo);
 	// The entry screens show the cover photo before the gallery is opened.
-	const isGateCover = () => isPubliclyVisible(row.gallery) && gateCoverPhoto(row.gallery)?.id === row.photo.id;
+	// The cover behind the entry screens, also on the "coming soon" page of a pre-release.
+	const showsCover = isPubliclyVisible(row.gallery) || (row.gallery.status === 'prerelease' && !row.gallery.missing);
+	const isGateCover = () => showsCover && gateCoverPhoto(row.gallery)?.id === row.photo.id;
 	if (!isAdmin && !inGallery && !isGateCover() && !canSeeSharedPhoto(cookies, row.gallery, row.photo)) error(404);
 
 	const { photo, gallery } = row;

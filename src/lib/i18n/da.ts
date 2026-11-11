@@ -64,6 +64,10 @@ const da: Messages = {
 
 	// Email registration
 	'client.register.prompt': 'Skriv din e-mail for at se galleriet.',
+	'client.prerelease.title': 'Kommer snart.',
+	'client.prerelease.prompt': 'Billederne er ikke klar endnu. Skriv din e-mail, så får du besked, så snart galleriet bliver udgivet.',
+	'client.prerelease.submit': 'Giv mig besked',
+	'client.prerelease.thanks': 'Tak. Du får en mail på {email}, når galleriet er klar.',
 	'client.register.submit': 'Se galleri',
 
 	// Gallery assist (intro cards)
@@ -177,6 +181,8 @@ const da: Messages = {
 	'status.draft.hint': 'Kun synligt for dig',
 	'status.published.hint': 'Synligt for alle med linket',
 	'status.hidden.hint': 'Ikke synligt for kunder',
+	'status.prerelease': 'Prerelease',
+	'status.prerelease.hint': 'Gæster ser en "kommer snart"-side og kan skrive sig op',
 
 	// Admin: gallery editor
 	'admin.editor.addDate': 'Tilføj dato',
@@ -219,6 +225,9 @@ const da: Messages = {
 	'admin.editor.sendEmail': 'Send på e-mail',
 	'admin.editor.linkCopied': 'Link kopieret',
 	'admin.editor.notPublished': 'Galleriet er ikke udgivet endnu. Kunder kan først se det, når det er udgivet.',
+	'admin.prerelease.notice': 'Prerelease: gæster ser en "kommer snart"-side og kan skrive deres e-mail. {count} har skrevet sig op indtil videre, og de får en mail, når du udgiver galleriet.',
+	'admin.prerelease.publishConfirm': 'Udgiv galleriet og send en mail til de {count}, der har skrevet sig op?',
+	'admin.prerelease.released': 'Udgivet. {count} tilmeldte får en mail.',
 
 	// Warnings from the scanner
 	'warning.rootImages': '{count} billeder ligger direkte i galleriets mappe og ignoreres. Flyt dem ind i en sektionsmappe.',
@@ -531,6 +540,8 @@ const da: Messages = {
 	'admin.templates.kind.reminder': 'Påmindelse om udløb',
 	'admin.templates.kindHint.delivery': 'Bruges, når du deler et galleri på e-mail.',
 	'admin.templates.kindHint.reminder': 'Sendes automatisk, før et galleri udløber, hvis galleriet har en påmindelse.',
+	'admin.templates.kind.release': 'Galleri udgivet',
+	'admin.templates.kindHint.release': 'Sendes, når du udgiver et galleri, der var i prerelease, til alle der har skrevet sig op.',
 	'admin.templates.expiryField': 'Udløbsdato',
 	'admin.setup.language': 'Sprog',
 	'admin.dashboard.expiring': 'Udløber snart',
@@ -1140,7 +1151,10 @@ const da: Messages = {
 	'email.defaultTemplate.body': 'Hej {client_name}\n\nDine billeder er klar. Jeg håber, du bliver lige så glad for dem, som jeg var for at tage dem.\n\nÅbn dit galleri med knappen herunder.\n\nDe bedste hilsner\n{studio_name}',
 	'email.reminderTemplate.name': 'Påmindelse om udløb',
 	'email.reminderTemplate.subject': 'Dit galleri udløber {expiry_date}',
-	'email.reminderTemplate.body': 'Hej {client_name}\n\nEn venlig påmindelse om, at dit galleri {gallery_name} er tilgængeligt til og med {expiry_date}. Husk at downloade dine billeder og gemme dine favoritter inden da.\n\nDe bedste hilsner\n{studio_name}'
+	'email.reminderTemplate.body': 'Hej {client_name}\n\nEn venlig påmindelse om, at dit galleri {gallery_name} er tilgængeligt til og med {expiry_date}. Husk at downloade dine billeder og gemme dine favoritter inden da.\n\nDe bedste hilsner\n{studio_name}',
+	'email.releaseTemplate.name': 'Galleri udgivet',
+	'email.releaseTemplate.subject': 'Billederne er klar: {gallery_name}',
+	'email.releaseTemplate.body': 'Hej\n\nBillederne fra {gallery_name} er klar. Du bad om besked, når de var klar, så her er de.\n\nÅbn galleriet med knappen herunder.\n\nDe bedste hilsner\n{studio_name}',
 };
 
 export default da;

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import nodemailer from 'nodemailer';
 import type { Attachment } from 'nodemailer/lib/mailer';
-import { and, asc, desc, eq, isNull, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lte } from 'drizzle-orm';
 import { config } from '../config';
 import { getDb, schema } from '../db';
 import type { Gallery, GalleryEmailPayload, Order, TemplateKind } from '../db/schema';
@@ -300,6 +300,28 @@ export function sendDueReminders(): void {
 		);
 		db.update(schema.galleries).set({ reminderSentAt: Date.now() }).where(eq(schema.galleries.id, gallery.id)).run();
 	}
+}
+
+/**
+ * The gallery has been published after a pre-release: email everyone who signed up for it.
+ * Returns how many were emailed. The gallery password is never included (anyone could sign up).
+ */
+export function queueReleaseEmails(gallery: Gallery, baseUrl: string): number {
+	const db = getDb();
+	const waiting = db
+		.select({ id: schema.visitors.id, email: schema.visitors.email })
+		.from(schema.visitors)
+		.where(and(eq(schema.visitors.galleryId, gallery.id), eq(schema.visitors.notifyOnRelease, true)))
+		.all();
+	if (waiting.length === 0) return 0;
+	const template = pickTemplate('release', gallery.language) ?? { id: null, ...builtInTemplate('release', gallery.language) };
+	queueGalleryEmail(gallery, waiting.map((w) => w.email), { subject: template.subject, body: template.body, includePassword: false, baseUrl }, template.id);
+	db.update(schema.visitors)
+		.set({ notifyOnRelease: false })
+		.where(inArray(schema.visitors.id, waiting.map((w) => w.id)))
+		.run();
+	log.info(`"${gallery.name}" released: ${waiting.length} sign-ups emailed`);
+	return waiting.length;
 }
 
 /** The address used the last time this gallery was emailed (fallback when BASE_URL is not set). */

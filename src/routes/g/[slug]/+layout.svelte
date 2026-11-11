@@ -18,6 +18,7 @@
 	import PasswordGate from '$lib/components/client/PasswordGate.svelte';
 	import AccessGate from '$lib/components/client/AccessGate.svelte';
 	import RegisterGate from '$lib/components/client/RegisterGate.svelte';
+	import PrereleaseGate from '$lib/components/client/PrereleaseGate.svelte';
 	import { GalleryState, setGalleryState } from '$lib/components/client/gallery-state.svelte';
 
 	let { data, children } = $props();
@@ -99,6 +100,8 @@
 			placeholder={data.lockedCover?.placeholder ?? null}
 			color={data.lockedCover?.color ?? null}
 		/>
+	{:else if data.state === 'prerelease'}
+		<PrereleaseGate slug={data.gallery.slug} name={data.gallery.name} eventDate={data.gallery.eventDate} subtitle={data.studio.name || null} cover={data.gateCover} />
 	{:else if data.state === 'choose'}
 		<AccessGate slug={data.gallery.slug} name={data.gallery.name} subtitle={data.studio.name || null} cover={data.gateCover} />
 	{:else if data.state === 'locked'}

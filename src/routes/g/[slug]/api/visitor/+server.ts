@@ -15,11 +15,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * email, and the email registration before entering the gallery.
  */
 export const POST: RequestHandler = async ({ params, request, cookies, locals, url, getClientAddress }) => {
-	const body = (await request.json().catch(() => ({}))) as { email?: unknown; registration?: unknown; share?: unknown };
+	const body = (await request.json().catch(() => ({}))) as { email?: unknown; registration?: unknown; share?: unknown; prerelease?: unknown };
 	const { gallery, state } = loadClientGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
 	// A shared list may ask for an email before downloading, even when the gallery itself is locked.
 	const viaShare = Boolean(sharedListFor(gallery, typeof body.share === 'string' ? body.share : null));
-	if (state !== 'open' && state !== 'register' && !viaShare) error(403, state);
+	// The pre-release page only signs people up for the release email.
+	const signup = state === 'prerelease' && body.prerelease === true;
+	if (state !== 'open' && state !== 'register' && !viaShare && !signup) error(403, state);
 	if (!rateLimit(`visitor:${getClientAddress()}`, 30, 15 * 60 * 1000)) error(429);
 
 	const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -36,7 +38,10 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals, u
 		db.insert(schema.visitors).values({ id, galleryId: gallery.id, email }).run();
 		visitor = db.select().from(schema.visitors).where(eq(schema.visitors.id, id)).get()!;
 	}
-	if (body.registration === true && shouldTrack(locals)) recordActivity(gallery.id, 'registration', email);
+	if (signup) {
+		db.update(schema.visitors).set({ notifyOnRelease: true }).where(eq(schema.visitors.id, visitor.id)).run();
+		if (shouldTrack(locals)) recordActivity(gallery.id, 'registration', email, { scope: 'prerelease' });
+	} else if (body.registration === true && shouldTrack(locals)) recordActivity(gallery.id, 'registration', email);
 	setVisitorId(cookies, url, gallery.id, visitor.id);
 
 	// cookies.get sees the cookie set above, so this already reads the new visitor.

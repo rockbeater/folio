@@ -4,7 +4,7 @@ import { getDb, schema } from '../db';
 import type { EmailTemplate, TemplateKind } from '../db/schema';
 import { createI18n, type MessageKey } from '$lib/i18n';
 
-export const TEMPLATE_KINDS: TemplateKind[] = ['delivery', 'reminder', 'order', 'digital', 'shipped', 'refunded'];
+export const TEMPLATE_KINDS: TemplateKind[] = ['delivery', 'reminder', 'release', 'order', 'digital', 'shipped', 'refunded'];
 
 export function listTemplates(kind?: TemplateKind): EmailTemplate[] {
 	return getDb()
@@ -25,6 +25,7 @@ export function builtInTemplate(kind: TemplateKind, language: string): { name: s
 	const prefix = {
 		delivery: 'email.defaultTemplate',
 		reminder: 'email.reminderTemplate',
+		release: 'email.releaseTemplate',
 		order: 'email.orderTemplate',
 		digital: 'email.digitalTemplate',
 		shipped: 'email.shippedTemplate',

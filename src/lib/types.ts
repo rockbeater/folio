@@ -1,6 +1,7 @@
 // Types shared between server and client.
 
-export type GalleryStatus = 'draft' | 'published' | 'hidden';
+/** prerelease: the link shows a "coming soon" page where visitors can ask to be emailed on release. */
+export type GalleryStatus = 'draft' | 'prerelease' | 'published' | 'hidden';
 
 export type CoverLayout = 'center' | 'bottom' | 'split' | 'frame' | 'none';
 export type GridStyle = 'vertical' | 'horizontal';
