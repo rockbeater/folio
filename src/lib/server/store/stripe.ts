@@ -111,6 +111,21 @@ export async function ensureWebhook(baseUrl: string): Promise<void> {
 	log.info(`webhook endpoint created: ${url}`);
 }
 
+/** Whether Stripe still has this installation's webhook endpoint, and whether it is switched on. */
+export async function webhookStatus(): Promise<'enabled' | 'disabled' | 'missing' | 'unknown'> {
+	const { stripe } = getStore();
+	if (!stripe.secretKey || !stripe.webhookId) return 'missing';
+	try {
+		const endpoint = await call<{ status?: string }>(stripe.secretKey, 'GET', `/webhook_endpoints/${stripe.webhookId}`);
+		return endpoint.status === 'disabled' ? 'disabled' : 'enabled';
+	} catch (err) {
+		if (err instanceof StripeError && err.status === 404) return 'missing';
+		// A restricted key may not read webhook endpoints.
+		if (err instanceof StripeError && err.status === 403) return 'unknown';
+		throw err;
+	}
+}
+
 export async function removeWebhook(): Promise<void> {
 	const { stripe } = getStore();
 	if (stripe.secretKey && stripe.webhookId) {

@@ -446,6 +446,16 @@ export async function processQueue(): Promise<void> {
 	}
 }
 
+/** Connect and log in to the mail server without sending anything (the self-check). */
+export async function verifySmtp(smtp = getSmtp()): Promise<void> {
+	const mailer = transport(smtp);
+	try {
+		await mailer.verify();
+	} finally {
+		mailer.close();
+	}
+}
+
 export function startMailQueue(): void {
 	setInterval(() => void processQueue(), 30_000).unref();
 	void processQueue();

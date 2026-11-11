@@ -63,6 +63,15 @@ function write<T extends object>(key: string, value: T): void {
 		.run();
 }
 
+/** A small stored object for other modules (e.g. when the self-check last emailed an alert). */
+export function readSetting<T extends object>(key: string, fallback: T): T {
+	return read(key, fallback);
+}
+
+export function writeSetting<T extends object>(key: string, value: T): void {
+	write(key, value);
+}
+
 export function getStudio(): StudioSettings {
 	return read('studio', DEFAULT_STUDIO);
 }

@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import PresetsTab from '$lib/components/admin/settings/PresetsTab.svelte';
 	import TemplatesTab from '$lib/components/admin/settings/TemplatesTab.svelte';
+	import SystemTab from '$lib/components/admin/settings/SystemTab.svelte';
 	import WatermarksTab from '$lib/components/admin/settings/WatermarksTab.svelte';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { SMTP_PRESETS } from '$lib/smtp-presets';
@@ -15,7 +16,7 @@
 	let { data, form } = $props();
 	const { t } = useI18n();
 
-	const TABS = ['branding', 'preferences', 'homepage', 'watermarks', 'presets', 'email', 'templates', 'privacy', 'backup', 'account'] as const;
+	const TABS = ['branding', 'preferences', 'homepage', 'watermarks', 'presets', 'email', 'templates', 'privacy', 'backup', 'system', 'account'] as const;
 	type Tab = (typeof TABS)[number];
 	const tab = $derived<Tab>((TABS as readonly string[]).includes(page.url.searchParams.get('tab') ?? '') ? (page.url.searchParams.get('tab') as Tab) : 'branding');
 	const tabLabel: Record<Tab, MessageKey> = {
@@ -28,6 +29,7 @@
 		templates: 'admin.studio.tabTemplates',
 		privacy: 'admin.studio.tabPrivacy',
 		backup: 'admin.studio.tabBackup',
+		system: 'admin.system.tab',
 		account: 'admin.studio.tabAccount'
 	};
 
@@ -337,6 +339,8 @@
 					{/if}
 					<p class="hint">{t('admin.privacy.noTracking')}</p>
 				</section>
+			{:else if tab === 'system'}
+				<SystemTab results={data.health} />
 			{:else if tab === 'backup'}
 				<section class="card block">
 					<h3>{t('admin.backup.download')}</h3>

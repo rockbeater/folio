@@ -198,6 +198,23 @@ docker compose logs -f
 
 With `LOG_LEVEL=info` you see form posts and API calls that change something, uploads, checkouts and orders, Stripe calls and webhooks, emails that fail, failed admin logins, and full error details for anything that goes wrong (status 500). `debug` shows more, `warn` and `error` show less. Secrets and passwords are never logged.
 
+### Self-check
+
+Every 15 minutes Folio checks what it depends on, and **Settings → System** shows the result (with **Check now**):
+
+| Check | What it looks at |
+|---|---|
+| Stripe connection | The key still works and Stripe can be reached (only while the store is open). |
+| Stripe webhook | The endpoint still exists in Stripe, is switched on and points to `BASE_URL`. |
+| Email sending | Folio can connect and log in to your mail server. |
+| Sent emails | Emails that failed in the last 7 days. |
+| Photo library | `/photos` can be reached and written to. |
+| Disk space | Free space for data, cache and photos (warning below 5 GB, error below 1 GB). |
+| Public address | `BASE_URL` is set. |
+| Photo processing | Photos that could not be processed. |
+
+Problems show as a bar at the top of the admin (warnings can be hidden until something changes). When a check starts failing, you also get an email at the studio's contact address, at most once a day per problem (not for email sending itself). Changes are logged as `[health]`.
+
 ---
 
 ## Statistics and your own visits

@@ -43,6 +43,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `v1` Søg i hele billedbiblioteket på tværs af gallerier (filnavn).
 - [x] `v1` Nøgletal på dashboardet: nye ordrer og gallerier, der snart udløber.
 - [x] `v1` Aktivitet bag en klokke i topbaren: betalte ordrer, indsendte udvalg, downloads og registreringer på tværs af gallerier, med antal nye siden sidst. En aktivitetsside viser det hele, grupperet pr. dag og med filtre.
+- [x] `v1` Selvtjek hvert kvarter: forbindelse til Stripe og webhook, afsendelse af e-mail, fejlede e-mails, fotobibliotek, diskplads, BASE_URL og billeder, der ikke kunne behandles. Problemer vises som bjælke øverst i admin og under Indstillinger → System (med "Tjek nu"), og ejeren får en e-mail, når et tjek begynder at fejle (højst én om dagen pr. problem).
 
 ## 2. Galleri og filsystem
 

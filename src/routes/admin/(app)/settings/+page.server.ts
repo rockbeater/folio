@@ -1,3 +1,4 @@
+import { healthResults, runChecks } from '$lib/server/health';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -62,6 +63,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const pending = setupSecret(cookies, url, admin.id);
 	const gdprEmail = (url.searchParams.get('email') ?? '').trim().toLowerCase();
 	return {
+		health: healthResults(),
 		studio: getStudio(),
 		preferences: getPreferences(),
 		smtp: { ...smtp, pass: '', hasPass: Boolean(smtp.pass) },
@@ -98,6 +100,11 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 };
 
 export const actions: Actions = {
+	/** Run the self-check now (Settings → System). */
+	healthCheck: async () => {
+		await runChecks();
+		return { tab: 'system', checked: true };
+	},
 	branding: async ({ request }) => {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '').trim();

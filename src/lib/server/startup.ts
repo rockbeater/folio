@@ -8,6 +8,7 @@ import { startLibraryWatcher } from './library/watcher';
 import { ensureDefaultTemplates } from './mail/templates';
 import { startMailQueue } from './mail/send';
 import { getStudio } from './settings';
+import { startHealthChecks } from './health';
 import { purgeAbandonedCheckouts } from './store/orders';
 
 let started = false;
@@ -33,4 +34,5 @@ export function startServices(): void {
 	startMailQueue();
 	purgeAbandonedCheckouts();
 	setInterval(purgeAbandonedCheckouts, 6 * 60 * 60 * 1000).unref();
+	startHealthChecks();
 }
