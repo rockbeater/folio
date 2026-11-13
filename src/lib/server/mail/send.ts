@@ -4,6 +4,7 @@ import path from 'node:path';
 import nodemailer from 'nodemailer';
 import type { Attachment } from 'nodemailer/lib/mailer';
 import { and, asc, desc, eq, inArray, isNull, lte } from 'drizzle-orm';
+import { clientPasswordOf } from '../access';
 import { config } from '../config';
 import { getDb, schema } from '../db';
 import type { Gallery, GalleryEmailPayload, Order, TemplateKind } from '../db/schema';
@@ -59,6 +60,7 @@ export function mergeValuesFor(gallery: Gallery, baseUrl: string): MergeValues {
 		gallery_name: gallery.name,
 		gallery_link: galleryLink(baseUrl, gallery),
 		password: gallery.password ?? '',
+		client_password: clientPasswordOf(gallery) ?? '',
 		studio_name: getStudio().name,
 		event_date: gallery.eventDate ? formatDate(gallery.eventDate) : '',
 		expiry_date: gallery.expiresOn ? formatDate(gallery.expiresOn) : ''
@@ -132,6 +134,7 @@ export async function composeGalleryEmail(gallery: Gallery, payload: GalleryEmai
 		message: mergeFields(payload.body, values),
 		link: values.gallery_link,
 		password: payload.includePassword && gallery.password ? gallery.password : null,
+		clientPassword: payload.includeClientPassword ? clientPasswordOf(gallery) : null,
 		studio,
 		coverSrc,
 		logoSrc

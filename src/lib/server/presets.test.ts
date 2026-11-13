@@ -44,6 +44,20 @@ describe('presets and photo order', () => {
 		expect(scanner.insertSection(gallery.id, 'C').sortMode).toBe('date');
 	});
 
+	it('gives every new gallery its own client password when the preset has client access on', () => {
+		const id = presets.savePreset({ name: 'Clients', settings: { access: { clientEnabled: true } as never } });
+		presets.setDefaultPreset(id);
+		const a = scanner.insertGallery('g-client-a', 'Client A', 'Client A');
+		const b = scanner.insertGallery('g-client-b', 'Client B', 'Client B');
+		const passwordOf = (g: { access: unknown }) => (g.access as { clientEnabled: boolean; clientPassword: string | null });
+		expect(passwordOf(a)).toMatchObject({ clientEnabled: true });
+		expect(passwordOf(a).clientPassword).toMatch(/^[a-z0-9]{8}$/);
+		expect(passwordOf(b).clientPassword).not.toBe(passwordOf(a).clientPassword);
+		// Without client access no password is made.
+		expect(presets.galleryValuesFromSettings({}).access.clientPassword).toBeNull();
+		presets.setDefaultPreset(null);
+	});
+
 	it('leaves the order alone for presets saved before they carried it', () => {
 		expect(presets.galleryValuesFromSettings({}).sortMode).toBeUndefined();
 	});

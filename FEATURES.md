@@ -90,6 +90,7 @@ v1 bygges i fire faser. Hver fase pushes til `main` og giver et nyt Docker-image
 - [x] `v1` **Navigationsstil:** Kun ikon / Ikon og tekst.
 - [x] `v1` Design-presets: gem et design og brug det som standard for nye gallerier.
 - [x] `v1` Presets husker sorteringen af billeder (filnavn eller optagelsesdato). Nye gallerier og sektioner, der kommer til senere, får samme sortering. Ellers følger nye sektioner den sortering, der sidst blev valgt i galleriet.
+- [x] `v1` Presets kan have kundeadgang slået til. Hvert nyt galleri får så automatisk sin egen kundeadgangskode, og et galleri, der allerede har en, beholder den, når et preset anvendes. Kundeadgangskoden kan medtages i galleri-mailen (eget felt og flettefeltet `{client_password}`).
 
 De konkrete layouts, skrifttyper og farver beskrives i [DESIGN.md](DESIGN.md).
 

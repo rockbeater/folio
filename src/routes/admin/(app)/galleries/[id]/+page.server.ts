@@ -49,10 +49,13 @@ function requireGallery(id: string) {
 	return gallery;
 }
 
-/** Presets and copied settings never replace a gallery's own client password and client sections. */
+/**
+ * Presets and copied settings never replace a gallery's own client password and client sections.
+ * A gallery without a client password gets the one generated for it when the preset turns client access on.
+ */
 function keepClientAccess(access: GalleryAccess, gallery: Gallery): GalleryAccess {
 	const own = normalizeAccess(gallery.access);
-	return { ...access, clientPassword: own.clientPassword, clientSections: own.clientSections };
+	return { ...access, clientPassword: own.clientPassword ?? access.clientPassword, clientSections: own.clientSections };
 }
 
 function baseUrlFor(url: URL): string {
@@ -778,6 +781,7 @@ export const actions: Actions = {
 			subject: f.str('subject'),
 			body: f.str('body'),
 			includePassword: f.bool('includePassword'),
+			includeClientPassword: f.bool('includeClientPassword'),
 			baseUrl: baseUrlFor(url)
 		};
 

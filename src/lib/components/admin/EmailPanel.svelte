@@ -56,6 +56,8 @@
 	// svelte-ignore state_referenced_locally
 	let recipients = $state(gallery.clientEmail ?? '');
 	let includePassword = $state(true);
+	let includeClientPassword = $state(true);
+	const hasClientPassword = $derived(gallery.access.clientEnabled && Boolean(gallery.access.clientPassword));
 	let publish = $state(true);
 	let busy = $state(false);
 	let preview = $state<{ subject: string; html: string } | null>(null);
@@ -74,7 +76,7 @@
 		const res = await fetch(`/admin/api/galleries/${gallery.id}/email-preview`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ subject, body, includePassword })
+			body: JSON.stringify({ subject, body, includePassword, includeClientPassword: hasClientPassword && includeClientPassword })
 		});
 		if (res.ok) preview = await res.json();
 		else toast(t('common.error'), 'error');
@@ -85,7 +87,7 @@
 		const res = await fetch(`/admin/api/galleries/${gallery.id}/email-preview`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ subject, body, includePassword })
+			body: JSON.stringify({ subject, body, includePassword, includeClientPassword: hasClientPassword && includeClientPassword })
 		});
 		if (!res.ok) return toast(t('common.error'), 'error');
 		const data = (await res.json()) as { invitation: string };
@@ -157,6 +159,9 @@
 
 		{#if gallery.password}
 			<label class="row"><input type="checkbox" name="includePassword" bind:checked={includePassword} />{t('admin.email.includePassword')}</label>
+		{/if}
+		{#if hasClientPassword}
+			<label class="row"><input type="checkbox" name="includeClientPassword" bind:checked={includeClientPassword} />{t('admin.email.includeClientPassword')}</label>
 		{/if}
 		{#if gallery.status !== 'published'}
 			<label class="row"><input type="checkbox" name="publish" bind:checked={publish} />{t('admin.email.publishAndSend')}</label>

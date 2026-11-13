@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { asc, eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import type { Gallery, Preset, PresetSettings } from './db/schema';
+import { generateGalleryPassword } from './crypto';
 import { getPreferences } from './settings';
 import { DEFAULT_ACCESS, DEFAULT_DESIGN, DEFAULT_DOWNLOAD, DEFAULT_OPTIONS, normalizeAccess, normalizeDesign, normalizeDownload, normalizeOptions } from '$lib/types';
 
@@ -69,6 +70,10 @@ function addDays(days: number): string {
 
 /** Gallery columns for a set of preset settings. */
 export function galleryValuesFromSettings(settings: PresetSettings) {
+	const access = { ...normalizeAccess(settings.access ?? DEFAULT_ACCESS), clientPassword: null as string | null, clientSections: [] as string[] };
+	// Client access in a preset: every gallery gets its own client password (a gallery that
+	// already has one keeps it, see the editor's keepClientAccess).
+	if (access.clientEnabled) access.clientPassword = generateGalleryPassword();
 	return {
 		design: normalizeDesign(settings.design ?? DEFAULT_DESIGN),
 		download: normalizeDownload({ ...(settings.download ?? DEFAULT_DOWNLOAD), pin: null }),
@@ -78,7 +83,7 @@ export function galleryValuesFromSettings(settings: PresetSettings) {
 		watermarkId: settings.watermarkId ?? null,
 		expiresOn: settings.expiryDays ? addDays(settings.expiryDays) : null,
 		reminderDays: settings.reminderDays ?? null,
-		access: { ...normalizeAccess(settings.access ?? DEFAULT_ACCESS), clientPassword: null, clientSections: [] as string[] },
+		access,
 		storeEnabled: settings.storeEnabled ?? false,
 		priceListId: settings.priceListId ?? null,
 		// Presets saved before they carried the order leave it as it is.

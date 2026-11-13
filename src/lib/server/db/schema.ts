@@ -247,6 +247,8 @@ export interface GalleryEmailPayload {
 	subject: string;
 	body: string;
 	includePassword: boolean;
+	/** Add the client password (galleries with client access; for the client only). */
+	includeClientPassword?: boolean;
 	baseUrl: string;
 	/** Store emails: heading, button link and label, and language. */
 	title?: string;
