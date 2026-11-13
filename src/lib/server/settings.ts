@@ -1,3 +1,4 @@
+import { DEFAULT_CARRIERS, normalizeCarriers, type Carrier } from '$lib/carriers';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import { config } from './config';
@@ -196,6 +197,10 @@ export interface StoreSettings {
 	/** Address of this site as last seen at checkout (for links in store emails without BASE_URL). */
 	siteUrl: string;
 	stripe: StripeSettings;
+	/** Shipping carriers and their tracking pages (Store → Shipping). */
+	carriers: Carrier[];
+	/** Preselected when the next order is shipped. */
+	lastCarrier: string;
 }
 
 const DEFAULT_STRIPE: StripeSettings = {
@@ -217,12 +222,14 @@ const DEFAULT_STORE: StoreSettings = {
 	terms: '',
 	license: '',
 	siteUrl: '',
-	stripe: DEFAULT_STRIPE
+	stripe: DEFAULT_STRIPE,
+	carriers: DEFAULT_CARRIERS,
+	lastCarrier: ''
 };
 
 export function getStore(): StoreSettings {
 	const stored = read('store', DEFAULT_STORE);
-	return { ...stored, stripe: { ...DEFAULT_STRIPE, ...stored.stripe } };
+	return { ...stored, stripe: { ...DEFAULT_STRIPE, ...stored.stripe }, carriers: normalizeCarriers(stored.carriers) };
 }
 
 export function saveStore(update: Partial<Omit<StoreSettings, 'stripe'>> & { stripe?: Partial<StripeSettings> }): StoreSettings {

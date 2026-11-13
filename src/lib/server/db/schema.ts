@@ -500,6 +500,9 @@ export const orders = sqliteTable(
 		stripePaymentIntent: text('stripe_payment_intent'),
 		stripeMode: text('stripe_mode').$type<'test' | 'live' | 'simulated' | 'free'>(),
 		tracking: text('tracking'),
+		/** Carrier id from the store's carrier list, and its name when shipped (the list may change). */
+		carrier: text('carrier'),
+		carrierName: text('carrier_name'),
 		notes: text('notes').notNull().default(''),
 		createdAt: integer('created_at').notNull().default(now),
 		paidAt: integer('paid_at'),

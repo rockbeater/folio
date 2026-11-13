@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { galleryWatermarkKey, photosByIds } from '$lib/server/client';
 import { getGalleryById, toPhotoView } from '$lib/server/galleries';
 import { getStore } from '$lib/server/settings';
+import { trackingUrl } from '$lib/carriers';
 import { clearCart } from '$lib/server/store/cart';
 import { digitalItems, getOrderByToken, orderItems } from '$lib/server/store/orders';
 import { splitIntoParts, resolveVariant } from '$lib/server/download';
@@ -42,6 +43,8 @@ export const load: PageServerLoad = ({ params, cookies, locals }) => {
 			total: order.total,
 			refunded: order.refunded,
 			tracking: order.tracking,
+			carrierName: order.carrierName,
+			trackingLink: trackingUrl(getStore().carriers, order.carrier, order.tracking),
 			createdAt: order.createdAt,
 			galleryName: order.galleryName,
 			gallerySlug: gallery?.slug ?? null,

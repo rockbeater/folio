@@ -91,7 +91,16 @@
 			</p>
 		</section>
 	{/if}
-	{#if order.tracking}<p>{t('store.tracking')}: <strong>{order.tracking}</strong></p>{/if}
+	{#if order.tracking}
+		<p>
+			{order.carrierName ? `${t('store.tracking')} (${order.carrierName})` : t('store.tracking')}:
+			{#if order.trackingLink}
+				<a href={order.trackingLink} target="_blank" rel="noopener noreferrer"><strong>{order.tracking}</strong></a>
+			{:else}
+				<strong>{order.tracking}</strong>
+			{/if}
+		</p>
+	{/if}
 
 	{#if order.gallerySlug}<a class="c-btn" href="/g/{order.gallerySlug}">{t('client.backToGallery')}</a>{/if}
 </main>

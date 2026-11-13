@@ -269,6 +269,7 @@ Et galleri kan have to adgangsniveauer. **Gæster** (fx bryllupsgæster og famil
 - [x] `v1` Ordredetalje: produkter med billede og filnavn, adresse, fragt, rabat, moms og betalingsstatus fra Stripe.
 - [x] `v1` Download ordrens filer samlet til print som en ZIP, hvor filerne er navngivet efter produkt, størrelse og antal.
 - [x] `v1` Markér som afsendt med trackingnummer, hvilket sender en mail til kunden.
+- [x] `v1` Vælg fragtfirma ved afsendelse (det sidst brugte er forvalgt). Fragtfirmaer og deres tracking-adresser kan redigeres under Butik → Fragt med en standardliste (PostNord, GLS, DPD, Bring, DHL Express, UPS, FedEx, USPS). Forsendelsesmailens knap fører direkte til fragtfirmaets tracking-side, kvitteringen linker trackingnummeret, og skabelonerne kan bruge `{carrier}` og `{tracking_link}`.
 - [x] `v1` Hel eller delvis refundering direkte fra admin via Stripe.
 - [x] `v1` Interne noter på ordren.
 - [x] `v1` Eksport af ordrer til CSV til bogføring.

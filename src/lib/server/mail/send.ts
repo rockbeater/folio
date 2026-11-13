@@ -13,6 +13,7 @@ import { originalFile } from '../images/paths';
 import { ensureEmailCover, sharpenKey } from '../images/render';
 import { getSmtp, getStore, getStudio, isSmtpConfigured, type SmtpSettings } from '../settings';
 import { formatMoney } from '$lib/store';
+import { trackingUrl } from '$lib/carriers';
 import { createI18n } from '$lib/i18n';
 import { mergeFields, renderGalleryEmail, type MergeValues } from './render';
 import { builtInTemplate, pickTemplate } from './templates';
@@ -178,12 +179,15 @@ export function queueStoreEmail(order: Order, kind: Extract<TemplateKind, 'order
 	const { t } = createI18n(order.language);
 	const template = pickTemplate(kind, order.language) ?? builtInTemplate(kind, order.language);
 	const link = `${baseUrl}/order/${order.token}`;
+	const tracking = trackingUrl(store.carriers, order.carrier, order.tracking);
 	const values: Record<string, string> = {
 		client_name: order.name,
 		order_number: String(order.number),
 		order_total: formatMoney(order.total, order.currency, order.language),
 		order_link: link,
 		tracking_number: order.tracking ?? '',
+		tracking_link: tracking ?? '',
+		carrier: order.carrierName ?? '',
 		refund_amount: formatMoney(refundAmount, order.currency, order.language),
 		studio_name: store.name || getStudio().name,
 		gallery_name: order.galleryName
@@ -204,8 +208,9 @@ export function queueStoreEmail(order: Order, kind: Extract<TemplateKind, 'order
 				includePassword: false,
 				baseUrl,
 				title: t('store.orderNumber', { number: String(order.number) }),
-				link,
-				buttonLabel: t(kind === 'digital' ? 'email.downloadButton' : 'email.orderButton'),
+				// The shipping email leads straight to the carrier's tracking page when there is one.
+				link: kind === 'shipped' && tracking ? tracking : link,
+				buttonLabel: t(kind === 'digital' ? 'email.downloadButton' : kind === 'shipped' && tracking ? 'email.trackButton' : 'email.orderButton'),
 				language: order.language
 			}
 		})

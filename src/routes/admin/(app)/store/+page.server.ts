@@ -21,6 +21,7 @@ import {
 import { deleteOrder, getOrder, listCustomers, listOrders, vatReport } from '$lib/server/store/orders';
 import { ensureWebhook, keyMode, removeWebhook, verifyKey } from '$lib/server/store/stripe';
 import { toMinor } from '$lib/store';
+import { normalizeCarriers } from '$lib/carriers';
 import type { Actions, PageServerLoad } from './$types';
 import { logger } from '$lib/server/log';
 
@@ -108,7 +109,7 @@ export const load: PageServerLoad = ({ url }) => {
 		case 'taxes':
 			return { ...base, taxes: listTaxRates() };
 		case 'shipping':
-			return { ...base, methods: listShippingMethods() };
+			return { ...base, methods: listShippingMethods(), carriers: getStore().carriers };
 		case 'report': {
 			const from = DATE.test(q('from')) ? q('from') : `${new Date().getFullYear()}-01-01`;
 			const to = DATE.test(q('to')) ? q('to') : new Date().toLocaleDateString('sv-SE');
@@ -269,6 +270,19 @@ export const actions: Actions = {
 		const db = getDb();
 		if (id) db.update(schema.shippingMethods).set(values).where(eq(schema.shippingMethods.id, id)).run();
 		else db.insert(schema.shippingMethods).values({ id: crypto.randomUUID(), ...values, position: listShippingMethods().length }).run();
+		return { saved: true };
+	},
+
+	/** Shipping carriers and their tracking pages. */
+	saveCarriers: async ({ request }) => {
+		let list: unknown;
+		try {
+			list = JSON.parse((await formOf(request)).str('carriers', 20_000));
+		} catch {
+			return fail(400);
+		}
+		if (!Array.isArray(list)) return fail(400);
+		saveStore({ carriers: normalizeCarriers(list) });
 		return { saved: true };
 	},
 

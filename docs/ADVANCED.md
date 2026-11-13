@@ -135,6 +135,8 @@ The top of the store pages lists what still stops customers from ordering.
 
 **Country in the checkout.** The cart starts with the customer's likely country chosen, among the countries you ship to; they can always change it. Folio makes no outside lookups for this. Behind Cloudflare (or CloudFront, Vercel, Google App Engine, or a proxy that sets `X-Country-Code`, e.g. nginx with a GeoIP module) it uses the country of the visitor's IP address from that header; otherwise the browser's language and region (`Accept-Language`).
 
+**Shipping and tracking.** When you mark an order as shipped, choose the carrier next to the tracking number (the one used last is preselected). The shipping email then gets a **Track parcel** button to the carrier's tracking page, and the tracking number on the receipt becomes a link. The carriers and their tracking addresses are under **Store → Shipping**: `{tracking_number}` marks where the number goes, and a test button opens the page. Carriers change these addresses now and then, so check them there if a link stops working. In store email templates you can use `{carrier}` and `{tracking_link}`.
+
 **Orders.** A checkout only becomes an order when the payment is confirmed: unpaid checkouts are not shown, get their order number only when paid (so numbers have no gaps) and are removed after three days.
 
 ### Connecting Stripe

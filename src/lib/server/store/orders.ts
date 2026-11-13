@@ -328,8 +328,11 @@ export async function refundOrder(order: Order, amount: number): Promise<{ ok: t
 	return { ok: true };
 }
 
-export function shipOrder(order: Order, tracking: string): void {
-	touch(order.id, { status: 'shipped', tracking: tracking || null });
+export function shipOrder(order: Order, tracking: string, carrierId = ''): void {
+	const carrier = getStore().carriers.find((c) => c.id === carrierId);
+	touch(order.id, { status: 'shipped', tracking: tracking || null, carrier: carrier?.id ?? null, carrierName: carrier?.name ?? null });
+	// The next shipment is probably sent the same way.
+	if (carrier) saveStore({ lastCarrier: carrier.id });
 	queueStoreEmail(getOrder(order.id)!, 'shipped');
 }
 

@@ -121,6 +121,16 @@
 				<form class="card block" method="POST" action="?/ship" use:enhance={saved}>
 					<h3>{t('admin.orders.ship')}</h3>
 					<input name="tracking" value={o.tracking ?? ''} placeholder={t('store.tracking')} aria-label={t('store.tracking')} />
+					<label class="field">
+						<span>{t('admin.carriers.sentWith')}</span>
+						<select name="carrier" value={data.carrier}>
+							<option value="">{t('admin.carriers.none')}</option>
+							{#each data.carriers as c (c.id)}<option value={c.id}>{c.name}</option>{/each}
+						</select>
+					</label>
+					{#if data.trackingLink}
+						<a class="hint" href={data.trackingLink} target="_blank" rel="noopener noreferrer">{t('admin.carriers.open', { carrier: o.carrierName ?? '' })}</a>
+					{/if}
 					<p class="hint">{t('admin.orders.shipHint')}</p>
 					<div><button class="btn primary" type="submit">{t('admin.orders.markShipped')}</button></div>
 				</form>

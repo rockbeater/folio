@@ -3,6 +3,8 @@ import { photosByIds } from '$lib/server/client';
 import { toPhotoView } from '$lib/server/galleries';
 import { deleteOrder, getOrder, orderItems, refundOrder, shipOrder, updateOrder } from '$lib/server/store/orders';
 import { ORDER_STATUSES, toMinor, type OrderStatus } from '$lib/store';
+import { trackingUrl } from '$lib/carriers';
+import { getStore } from '$lib/server/settings';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {
@@ -15,7 +17,11 @@ export const load: PageServerLoad = ({ params }) => {
 	return {
 		order,
 		items: items.map((i) => ({ ...i, photo: i.photoId && photos.has(i.photoId) ? toPhotoView(photos.get(i.photoId)!) : null })),
-		hasPrint: items.some((i) => i.kind === 'physical' && i.photoId)
+		hasPrint: items.some((i) => i.kind === 'physical' && i.photoId),
+		carriers: getStore().carriers.map((c) => ({ id: c.id, name: c.name })),
+		// Shipped orders keep their carrier; new shipments start with the one used last.
+		carrier: order.carrier ?? getStore().lastCarrier,
+		trackingLink: trackingUrl(getStore().carriers, order.carrier, order.tracking)
 	};
 };
 
@@ -35,7 +41,8 @@ export const actions: Actions = {
 	},
 	ship: async ({ params, request }) => {
 		const order = requireOrder(params.id);
-		shipOrder(order, String((await request.formData()).get('tracking') ?? '').trim().slice(0, 120));
+		const form = await request.formData();
+		shipOrder(order, String(form.get('tracking') ?? '').trim().slice(0, 120), String(form.get('carrier') ?? ''));
 		return { saved: true };
 	},
 	refund: async ({ params, request }) => {

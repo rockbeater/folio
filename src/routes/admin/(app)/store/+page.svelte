@@ -4,6 +4,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import Trash from '@lucide/svelte/icons/trash-2';
 	import Modal from '$lib/components/Modal.svelte';
+	import CarriersEditor from '$lib/components/admin/CarriersEditor.svelte';
 	import { COUNTRY_CODES, countryName, countryOptions } from '$lib/countries';
 	import { useI18n, type MessageKey } from '$lib/i18n';
 	import { toast } from '$lib/toast.svelte';
@@ -310,6 +311,7 @@
 				</form>
 			{/each}
 			{#if form?.shippingError}<p class="error-text">{t('admin.shipping.err')}</p>{/if}
+			{#if data.carriers}<CarriersEditor carriers={data.carriers} />{/if}
 		</div>
 	{:else if data.tab === 'report' && data.report}
 		<form class="filters card" method="GET">
