@@ -5,6 +5,7 @@ import { photoFilter, photosByIds, requireOpenGallery, visitorInfo } from '$lib/
 import { createI18n } from '$lib/i18n';
 import { createList, deleteList, getList, listPhotoIds, newShareToken, setActiveList, setNote, updateList } from '$lib/server/lists';
 import { queueNotice } from '$lib/server/mail/send';
+import { rateLimit } from '$lib/server/ratelimit';
 import { getStudio } from '$lib/server/settings';
 import { normalizeAccess } from '$lib/types';
 import type { RequestHandler } from './$types';
@@ -62,7 +63,9 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals, u
 		case 'submit': {
 			const submitted = body.submitted !== false;
 			updateList(list, { submittedAt: submitted ? Date.now() : null });
-			if (submitted) {
+			// One email per list every ten minutes (and a few per address an hour), however often it is sent again.
+			const notify = submitted && rateLimit(`submit:${list.id}`, 1, 10 * 60 * 1000) && rateLimit(`submit-ip:${locals.ip}`, 10, 60 * 60 * 1000);
+			if (notify) {
 				const studio = getStudio();
 				const { t } = createI18n(studio.language);
 				const info = visitorInfo(cookies, gallery);

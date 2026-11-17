@@ -79,6 +79,26 @@ describe('order flow', () => {
 		expect('redirect' in result).toBe(true);
 	});
 
+	it('does not let parallel checkouts use the last coupon twice, and lets go when the buyer comes back', async () => {
+		const gallery = (await import('../galleries')).getGalleryById('g1')!;
+		dbm.getDb().insert(dbm.schema.coupons).values({ id: 'c1', name: 'Last one', code: 'LAST', startsOn: '2000-01-01', percent: 10, maxUses: 1 }).run();
+		const withCoupon = { ...cart('p1'), couponCode: 'LAST' };
+		const first = await orders.placeOrder(gallery, 'guest', withCoupon, input, 'http://localhost', true);
+		expect('redirect' in first).toBe(true);
+		// Someone else checks out while the first buyer is still on the payment page.
+		const other = await orders.placeOrder(gallery, 'guest', withCoupon, { ...input, email: 'other@example.com' }, 'http://localhost', true);
+		expect(other).toEqual({ error: 'coupon' });
+		// The first buyer trying again lets go of their own earlier try.
+		const again = await orders.placeOrder(gallery, 'guest', withCoupon, input, 'http://localhost', true);
+		expect('redirect' in again).toBe(true);
+		// Coming back from the payment page frees the coupon for others.
+		const held = dbm.getDb().select().from(dbm.schema.orders).all().filter((o) => o.couponCode === 'LAST' && o.status !== 'cancelled');
+		expect(held).toHaveLength(1);
+		orders.releaseCheckout(held[0].token);
+		const later = await orders.placeOrder(gallery, 'guest', withCoupon, { ...input, email: 'other@example.com' }, 'http://localhost', true);
+		expect('redirect' in later).toBe(true);
+	});
+
 	it('does not let a guest buy a private photo', async () => {
 		const gallery = (await import('../galleries')).getGalleryById('g1')!;
 		const result = await orders.placeOrder(gallery, 'guest', cart('p2'), input, 'http://localhost', true);

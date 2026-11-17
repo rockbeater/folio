@@ -1,12 +1,12 @@
 import { error, json } from '@sveltejs/kit';
 import { getGalleryById } from '$lib/server/galleries';
-import { manifestFor, resolveVariant, singleDownload, splitIntoParts, zipDownload } from '$lib/server/download';
+import { downloadAllowed, manifestFor, resolveVariant, singleDownload, splitIntoParts, zipDownload } from '$lib/server/download';
 import { digitalItems, getOrderByToken, orderItems } from '$lib/server/store/orders';
 import { normalizeDownload } from '$lib/types';
 import type { RequestHandler } from './$types';
 
 /** Purchased digital files, without watermark, in the size the product gives. */
-export const GET: RequestHandler = ({ params, url }) => {
+export const GET: RequestHandler = ({ params, url, locals }) => {
 	const order = getOrderByToken(params.token);
 	if (!order || !['paid', 'partially_refunded'].includes(order.paymentStatus)) error(404);
 	const item = orderItems(order.id).find((i) => i.id === params.item);
@@ -17,6 +17,8 @@ export const GET: RequestHandler = ({ params, url }) => {
 	const variant = resolveVariant({ ...normalizeDownload(gallery.download), enabled: true, highRes: true, web: true }, item.digital.size);
 	if (!variant) error(404);
 	const fileId = url.searchParams.get('file');
+	const single = Boolean(fileId) || url.searchParams.has('manifest') || files.length === 1;
+	if (!downloadAllowed(locals.ip, single ? 'file' : 'zip')) error(429, 'too-many');
 	if (fileId) {
 		const one = files.find((f) => f.photo.id === fileId);
 		if (!one) error(404);

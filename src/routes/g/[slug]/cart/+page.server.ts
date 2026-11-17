@@ -4,13 +4,16 @@ import { shopAccess, visitorInfo } from '$lib/server/client';
 import { getStore } from '$lib/server/settings';
 import { listShippingMethods } from '$lib/server/store/catalog';
 import { getCart, priceCart } from '$lib/server/store/cart';
-import { placeOrder } from '$lib/server/store/orders';
+import { placeOrder, releaseCheckout } from '$lib/server/store/orders';
+import { rateLimit } from '$lib/server/ratelimit';
 import { COUNTRY_CODES } from '$lib/countries';
 import { guessCountry } from '$lib/server/geo';
 import type { Actions, PageServerLoad } from './$types';
 
 // People a favorite list was shared with shop here too (?share=), without seeing the gallery.
 export const load: PageServerLoad = ({ params, cookies, locals, url, request }) => {
+	const released = url.searchParams.get('released');
+	if (released) releaseCheckout(released);
 	const access = shopAccess(params.slug, { cookies, isAdmin: Boolean(locals.admin) }, url.searchParams.get('share'));
 	if (!access) return { cart: null, terms: '', license: '', countries: [] as string[], country: null, email: '' };
 	const { gallery, role } = access;
@@ -41,6 +44,8 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const str = (name: string, max = 200) => String(form.get(name) ?? '').trim().slice(0, max);
 		const cart = getCart(cookies, gallery.id);
+		// Each checkout starts a payment page at Stripe; a script should not be able to start thousands.
+		if (!locals.admin && !rateLimit(`checkout:${locals.ip}`, 20, 15 * 60 * 1000)) return fail(429, { error: 'stripe' as const, message: '', values: null });
 		const input = {
 			email: str('email', 254),
 			name: str('name'),

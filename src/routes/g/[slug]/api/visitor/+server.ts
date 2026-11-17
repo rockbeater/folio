@@ -14,7 +14,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Identify a visitor by email: used for favorites, downloads that require an
  * email, and the email registration before entering the gallery.
  */
-export const POST: RequestHandler = async ({ params, request, cookies, locals, url, getClientAddress }) => {
+export const POST: RequestHandler = async ({ params, request, cookies, locals, url }) => {
 	const body = (await request.json().catch(() => ({}))) as { email?: unknown; registration?: unknown; share?: unknown; prerelease?: unknown };
 	const { gallery, state } = loadClientGallery(params.slug, { cookies, isAdmin: Boolean(locals.admin) });
 	// A shared list may ask for an email before downloading, even when the gallery itself is locked.
@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, locals, u
 	// The pre-release page only signs people up for the release email.
 	const signup = state === 'prerelease' && body.prerelease === true;
 	if (state !== 'open' && state !== 'register' && !viaShare && !signup) error(403, state);
-	if (!rateLimit(`visitor:${getClientAddress()}`, 30, 15 * 60 * 1000)) error(429);
+	if (!rateLimit(`visitor:${locals.ip}`, 30, 15 * 60 * 1000)) error(429);
 
 	const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 	if (!EMAIL.test(email) || email.length > 254) error(400, 'invalid-email');

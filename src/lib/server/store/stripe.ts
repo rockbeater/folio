@@ -161,6 +161,8 @@ export async function createCheckoutSession(input: {
 		payment_intent_data: { metadata: { order_id: input.orderId } },
 		success_url: input.successUrl,
 		cancel_url: input.cancelUrl,
+		// Stripe's shortest allowed lifetime: a payment page left open does not hold a coupon for a day.
+		expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
 		locale: input.locale,
 		line_items: input.lines.map((l) => ({
 			quantity: l.quantity,
@@ -170,6 +172,11 @@ export async function createCheckoutSession(input: {
 			? [{ shipping_rate_data: { type: 'fixed_amount', display_name: input.shipping.name.slice(0, 100), fixed_amount: { amount: input.shipping.amount, currency } } }]
 			: undefined
 	});
+}
+
+/** Close a payment page that is no longer needed, so it cannot be paid any more. */
+export async function expireCheckoutSession(sessionId: string): Promise<void> {
+	await call(getStore().stripe.secretKey, 'POST', `/checkout/sessions/${encodeURIComponent(sessionId)}/expire`);
 }
 
 export async function createRefund(paymentIntent: string, amount: number): Promise<{ id: string; amount: number }> {

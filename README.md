@@ -113,7 +113,13 @@ You should see `listening on http://0.0.0.0:8080` and `library scan complete`. P
 
 ### Step 6: Create your admin account
 
-Open `http://<your-server-ip>:8080` in a browser. Enter your studio name, your email, a password and the language, and you are in.
+Find the setup code in the log. It looks like `setup code: ABCD-EFGH`:
+
+```bash
+docker compose logs folio | grep "setup code"
+```
+
+Open `http://<your-server-ip>:8080` in a browser. Enter the setup code, your studio name, your email, a password and the language, and you are in. The code makes sure nobody else can create the account before you.
 
 Continue with [Your first gallery](#your-first-gallery).
 
@@ -210,7 +216,9 @@ If port 8080 is used by something else on your NAS, change the line to for examp
 
 ### Step 6: Create your admin account
 
-Open `http://<your-nas-ip>:8080` (for example `http://192.168.1.20:8080`). Enter your studio name, email, password and language.
+Find the setup code: in Container Manager open **Container → folio → Log** and look for `setup code: ABCD-EFGH`. It is also in the file `setup-code.txt` in the `folio/data` folder (File Station).
+
+Open `http://<your-nas-ip>:8080` (for example `http://192.168.1.20:8080`). Enter the setup code, your studio name, email, password and language.
 
 ### Step 7: Add photos from your computer
 
@@ -350,3 +358,4 @@ Folio's code and documentation were written by Claude, Anthropic's AI model, wor
 - [MISSION.md](MISSION.md): purpose and architecture
 - [FEATURES.md](FEATURES.md): features
 - [DESIGN.md](DESIGN.md): design rules and visual direction
+- [SECURITY.md](SECURITY.md): how Folio protects galleries, payments and data, and how to report a problem

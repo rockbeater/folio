@@ -394,6 +394,11 @@ Levering af gallerier via e-mail er en kernefunktion. Mailen er ofte kundens fø
 - [x] `MVP` CSRF-beskyttelse, sikre cookies og sikkerhedsheaders.
 - [x] `v1` Tofaktorgodkendelse (TOTP) til admin.
 - [x] `v1` GDPR: kundedata kan eksporteres og slettes, og der bruges ingen tredjeparts-tracking. Ordrer bevares af hensyn til bogføringen.
+- [x] `v1` Engangskode til opsætningen, så kun den, der driver serveren, kan oprette admin-kontoen. Kontoen oprettes atomisk.
+- [x] `v1` Fejlforsøg begrænses også samlet pr. galleri, link og konto, så gæt fordelt på mange adresser ikke hjælper. Den rigtige klientadresse bag en proxy bruges til alle grænser.
+- [x] `v1` Grænser på dyre handlinger: ZIP-downloads, checkout og notifikationsmails.
+- [x] `v1` Begrænsede kuponer reserveres under betaling, så samtidige checkouts ikke kan bruge den samme kupon for mange gange.
+- [x] `v1` CSV-eksporter er sikret mod formel-injektion, og HSTS, COOP og no-store sendes på admin. Afhængigheder tjekkes for kendte sårbarheder i CI.
 
 ## 23. Drift: Docker, backup og opdateringer
 

@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import { config } from './config';
 import { getDb } from './db';
-import { purgeExpiredSessions } from './auth';
+import { hasAdmin, purgeExpiredSessions } from './auth';
+import { setupCode } from './setup';
 import { resumePending } from './images/queue';
 import { scanLibrary } from './library/scanner';
 import { startLibraryWatcher } from './library/watcher';
@@ -24,6 +25,7 @@ export function startServices(): void {
 	getDb(); // opens and migrates the database
 	purgeExpiredSessions();
 	ensureDefaultTemplates(getStudio().language);
+	if (!hasAdmin()) setupCode(); // prints the one-time setup code in the log
 
 	console.log(`[folio] photo library: ${config.photosDir}`);
 	console.log(`[folio] data: ${config.dataDir}, cache: ${config.cacheDir}`);

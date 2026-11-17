@@ -7,3 +7,7 @@ dev-data
 *.md
 !README.md
 docker-compose.yml
+.env
+.env.*
+*.sqlite
+*.db

@@ -112,7 +112,7 @@ server {
 
 **Nginx Proxy Manager / Synology:** create a proxy host for the domain pointing to port 8080, request a Let's Encrypt certificate, and add the headers above. The Synology steps are in the [README](../README.md#step-8-make-the-galleries-reachable-for-clients-https).
 
-Folio trusts `X-Forwarded-For`, `X-Real-IP` and `CF-Connecting-IP` only when the request comes from a private address (your proxy), so visitors cannot fake their address.
+Folio trusts `X-Forwarded-For`, `X-Real-IP` and `CF-Connecting-IP` only when the request comes from a private address (your proxy), so visitors cannot fake their address. From `X-Forwarded-For` it uses the last address, the one your proxy added. The address is used for statistics and for the limits on login and password attempts, so make sure the proxy sends it. With Cloudflare in front of your own proxy, let that proxy pass the visitor's address on (in nginx: `set_real_ip_from` with Cloudflare's ranges and `real_ip_header CF-Connecting-IP`), or use a Cloudflare Tunnel straight to Folio.
 
 > With `BASE_URL` set, open Folio only on that address. Forms opened on another address (e.g. the local IP) are refused as a security measure.
 
@@ -235,6 +235,13 @@ If your reverse proxy does not forward the visitor's address, every visitor has 
 
 ## Security
 
+How Folio protects galleries, payments and data is described in [SECURITY.md](../SECURITY.md). For running it:
+
+- **Setup code.** Until the admin account exists, the setup page asks for a one-time code. It is printed in the log (`setup code: XXXX-XXXX`) and saved as `setup-code.txt` in the data folder, and removed once the account is created. Create the account right after the first start anyway.
+- **Attempt limits.** Wrong passwords, PINs and two-factor codes are limited per visitor address, and per gallery or link from all addresses together. Downloads, checkouts and emails from visitors are capped as well. The limits reset when Folio restarts.
+- **HTTPS.** Over HTTPS Folio sends `Strict-Transport-Security`, so browsers keep using HTTPS for the domain. Plain HTTP on the home network is not affected.
+- **Backups** contain the database and the keys in the data folder (Stripe, SMTP, signing key). Store them somewhere only you can reach.
+- **Keep the data folder private.** It holds `secret.key`, which signs logins and visitor cookies. Deleting it logs everyone out.
 - Every admin page, form and API call requires a login. Two-factor login with an authenticator app is under **Settings → Account**.
 - Gallery passwords, client passwords, download PINs and share links are checked on the server; guests never receive private photos or client-only sections.
 - Search engines are told not to index anything. Under **Settings → Privacy** you can allow the homepage; galleries are never indexed.

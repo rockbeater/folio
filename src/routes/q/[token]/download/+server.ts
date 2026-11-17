@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import { isLinkUnlocked } from '$lib/server/access';
 import { linkPhotoFilter } from '$lib/server/client';
-import { estimateBytes, manifestFor, resolveVariant, singleDownload, splitIntoParts, zipDownload, type DownloadItem } from '$lib/server/download';
+import { downloadAllowed, estimateBytes, manifestFor, resolveVariant, singleDownload, splitIntoParts, zipDownload, type DownloadItem } from '$lib/server/download';
 import { getGalleryById, getPhotosBySection, getSections } from '$lib/server/galleries';
 import { countLink, getShareLinkByToken, isLinkOpen } from '$lib/server/shares';
 import { getWatermark } from '$lib/server/watermarks';
@@ -46,6 +46,8 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 	if (!variant) error(403, 'size-not-allowed');
 	if (items.length === 0) error(404);
 	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
+	const single = Boolean(fileId) || url.searchParams.has('manifest') || scope === 'photo';
+	if (!isAdmin && !downloadAllowed(locals.ip, single ? 'file' : 'zip')) error(429, 'too-many');
 	if (fileId) return singleDownload(gallery, items[0], variant, watermark);
 	if (shouldTrack(locals)) countLink(link.id, 'downloads');
 	if (url.searchParams.has('manifest')) return json({ files: manifestFor(items, variant, url) });

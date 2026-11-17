@@ -43,7 +43,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Everything under /admin needs a login. Layout loads redirect pages to the login,
 	// but form actions and endpoints do not run layout loads, so they are checked here.
-	if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login') && !event.locals.admin) {
+	const isLogin = pathname === '/admin/login' || pathname.startsWith('/admin/login/');
+	if (pathname.startsWith('/admin') && !isLogin && !event.locals.admin) {
 		const isPage = event.request.method === 'GET' && !pathname.startsWith('/admin/api') && !pathname.includes('/export/');
 		if (isPage) redirect(303, `/admin/login?next=${encodeURIComponent(pathname + event.url.search)}`);
 		return new Response('Unauthorized', { status: 401 });
@@ -59,6 +60,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.set('x-content-type-options', 'nosniff');
 	response.headers.set('referrer-policy', 'same-origin');
 	response.headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+	response.headers.set('cross-origin-opener-policy', 'same-origin');
+	// Browsers only accept this over HTTPS, so a plain-HTTP setup on a home network is not affected.
+	if (event.url.protocol === 'https:') response.headers.set('strict-transport-security', 'max-age=15552000');
+	// Admin pages and data are never kept in shared caches.
+	if (pathname.startsWith('/admin') && !response.headers.has('cache-control')) response.headers.set('cache-control', 'private, no-store');
 
 	// Log changes (form posts, uploads, API calls) and failures; plain page and image views are left out.
 	const method = event.request.method;

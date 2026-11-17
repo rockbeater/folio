@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, ne, sql, type SQL } from 'drizzle-orm';
 import sharp from 'sharp';
 import { config } from '../config';
 import { getDb, schema } from '../db';
@@ -217,6 +217,37 @@ export function validateCoupon(code: string, galleryId: string): { coupon: Coupo
 			productIds: coupon.productIds && coupon.productIds.length ? coupon.productIds : null
 		}
 	};
+}
+
+/** How long an unpaid checkout keeps its coupon reserved (a bit longer than the payment page lives). */
+export const COUPON_HOLD_MS = 35 * 60 * 1000;
+
+/**
+ * Whether a limited coupon still has room once checkouts that are being paid right now are
+ * counted: uses only go up when a payment is confirmed, so without this several buyers paying at
+ * the same moment could all use the last one.
+ */
+export function couponHasRoom(code: string, galleryId: string, now = Date.now()): boolean {
+	const coupon = getCouponByCode(code);
+	if (!coupon) return false;
+	if (coupon.maxUses === null && !coupon.oncePerGallery) return true;
+	const held = (extra?: SQL) =>
+		getDb()
+			.select({ n: sql<number>`count(*)` })
+			.from(schema.orders)
+			.where(
+				and(
+					eq(schema.orders.couponCode, coupon.code),
+					eq(schema.orders.paymentStatus, 'unpaid'),
+					ne(schema.orders.status, 'cancelled'),
+					gt(schema.orders.createdAt, now - COUPON_HOLD_MS),
+					extra
+				)
+			)
+			.get()?.n ?? 0;
+	if (coupon.maxUses !== null && coupon.uses + held() >= coupon.maxUses) return false;
+	if (coupon.oncePerGallery && held(eq(schema.orders.galleryId, galleryId)) > 0) return false;
+	return true;
 }
 
 /** The coupon shown as banner in galleries, if any is active. */

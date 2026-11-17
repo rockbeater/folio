@@ -17,13 +17,16 @@ export function hasAdmin(): boolean {
 	return Boolean(getDb().select({ id: schema.users.id }).from(schema.users).limit(1).get());
 }
 
-export async function createAdmin(email: string, password: string): Promise<AdminUser> {
+/**
+ * Create the first admin. Returns null when one already exists: the check and the insert run
+ * together after the password is hashed, so two setup requests at once cannot both create one.
+ */
+export async function createFirstAdmin(email: string, password: string): Promise<AdminUser | null> {
 	const id = crypto.randomUUID();
 	const normalized = email.trim().toLowerCase();
-	getDb()
-		.insert(schema.users)
-		.values({ id, email: normalized, passwordHash: await hashPassword(password) })
-		.run();
+	const passwordHash = await hashPassword(password);
+	if (hasAdmin()) return null;
+	getDb().insert(schema.users).values({ id, email: normalized, passwordHash }).run();
 	return { id, email: normalized };
 }
 

@@ -6,6 +6,7 @@
 	import ShareLinkDialog from './ShareLinkDialog.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import { formatMoney } from '$lib/store';
+	import { toCsv } from '$lib/csv';
 	import { displayUrl, type PhotoView } from '$lib/types';
 	import Download from '@lucide/svelte/icons/download';
 	import { toast } from '$lib/toast.svelte';
@@ -88,7 +89,7 @@
 
 	function exportCsv(email: string, list: string, items: { filename: string; note: string | null }[]) {
 		const rows = [['email', 'list', 'filename', 'note'], ...items.map((i) => [email, list, i.filename, i.note ?? ''])];
-		const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+		const csv = toCsv(rows);
 		const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
 		const a = document.createElement('a');
 		a.href = url;

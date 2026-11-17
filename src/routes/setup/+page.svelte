@@ -36,6 +36,12 @@
 		}}
 	>
 		<label class="field">
+			<span>{t('admin.setup.code')}</span>
+			<input type="text" name="code" required autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" />
+			<p class="hint">{t('admin.setup.codeHint')}</p>
+			{#if err('code')}<p class="error-text">{err('code')}</p>{/if}
+		</label>
+		<label class="field">
 			<span>{t('admin.setup.language')}</span>
 			<select name="language" bind:value={language}>
 				{#each SUPPORTED_LANGUAGES as lang (lang)}<option value={lang}>{LANGUAGE_NAMES[lang]}</option>{/each}

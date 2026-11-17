@@ -24,6 +24,22 @@ export function resetRateLimit(key: string): void {
 	buckets.delete(key);
 }
 
+/**
+ * Failures against one thing from all addresses together (e.g. wrong PINs for one gallery), so
+ * guessing spread over many addresses is capped too. Check with tooManyFailures before trying.
+ */
+export function noteFailure(key: string, windowMs: number): void {
+	const now = Date.now();
+	const bucket = buckets.get(key);
+	if (!bucket || bucket.resetAt <= now) buckets.set(key, { count: 1, resetAt: now + windowMs });
+	else bucket.count += 1;
+}
+
+export function tooManyFailures(key: string, limit: number): boolean {
+	const bucket = buckets.get(key);
+	return Boolean(bucket && bucket.resetAt > Date.now() && bucket.count >= limit);
+}
+
 // Drop expired buckets now and then so the map does not grow forever.
 setInterval(() => {
 	const now = Date.now();

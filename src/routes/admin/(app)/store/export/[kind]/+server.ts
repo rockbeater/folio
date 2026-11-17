@@ -1,11 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { listCustomers, listOrders, vatReport } from '$lib/server/store/orders';
+import { toCsv as csv } from '$lib/csv';
 import { fromMinor } from '$lib/store';
 import type { RequestHandler } from './$types';
-
-function csv(rows: (string | number | null)[][]): string {
-	return rows.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
-}
 
 const day = (ms: number | null) => (ms ? new Date(ms).toLocaleDateString('sv-SE') : '');
 

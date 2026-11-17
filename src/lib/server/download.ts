@@ -6,6 +6,15 @@ import type { Gallery, Photo, Section, Watermark } from './db/schema';
 import { originalFile, type DownloadVariant } from './images/paths';
 import { ensureDownload } from './images/render';
 import type { DownloadChoice, DownloadSettings } from '$lib/types';
+import { rateLimit } from './ratelimit';
+
+/**
+ * Downloads per address, so a script cannot keep the server busy packing archives. Single files
+ * get a high cap because a smart download fetches every photo on its own.
+ */
+export function downloadAllowed(ip: string, kind: 'file' | 'zip'): boolean {
+	return kind === 'zip' ? rateLimit(`zip:${ip}`, 30, 10 * 60 * 1000) : rateLimit(`file:${ip}`, 5000, 10 * 60 * 1000);
+}
 
 export interface DownloadItem {
 	photo: Photo;

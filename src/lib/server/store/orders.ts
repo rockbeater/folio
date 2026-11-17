@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import yazl from 'yazl';
 import { randomToken } from '../crypto';
@@ -16,7 +16,8 @@ import { createI18n } from '$lib/i18n';
 import { getStore, saveStore } from '../settings';
 import type { DownloadItem } from '../download';
 import { priceCart, type CartView } from './cart';
-import { createCheckoutSession, createRefund } from './stripe';
+import { createCheckoutSession, createRefund, expireCheckoutSession } from './stripe';
+import { couponHasRoom } from './catalog';
 import { formatMoney, type Crop } from '$lib/store';
 import type { Role } from '$lib/types';
 import type { CartItem } from '../db/schema';
@@ -130,6 +131,16 @@ export async function placeOrder(
 		return { error };
 	}
 
+	// Limited coupons: the buyer's own earlier unpaid tries are let go first (they came back to the
+	// cart), then checkouts being paid right now count as used. No await before the order is saved,
+	// so two checkouts at once cannot both take the last use.
+	const couponCode = view.couponCode && !view.couponError ? view.couponCode.toUpperCase() : null;
+	const letGo = couponCode ? releaseEarlierTries(gallery.id, input.email, couponCode) : [];
+	if (couponCode && !couponHasRoom(couponCode, gallery.id)) {
+		log.warn(`checkout refused in "${gallery.name}": coupon ${couponCode} is used up by checkouts in progress`);
+		return { error: 'coupon' };
+	}
+
 	if (getStore().siteUrl !== baseUrl) saveStore({ siteUrl: baseUrl });
 	const store = getStore();
 	const method = view.totals.needsShipping ? view.methods.find((m) => m.id === input.methodId)! : null;
@@ -164,7 +175,7 @@ export async function placeOrder(
 				shipping: totals.shipping,
 				tax: totals.tax,
 				total: totals.total,
-				couponCode: view.couponCode && !view.couponError ? view.couponCode.toUpperCase() : null
+				couponCode
 			})
 			.run();
 		for (const line of totals.lines) {
@@ -195,6 +206,7 @@ export async function placeOrder(
 		}
 	});
 
+	for (const session of letGo) void closePaymentPage(session);
 	log.info(`checkout ${id.slice(0, 8)} started in "${gallery.name}"`, { total: totals.total, currency: store.currency, kind: totals.kind });
 	if (totals.total === 0) {
 		markPaid(id, null, 'free');
@@ -219,7 +231,8 @@ export async function placeOrder(
 				lines,
 				shipping: !discounted && totals.shipping > 0 && method ? { name: method.name, amount: totals.shipping } : null,
 				successUrl: success,
-				cancelUrl: `${baseUrl}${cartPath}`,
+				// Coming back from the payment page lets go of the checkout (and its coupon).
+				cancelUrl: `${baseUrl}${cartPath}${cartPath.includes('?') ? '&' : '?'}released=${token}`,
 				locale: gallery.language === 'da' ? 'da' : 'auto'
 			});
 			touch(id, { stripeSessionId: session.id, stripeMode: store.stripe.mode ?? 'test' });
@@ -238,6 +251,41 @@ export async function placeOrder(
 	touch(id, { status: 'cancelled' });
 	log.warn('checkout refused: no Stripe key is set up (Store → Settings), and the payment simulator is off');
 	return { error: 'payments' };
+}
+
+/** Cancel the buyer's earlier unpaid checkouts with the same coupon in this gallery; returns their payment pages. */
+function releaseEarlierTries(galleryId: string, email: string, couponCode: string): string[] {
+	const db = getDb();
+	const where = and(
+		eq(schema.orders.galleryId, galleryId),
+		eq(schema.orders.email, email.toLowerCase()),
+		eq(schema.orders.couponCode, couponCode),
+		eq(schema.orders.paymentStatus, 'unpaid'),
+		ne(schema.orders.status, 'cancelled')
+	);
+	const earlier = db.select({ session: schema.orders.stripeSessionId, mode: schema.orders.stripeMode }).from(schema.orders).where(where).all();
+	if (earlier.length) db.update(schema.orders).set({ status: 'cancelled', updatedAt: Date.now() }).where(where).run();
+	return earlier.filter((o) => o.session && o.mode !== 'simulated').map((o) => o.session!);
+}
+
+async function closePaymentPage(sessionId: string): Promise<void> {
+	try {
+		await expireCheckoutSession(sessionId);
+	} catch {
+		// Already paid, expired or gone; nothing to do.
+	}
+}
+
+/**
+ * The buyer came back from the payment page without paying (Stripe's back link): the checkout is
+ * let go so its coupon is free again, and the payment page is closed. The token is the order's
+ * secret receipt token, so only that buyer can do this.
+ */
+export function releaseCheckout(token: string): void {
+	const order = getOrderByToken(token);
+	if (!order || order.paymentStatus !== 'unpaid' || order.status === 'cancelled') return;
+	touch(order.id, { status: 'cancelled' });
+	if (order.stripeSessionId && order.stripeMode !== 'simulated') void closePaymentPage(order.stripeSessionId);
 }
 
 function productDigital(gallery: Gallery, productId: string) {

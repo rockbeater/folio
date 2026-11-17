@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { addShareGrant, isLinkUnlocked, samePassword, unlockLink } from '$lib/server/access';
 import { galleryWatermarkKey, linkPhotoFilter, photosByIds, studioForClients } from '$lib/server/client';
 import { getGalleryById, publicGallery, toPhotoView } from '$lib/server/galleries';
-import { rateLimit, resetRateLimit } from '$lib/server/ratelimit';
+import { noteFailure, rateLimit, resetRateLimit, tooManyFailures } from '$lib/server/ratelimit';
 import { countLink, getShareLinkByToken, isLinkOpen } from '$lib/server/shares';
 import { normalizeDownload, type DownloadSettings } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
@@ -52,13 +52,17 @@ export const load: PageServerLoad = ({ params, cookies, locals, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ params, request, cookies, url, getClientAddress }) => {
+	default: async ({ params, request, cookies, url, locals }) => {
 		const { link } = find(params.token);
 		if (!link.password) redirect(303, url.pathname);
-		const key = `link:${getClientAddress()}:${link.id}`;
-		if (!rateLimit(key, 10, 15 * 60 * 1000)) return fail(429, { error: 'tooMany' as const });
+		const key = `link:${locals.ip}:${link.id}`;
+		const shared = `link-fail:${link.id}`;
+		if (tooManyFailures(shared, 100) || !rateLimit(key, 10, 15 * 60 * 1000)) return fail(429, { error: 'tooMany' as const });
 		const password = String((await request.formData()).get('password') ?? '').trim();
-		if (!samePassword(password, link.password)) return fail(400, { error: 'wrong' as const });
+		if (!samePassword(password, link.password)) {
+			noteFailure(shared, 60 * 60 * 1000);
+			return fail(400, { error: 'wrong' as const });
+		}
 		resetRateLimit(key);
 		unlockLink(cookies, url, link);
 		redirect(303, url.pathname);

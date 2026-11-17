@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { isPinUnlocked } from '$lib/server/access';
 import { photoFilter, recordActivity, requireGalleryOrShare, visitorInfo } from '$lib/server/client';
 import {
+	downloadAllowed,
 	estimateBytes,
 	manifestFor,
 	resolveVariant,
@@ -93,9 +94,11 @@ export const GET: RequestHandler = async ({ params, url, cookies, locals }) => {
 
 	const watermark = size === 'web' && settings.watermarkWeb ? (getWatermark(gallery.watermarkId) ?? null) : null;
 
+	const manifest = url.searchParams.has('manifest');
+	const single = Boolean(fileId) || manifest || scope === 'photo';
+	if (!isAdmin && !downloadAllowed(locals.ip, single ? 'file' : 'zip')) error(429, 'too-many');
 	// Single files of a smart download are counted once, when the list is asked for.
 	if (fileId) return singleDownload(gallery, items[0], variant, watermark);
-	const manifest = url.searchParams.has('manifest');
 
 	if (shouldTrack(locals)) {
 		recordActivity(gallery.id, 'download', visitor.email, {
