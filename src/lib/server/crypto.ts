@@ -65,6 +65,14 @@ export function sign(value: string): string {
 	return crypto.createHmac('sha256', appSecret()).update(value).digest('base64url');
 }
 
+/** Compare a cookie with the token it should hold, in constant time. */
+export function sameToken(actual: string | undefined, expected: string): boolean {
+	if (!actual) return false;
+	const a = Buffer.from(actual);
+	const b = Buffer.from(expected);
+	return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export function verifySignature(value: string, signature: string): boolean {
 	const expected = Buffer.from(sign(value));
 	const actual = Buffer.from(signature);
@@ -87,8 +95,7 @@ export function readSignedValue(cookie: string | undefined): string | null {
 /** Human-friendly random password for galleries (no look-alike characters). */
 export function generateGalleryPassword(length = 8): string {
 	const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
-	const bytes = crypto.randomBytes(length);
 	let out = '';
-	for (const b of bytes) out += alphabet[b % alphabet.length];
+	for (let i = 0; i < length; i++) out += alphabet[crypto.randomInt(alphabet.length)];
 	return out;
 }

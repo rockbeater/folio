@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import type { Cookies } from '@sveltejs/kit';
 import type { Gallery, ShareLink } from './db/schema';
 import { normalizeAccess } from '$lib/types';
-import { readSignedValue, sign, signedValue } from './crypto';
+import { readSignedValue, sameToken, sign, signedValue } from './crypto';
 
 const DAY = 24 * 60 * 60;
 
@@ -31,7 +31,7 @@ function passwordToken(gallery: Pick<Gallery, 'id' | 'password'>): string {
 
 export function isUnlocked(cookies: Cookies, gallery: Pick<Gallery, 'id' | 'password'>): boolean {
 	if (!gallery.password) return true;
-	return cookies.get(passwordCookie(gallery.id)) === passwordToken(gallery);
+	return sameToken(cookies.get(passwordCookie(gallery.id)), passwordToken(gallery));
 }
 
 export function unlockGallery(cookies: Cookies, url: URL, gallery: Pick<Gallery, 'id' | 'password'>): void {
@@ -68,7 +68,7 @@ function pinCookie(galleryId: string): string {
 /** True when no PIN is set, or the visitor has entered the current PIN. */
 export function isPinUnlocked(cookies: Cookies, galleryId: string, pin: string | null): boolean {
 	if (!pin) return true;
-	return cookies.get(pinCookie(galleryId)) === sign(`pin:${galleryId}:${pin}`);
+	return sameToken(cookies.get(pinCookie(galleryId)), sign(`pin:${galleryId}:${pin}`));
 }
 
 export function unlockPin(cookies: Cookies, url: URL, galleryId: string, pin: string): void {
@@ -140,7 +140,7 @@ function linkCookie(linkId: string): string {
 
 export function isLinkUnlocked(cookies: Cookies, link: Pick<ShareLink, 'id' | 'password'>): boolean {
 	if (!link.password) return true;
-	return cookies.get(linkCookie(link.id)) === sign(`link:${link.id}:${link.password}`);
+	return sameToken(cookies.get(linkCookie(link.id)), sign(`link:${link.id}:${link.password}`));
 }
 
 export function unlockLink(cookies: Cookies, url: URL, link: Pick<ShareLink, 'id' | 'password'>): void {
