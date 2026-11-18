@@ -85,7 +85,6 @@
 	size={design.thumbSize}
 	spacing={design.gridSpacing}
 	favorites={gs.favorites}
-	showFilenames={options.showFilenames}
 	{canFavorite}
 	{canDownload}
 	onopen={(index) => open(index)}

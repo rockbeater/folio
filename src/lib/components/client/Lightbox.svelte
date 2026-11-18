@@ -239,6 +239,7 @@
 	bind:this={dialog}
 	class="lightbox"
 	class:hide-controls={!controlsVisible}
+	class:with-caption={showFilenames}
 	aria-label={photo?.filename}
 	oncancel={(e) => {
 		e.preventDefault();
@@ -254,7 +255,6 @@
 			</button>
 			<span class="label counter tabular">
 				{t('client.counter', { current: index + 1, total: photos.length })}
-				{#if showFilenames}<span class="filename">{photo.filename}</span>{/if}
 			</span>
 			<div class="top-actions">
 				{#if canFavorite}
@@ -341,6 +341,8 @@
 			</div>
 		</div>
 
+		{#if showFilenames}<p class="caption">{photo.filename}</p>{/if}
+
 		{#if index > 0}
 			<button type="button" class="nav prev" onclick={() => go(-1)} aria-label={t('client.previous')}>
 				<ChevronLeft size={32} strokeWidth={1.25} />
@@ -396,11 +398,23 @@
 		color: var(--color-text-muted);
 	}
 
-	.filename {
+	/* The filename sits under the photo, in the space below it. */
+	.caption {
+		position: absolute;
+		left: 50%;
+		bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+		z-index: 2;
+		max-width: calc(100% - 2 * var(--space-4));
+		margin: 0;
+		transform: translateX(-50%);
+		overflow: hidden;
 		font-family: var(--font-body);
-		font-size: 0.75rem;
-		letter-spacing: 0;
-		text-transform: none;
+		font-size: 0.8125rem;
+		color: var(--color-text-muted);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		pointer-events: none;
+		transition: opacity var(--dur-ui) var(--ease-out);
 	}
 
 	.top-actions {
@@ -517,13 +531,18 @@
 	}
 
 	.hide-controls .top,
-	.hide-controls .nav {
+	.hide-controls .nav,
+	.hide-controls .caption {
 		opacity: 0;
 	}
 
 	@media (max-width: 767px) {
 		.track {
 			inset: 56px 0 calc(16px + env(safe-area-inset-bottom));
+		}
+
+		.with-caption .track {
+			bottom: calc(48px + env(safe-area-inset-bottom));
 		}
 
 		.nav {

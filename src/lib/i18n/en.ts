@@ -425,7 +425,7 @@ const en = {
 	'admin.settings.slideshow': 'Slideshow',
 	'admin.settings.slideshowHint': 'Let visitors play the photos as a slideshow.',
 	'admin.settings.showFilenames': 'Show filenames',
-	'admin.settings.showFilenamesHint': 'Show the filename under each photo, so clients can refer to specific photos.',
+	'admin.settings.showFilenamesHint': 'Show the filename under the photo when it is opened, so clients can refer to specific photos. The gallery grid stays clean.',
 	'admin.settings.banner': 'Announcement banner',
 	'admin.settings.bannerHint': 'Show your announcement banner at the top of this gallery. Set it up under Settings → Preferences.',
 	'admin.settings.expiry': 'Expiry',

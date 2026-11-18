@@ -425,7 +425,7 @@ const da: Messages = {
 	'admin.settings.slideshow': 'Diasshow',
 	'admin.settings.slideshowHint': 'Lad besøgende afspille billederne som et diasshow.',
 	'admin.settings.showFilenames': 'Vis filnavne',
-	'admin.settings.showFilenamesHint': 'Vis filnavnet under hvert billede, så kunder kan henvise til bestemte billeder.',
+	'admin.settings.showFilenamesHint': 'Vis filnavnet under billedet, når det er åbnet, så kunder kan henvise til bestemte billeder. Galleriet forbliver rent.',
 	'admin.settings.banner': 'Kampagnebanner',
 	'admin.settings.bannerHint': 'Vis dit kampagnebanner øverst i galleriet. Sæt det op under Indstillinger → Præferencer.',
 	'admin.settings.expiry': 'Udløb',

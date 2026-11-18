@@ -108,7 +108,7 @@ Indstillingerne er delt op i Generelt, Privatliv, Download, Favoritter og Butik.
 - [x] `v1` E-mailregistrering: besøgende angiver e-mail, før de får adgang. Registreringerne vises under Aktivitet.
 - [x] `v1` Galleri-guide: introkort, der viser nye besøgende, hvordan man favoritmarkerer, downloader og køber.
 - [x] `v1` Slideshow til/fra.
-- [x] `v1` Vis filnavne til/fra, så kunden kan henvise til et bestemt billede.
+- [x] `v1` Vis filnavne til/fra, så kunden kan henvise til et bestemt billede. Filnavnet står nederst under billedet, når det er åbnet, ikke i galleriets oversigt.
 - [x] `v1` Sprog for kundevisningen per galleri. Standardsproget kommer fra de globale indstillinger.
 
 ### 5.2 Privatliv

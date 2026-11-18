@@ -14,7 +14,6 @@
 		size: GridSize;
 		spacing: GridSize;
 		favorites: Set<string>;
-		showFilenames?: boolean;
 		canFavorite: boolean;
 		canDownload: boolean;
 		onopen: (index: number) => void;
@@ -40,7 +39,6 @@
 		size,
 		spacing,
 		favorites,
-		showFilenames = false,
 		canFavorite,
 		canDownload,
 		onopen,
@@ -181,7 +179,6 @@
 			<span class="mark" aria-hidden="true"><Heart size={16} strokeWidth={1.5} fill="currentColor" /></span>
 		{/if}
 	</figure>
-	{#if showFilenames}<p class="caption">{photo.filename}</p>{/if}
 	</div>
 {/snippet}
 
@@ -348,15 +345,6 @@
 		.tile:focus-within .actions {
 			display: flex;
 		}
-	}
-
-	.caption {
-		margin: 4px 0 0;
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	.mark {
